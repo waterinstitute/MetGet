@@ -21,6 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
 def valid_date(s):
     """
     Checks if a date is valid when parsing arguments from the command line
@@ -44,11 +45,13 @@ def metget_downloader():
     the output folder location that the database will be built
     """
     from metget.gfsdownloader import Gfsdownloader
-    from metget.namdownloader import Namdownloader
+    from metget.ncepnamdownloader import NcepNamdownloader
     from metget.hwrfdownloader import Hwrfdownloader
-    from metget.ncepdownloader import Ncepdownloader
+    from metget.ncepgfsdownloader import NcepGfsdownloader
     from metget.metdb import Metdb
+    from datetime import datetime
     import argparse
+    import time
     parser = argparse.ArgumentParser(description="Meteorological data downloader")
 
     # Optional arguments to select the types of data to be consuming
@@ -63,6 +66,10 @@ def metget_downloader():
                         help="End date for download (YYYY-MM-DD)")
     parser.add_argument("-l", "--location", metavar="f", type=str,
                         help="Folder location for building the database")
+    parser.add_argument("-p", "--continuous", action="store_true",
+                        help="Run downloader continuously searching for new data")
+    parser.add_argument("-z", "--sleep", metavar="sec", type=int,
+                        help="Number of seconds between iterations in continuous mode")
 
     args = parser.parse_args()
 
@@ -78,31 +85,52 @@ def metget_downloader():
         print("Error: Value for start date not set (--start)")
         exit(1)
 
-    if not args.end:
+    if not args.end and not args.continuous:
         print("Error: Value for end date not set (--end)")
         exit(1)
 
     dbloc = args.location
     start = args.start
-    end = args.end
+    continuous = args.continuous
+    sleep_duration = 60
+
+    if continuous:
+        end = datetime(2090, 1, 1)
+        if args.sleep:
+            sleep_duration = args.sleep
+    else:
+        end = args.end
 
     datagather = []
     if args.gfs:
         datagather.append(Gfsdownloader(dbloc, start, end))
     if args.nam:
-        datagather.append(Namdownloader(dbloc, start, end))
+        datagather.append(NcepNamdownloader(dbloc, start, end))
     if args.hwrf:
         datagather.append(Hwrfdownloader(dbloc, start, end))
     if args.ncep:
-        datagather.append(Ncepdownloader(dbloc, start, end))
+        datagather.append(NcepGfsdownloader(dbloc, start, end))
 
     # Initialize the database
-    Metdb(dbloc)
+    db = Metdb(dbloc)
 
-    # Download the data for the selected data types
-    for datatype in datagather:
-        print("Begin downloading "+datatype.metstring())
-        datatype.download()
+    while True:
+        # Download the data for the selected data types
+        n = 0
+        print("[INFO]: Beginning download pass at " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        for datatype in datagather:
+            print("[INFO]: Begin downloading " + datatype.metstring(), flush=True)
+            n += datatype.download()
+
+        print("[INFO]: Downloaded " + str(n) + " files during this pass")
+        print("[INFO]: Finished download pass at " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        db.status("database.json")
+
+        if continuous:
+            print("[INFO]: Sleeping for " + str(sleep_duration) + " seconds", flush=True)
+            time.sleep(sleep_duration)
+        else:
+            break
 
     return 0
 

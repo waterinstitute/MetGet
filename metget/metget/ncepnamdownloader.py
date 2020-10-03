@@ -24,25 +24,24 @@
 from metget.noaadownloader import NoaaDownloader
 
 
-class Ncepdownloader(NoaaDownloader):
+class NcepNamdownloader(NoaaDownloader):
     def __init__(self, dblocation, begin, end):
-        address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/"
-        NoaaDownloader.__init__(self, "gfs_ncep", "GFS-NCEP", address, dblocation, begin, end)
+        address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/nam/prod/"
+        NoaaDownloader.__init__(self, "nam_ncep", "NAM-NCEP", address, dblocation, begin, end)
         self.__downloadlocation = dblocation + "/" + self.mettype()
 
     def download(self):
         from metget.spyder import Spyder
         from datetime import datetime
         from metget.metdb import Metdb
-        import os.path
+        num_download = 0
         s = Spyder(self.address())
         db = Metdb(self.dblocation())
 
         links = []
         day_links = s.filelist()
         for l in day_links:
-            if "gfs." in l:
-                dmin2 = datetime(self.begindate().year, self.begindate().month, 1, 0, 0, 0)
+            if "nam." in l:
                 dstr = l[0:-1].rsplit('/', 1)[-1].rsplit('.', 1)[-1]
                 yr = int(dstr[0:4])
                 mo = int(dstr[4:6])
@@ -52,35 +51,37 @@ class Ncepdownloader(NoaaDownloader):
                     s2 = Spyder(l)
                     hr_links = s2.filelist()
                     for ll in hr_links:
-                        s3 = Spyder(ll)
-                        files = s3.filelist()
-                        for lll in files:
-                            if "pgrb2.0p25.f" in lll:
-                                links.append(lll)
+                        if "awphys" in ll:
+                            if "idx" not in ll:
+                                links.append(ll)
 
         pairs = self.generateGrbInvPairs(links)
         for p in pairs:
-            fpath = self.getgrib(self.__downloadlocation, p, p["cycledate"])
-            db.add(p, self.mettype(), fpath)
+            fpath, n = self.getgrib(self.__downloadlocation, p, p["cycledate"])
+            if fpath:
+                db.add(p, self.mettype(), fpath)
+                num_download += n
+
+        return num_download
 
     @staticmethod
     def generateGrbInvPairs(glist):
-        from datetime import datetime
-        from datetime import timedelta
+        from datetime import datetime, timedelta
         pairs = []
-        for i in range(0, len(glist), 2):
+        for i in range(0, len(glist)):
             lst = glist[i].rsplit("/")
-            v1 = lst[-1]
-            v2 = lst[-2]
-            v3 = lst[-3].rsplit(".", 1)[-1]
+            v1 = lst[-1].rsplit(".")[-3]
+            v2 = lst[-1].rsplit(".")[-4]
+            v3 = lst[-2].rsplit(".", 1)[-1]
 
             yr = int(v3[0:4])
             mo = int(v3[4:6])
             dy = int(v3[6:8])
-            cycle = int(v2)
-            fcst = int(v1[-3:])
+            cycle = int(v2[1:3])
+            fcst = int(v1[-2:])
 
             cdate = datetime(yr, mo, dy, cycle, 0, 0)
             fdate = cdate + timedelta(hours=fcst)
-            pairs.append({"grb": glist[i], "inv": glist[i + 1], "cycledate": cdate, "forecastdate": fdate})
+
+            pairs.append({"grb": glist[i], "inv": glist[i] + ".idx", "cycledate": cdate, "forecastdate": fdate})
         return pairs

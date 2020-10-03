@@ -79,16 +79,24 @@ class NoaaDownloader:
     def setenddate(self, date):
         self.__endDate = date
 
-    def getgrib(self, folder, info, time) -> str:
+    def getgrib(self, folder, info, time):
         """
         Gets the grib based upon the input data
         :param info: variable containing the location of the data
         :param time: time that the data represents
         :return: returns the name of the file that has been downloaded
         """
+        import os
         import os.path
         import requests
-        inv = requests.get(info['inv'], stream=True);
+
+        n = 0
+        try: 
+            inv = requests.get(info['inv'], stream=True, timeout=5)
+        except:
+            print("[WARNING]: NOAA Server stopped responding. Trying again later")
+            return None,0
+
         inv_lines = str(inv.text).split("\n")
         retlist = []
         for i in range(len(inv_lines)):
@@ -108,15 +116,24 @@ class NoaaDownloader:
         floc = dfolder + "/" + fn
 
         if not os.path.exists(floc):
-            print("     Downloading File: ", fn)
+            print("     Downloading File: " + fn + " (F: " + info["cycledate"].strftime("%Y-%m-%d %H:%M:%S") +
+                  ", T: " + info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S") + ")", flush=True)
+            n = 1
             for r in retlist:
                 headers = {"Range": "bytes=" + str(r["start"]) + "-" + str(r["end"])}
-                with requests.get(info['grb'], headers=headers, stream=True) as req:
-                    req.raise_for_status()
-                    with open(floc, 'ab') as f:
-                        for chunk in req.iter_content(chunk_size=8192):
-                            f.write(chunk)
-        return floc
+                try:
+                    with requests.get(info['grb'], headers=headers, stream=True, timeout=5) as req:
+                        req.raise_for_status()
+                        with open(floc, 'ab') as f:
+                            for chunk in req.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                except:
+                    print("[WARNING]: NOAA Server stopped responding. Trying again later")
+                    if os.path.exists(floc):
+                        os.remove(floc)
+                    return None,0
+
+        return floc, n
 
     def download(self):
         raise RuntimeError("Method not implemented")
@@ -135,7 +152,7 @@ class NoaaDownloader:
             dstr = t.rsplit('/', 1)[-1]
 
         if len(dstr) == 4:
-            return datetime(int(dstr))
+            return datetime(int(dstr), 1, 1)
         elif len(dstr) == 6:
             return datetime(int(dstr[0:4]), int(dstr[4:6]), 1)
         elif len(dstr) == 8:

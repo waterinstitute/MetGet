@@ -30,7 +30,7 @@ class Spyder:
         self.__url = url
 
     def url(self):
-        return self.__url;
+        return self.__url
 
     def filelist(self):
         """
@@ -39,11 +39,14 @@ class Spyder:
         """
         import requests
         from bs4 import BeautifulSoup
-        r = requests.get(self.__url)
-        if r.ok:
-            response_text = r.text
-        else:
-            raise Exception("Could not retrieve data")
+        try:
+            r = requests.get(self.__url, timeout=10)
+            if r.ok:
+                response_text = r.text
+            else:
+                raise Exception("Could not retrieve data")
+        except:
+            return []
 
         soup = BeautifulSoup(response_text, 'html.parser')
 

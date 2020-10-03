@@ -24,35 +24,46 @@
 from metget.noaadownloader import NoaaDownloader
 
 
-class Hwrfdownloader(NoaaDownloader):
+class NcepGfsdownloader(NoaaDownloader):
     def __init__(self, dblocation, begin, end):
-        address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hur/prod/"
-        NoaaDownloader.__init__(self, "hwrf", "HWRF", address, dblocation, begin, end)
+        address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/"
+        NoaaDownloader.__init__(self, "gfs_ncep", "GFS-NCEP", address, dblocation, begin, end)
         self.__downloadlocation = dblocation + "/" + self.mettype()
 
     def download(self):
         from metget.spyder import Spyder
+        from datetime import datetime
         from metget.metdb import Metdb
         num_download = 0
         s = Spyder(self.address())
         db = Metdb(self.dblocation())
 
-        links = s.filelist()
-        files = []
-        for l in links:
-            if "hwrf." in l:
-                s2 = Spyder(l)
-                l2 = s2.filelist()
-                for ll in l2:
-                    if "hwrfprs.storm" in ll:
-                        if "idx" not in ll:
-                            files.append(ll)
-        pairs = self.generateGrbInvPairs(files)
+        links = []
+        day_links = s.filelist()
+        for l in day_links:
+            if "gfs." in l:
+                dstr = l[0:-1].rsplit('/', 1)[-1].rsplit('.', 1)[-1]
+                yr = int(dstr[0:4])
+                mo = int(dstr[4:6])
+                dy = int(dstr[6:8])
+                t = datetime(yr, mo, dy, 0, 0, 0)
+                if self.enddate() >= t >= self.begindate():
+                    s2 = Spyder(l)
+                    hr_links = s2.filelist()
+                    for ll in hr_links:
+                        s3 = Spyder(ll)
+                        files = s3.filelist()
+                        for lll in files:
+                            if "pgrb2.0p25.f" in lll:
+                                if "idx" not in lll:
+                                    links.append(lll)
+
+        pairs = self.generateGrbInvPairs(links)
         for p in pairs:
             fpath, n = self.getgrib(self.__downloadlocation, p, p["cycledate"])
             if fpath:
                 db.add(p, self.mettype(), fpath)
-                num_download = num_download + n
+                num_download += n
 
         return num_download
 
@@ -62,17 +73,18 @@ class Hwrfdownloader(NoaaDownloader):
         from datetime import timedelta
         pairs = []
         for i in range(0, len(glist)):
-            v2 = glist[i].rsplit("/", 1)[-1]
-            v3 = v2.rsplit(".")[1]
-            v4 = v2.rsplit(".")[5][1:4]
-            name = v2.rsplit(".")[0]
-            cyear = int(v3[0:4])
-            cmon = int(v3[4:6])
-            cday = int(v3[6:8])
-            chour = int(v3[8:10])
-            fhour = int(v4)
-            cdate = datetime(cyear, cmon, cday, chour, 0, 0)
-            fdate = cdate + timedelta(hours=fhour)
-            pairs.append(
-                {"name": name, "grb": glist[i], "inv": glist[i] + ".idx", "cycledate": cdate, "forecastdate": fdate})
+            lst = glist[i].rsplit("/")
+            v1 = lst[-1]
+            v2 = lst[-2]
+            v3 = lst[-3].rsplit(".", 1)[-1]
+
+            yr = int(v3[0:4])
+            mo = int(v3[4:6])
+            dy = int(v3[6:8])
+            cycle = int(v2)
+            fcst = int(v1[-3:])
+
+            cdate = datetime(yr, mo, dy, cycle, 0, 0)
+            fdate = cdate + timedelta(hours=fcst)
+            pairs.append({"grb": glist[i], "inv": glist[i] + ".idx", "cycledate": cdate, "forecastdate": fdate})
         return pairs

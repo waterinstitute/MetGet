@@ -35,10 +35,10 @@ class Gfsdownloader(NoaaDownloader):
         from datetime import datetime
         from metget.metdb import Metdb
         import os.path
+        num_download = 0
         s = Spyder(self.address())
         db = Metdb(self.dblocation())
 
-        links = []
         month_links = s.filelist()
         for l in month_links:
             dmin2 = datetime(self.begindate().year, self.begindate().month, 1, 0, 0, 0)
@@ -58,8 +58,11 @@ class Gfsdownloader(NoaaDownloader):
                     file_links = s3.filelist()
                     pairs = self.generateGrbInvPairs(file_links)
                     for p in pairs:
-                        fpath = self.getgrib(self.__downloadlocation, p, t2)
+                        fpath, n = self.getgrib(self.__downloadlocation, p, t2)
                         db.add(p, self.mettype(), fpath)
+                        num_download += n
+
+        return num_download
 
     @staticmethod
     def generateGrbInvPairs(glist):
@@ -75,7 +78,7 @@ class Gfsdownloader(NoaaDownloader):
             fhour = int(v2[20:23])
             cdate = datetime(cyear, cmon, cday, chour, 0, 0)
             fdate = cdate + timedelta(hours=fhour)
-            pairs.append({"grb": glist[i], "inv": glist[i + 1], "cycledate": cdate, "forecastdate": fdate})
+
+            if len(glist) >= i + 2:
+                pairs.append({"grb": glist[i], "inv": glist[i + 1], "cycledate": cdate, "forecastdate": fdate})
         return pairs
-
-
