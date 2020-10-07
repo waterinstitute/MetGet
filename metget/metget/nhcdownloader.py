@@ -178,3 +178,4 @@ def basin2string(basin_abbrev):
         return "Atlantic"
     elif basin_abbrev == "cp":
         return "Central Pacific"
+    return basin_abbrev
