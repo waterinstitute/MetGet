@@ -133,8 +133,8 @@ class NhcDownloader:
             if r.ok:
                 response_text = r.text
             else:
-                raise Exception("Could not get the file list from NHC")
-        except:
+                return []
+        except requests.exceptions.Timeout or requests.exceptions.HTTPError or requests.exceptions.ConnectionError:
             return []
 
         soup = BeautifulSoup(response_text, 'html.parser')

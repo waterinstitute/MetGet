@@ -91,15 +91,16 @@ class NoaaDownloader:
         import requests
 
         n = 0
-        try: 
+        try:
             inv = requests.get(info['inv'], stream=True, timeout=5)
-        except:
+        except requests.exceptions.Timeout or requests.exceptions.HTTPError or \
+               requests.exceptions.ConnectionError:
             print("[WARNING]: NOAA Server stopped responding. Trying again later")
-            return None,0
+            return None, 0
 
         inv_lines = str(inv.text).split("\n")
         retlist = []
-        try: 
+        try:
             for i in range(len(inv_lines)):
                 for v in self.__variables:
                     if v["long_name"] in inv_lines[i]:
@@ -109,7 +110,7 @@ class NoaaDownloader:
                         break
         except:
             print("[WARNING]: NOAA server has not finished posting data yet. Waiting until next cycle")
-            return None,0
+            return None, 0
 
         fn = info['grb'].rsplit("/")[-1]
         year = "{0:04d}".format(time.year)
@@ -131,11 +132,12 @@ class NoaaDownloader:
                         with open(floc, 'ab') as f:
                             for chunk in req.iter_content(chunk_size=8192):
                                 f.write(chunk)
-                except:
+                except requests.exceptions.Timeout or requests.exceptions.HTTPError or \
+                       requests.exceptions.ConnectionError:
                     print("    [WARNING]: NOAA Server stopped responding. Trying again later")
                     if os.path.exists(floc):
                         os.remove(floc)
-                    return None,0
+                    return None, 0
 
         return floc, n
 
