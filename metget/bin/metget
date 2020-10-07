@@ -48,27 +48,32 @@ def metget_downloader():
     from metget.ncepnamdownloader import NcepNamdownloader
     from metget.hwrfdownloader import Hwrfdownloader
     from metget.ncepgfsdownloader import NcepGfsdownloader
+    from metget.nhcdownloader import NhcDownloader
     from metget.metdb import Metdb
     from datetime import datetime
     import argparse
     import time
+    import signal
+    import sys
+
     parser = argparse.ArgumentParser(description="Meteorological data downloader")
 
     # Optional arguments to select the types of data to be consuming
-    parser.add_argument("-g", "--gfs", action='store_true', help="Gather GFS data")
-    parser.add_argument("-n", "--nam", action='store_true', help="Gather NAM data")
-    parser.add_argument("-w", "--hwrf", action='store_true', help="Gather HWRF data")
-    parser.add_argument("-c", "--ncep", action='store_true', help="Gather GFS-NCEP data")
-    parser.add_argument("-r", "--rebuild", action='store_true', help="Rebuild the database file")
-    parser.add_argument("-s", "--start", metavar="d", type=valid_date,
+    parser.add_argument("--gfs", action='store_true', help="Gather GFS data")
+    parser.add_argument("--nam", action='store_true', help="Gather NAM data")
+    parser.add_argument("--hwrf", action='store_true', help="Gather HWRF data")
+    parser.add_argument("--ncep", action='store_true', help="Gather GFS-NCEP data")
+    parser.add_argument("--nhc", action='store_true', help="Gather NHC forecast/best track files")
+    parser.add_argument("--rebuild", action='store_true', help="Rebuild the database file")
+    parser.add_argument("--start", metavar="d", type=valid_date,
                         help="Start date for download (YYYY-MM-DD)")
-    parser.add_argument("-e", "--end", metavar="d", type=valid_date,
+    parser.add_argument("--end", metavar="d", type=valid_date,
                         help="End date for download (YYYY-MM-DD)")
-    parser.add_argument("-l", "--location", metavar="f", type=str,
+    parser.add_argument("--location", metavar="f", type=str,
                         help="Folder location for building the database")
-    parser.add_argument("-p", "--continuous", action="store_true",
+    parser.add_argument("--continuous", action="store_true",
                         help="Run downloader continuously searching for new data")
-    parser.add_argument("-z", "--sleep", metavar="sec", type=int,
+    parser.add_argument("--sleep", metavar="sec", type=int,
                         help="Number of seconds between iterations in continuous mode")
 
     args = parser.parse_args()
@@ -94,6 +99,13 @@ def metget_downloader():
     continuous = args.continuous
     sleep_duration = 60
 
+    def sigint_handler(sig, frame):
+        print("Caught CTRL-C, Shutting down")
+        sys.exit(1)
+
+    # ...Signal handler for SIGINT (CTRL-C)
+    signal.signal(signal.SIGINT, sigint_handler)
+
     if continuous:
         end = datetime(2090, 1, 1)
         if args.sleep:
@@ -110,6 +122,8 @@ def metget_downloader():
         datagather.append(Hwrfdownloader(dbloc, start, end))
     if args.ncep:
         datagather.append(NcepGfsdownloader(dbloc, start, end))
+    if args.nhc:
+        datagather.append(NhcDownloader(dbloc))
 
     # Initialize the database
     db = Metdb(dbloc)
@@ -141,6 +155,9 @@ def rebuild_database():
     only the files that currently exist in the folder structure
     :return:
     """
+    import sys
+    print("ERROR: Function not yet implemented")
+    sys.exit(1)
     return
 
 
