@@ -99,13 +99,17 @@ class NoaaDownloader:
 
         inv_lines = str(inv.text).split("\n")
         retlist = []
-        for i in range(len(inv_lines)):
-            for v in self.__variables:
-                if v["long_name"] in inv_lines[i]:
-                    startbits = inv_lines[i].split(":")[1]
-                    endbits = inv_lines[i + 1].split(":")[1]
-                    retlist.append({"name": v["name"], "start": startbits, "end": endbits})
-                    break
+        try: 
+            for i in range(len(inv_lines)):
+                for v in self.__variables:
+                    if v["long_name"] in inv_lines[i]:
+                        startbits = inv_lines[i].split(":")[1]
+                        endbits = inv_lines[i + 1].split(":")[1]
+                        retlist.append({"name": v["name"], "start": startbits, "end": endbits})
+                        break
+        except:
+            print("[WARNING]: NOAA server has not finished posting data yet. Waiting until next cycle")
+            return None,0
 
         fn = info['grb'].rsplit("/")[-1]
         year = "{0:04d}".format(time.year)
@@ -128,7 +132,7 @@ class NoaaDownloader:
                             for chunk in req.iter_content(chunk_size=8192):
                                 f.write(chunk)
                 except:
-                    print("[WARNING]: NOAA Server stopped responding. Trying again later")
+                    print("    [WARNING]: NOAA Server stopped responding. Trying again later")
                     if os.path.exists(floc):
                         os.remove(floc)
                     return None,0
