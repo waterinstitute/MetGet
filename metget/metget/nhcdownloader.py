@@ -88,10 +88,13 @@ class NhcDownloader:
         import os.path
 
         # Anonymous FTP login
-        ftp = FTP('ftp.nhc.noaa.gov')
-        ftp.login()
-        ftp.cwd('atcf/btk')
-        filelist = ftp.nlst("*.dat")
+        try: 
+            ftp = FTP('ftp.nhc.noaa.gov')
+            ftp.login()
+            ftp.cwd('atcf/btk')
+            filelist = ftp.nlst("*.dat")
+        except:
+            return 0
 
         n = 0
 
@@ -134,7 +137,9 @@ class NhcDownloader:
                 response_text = r.text
             else:
                 return []
-        except requests.exceptions.Timeout or requests.exceptions.HTTPError or requests.exceptions.ConnectionError:
+        except KeyboardInterrupt:
+            raise
+        except:
             return []
 
         soup = BeautifulSoup(response_text, 'html.parser')
@@ -142,7 +147,11 @@ class NhcDownloader:
         for node in soup.find_all('a'):
             linkaddr = node.get('href')
             if linkaddr and "fstadv" in linkaddr:
-                advisories.append(int(linkaddr[-10:-7]))
+                try:
+                    advisories.append(int(linkaddr[-10:-7]))
+                except ValueError: 
+                    continue
+
 
         return advisories
 

@@ -27,7 +27,7 @@ Parent class for downloading noaa grib format data
 
 
 class NoaaDownloader:
-    def __init__(self, mettype, metstring, address, dblocation, begin, end):
+    def __init__(self, mettype, metstring, address, dblocation, begin, end, use_rainfall = False):
         """
         Constructor for the NoaaDownloader class. Initializes the
         :param mettype: Type of metetrology that is to be downloaded
@@ -47,10 +47,17 @@ class NoaaDownloader:
 
         # The following variables will be used. Presently, these are the
         # variables that ADCIRC can support (wind vector, pressure, and ice)
-        self.__variables = [{"long_name": "UGRD:10 m above ground", "name": "uvel"},
-                            {"long_name": "VGRD:10 m above ground", "name": "vvel"},
-                            {"long_name": "PRMSL", "name": "press"},
-                            {"long_name": "ICEC:surface", "name": "ice"}]
+        if use_rainfall:
+            self.__variables = [{"long_name": "UGRD:10 m above ground", "name": "uvel"},
+                                {"long_name": "VGRD:10 m above ground", "name": "vvel"},
+                                {"long_name": "PRMSL", "name": "press"},
+                                {"long_name": "APCP", "name": "precip"},
+                                {"long_name": "ICEC:surface", "name": "ice"}]
+        else:
+            self.__variables = [{"long_name": "UGRD:10 m above ground", "name": "uvel"},
+                                {"long_name": "VGRD:10 m above ground", "name": "vvel"},
+                                {"long_name": "PRMSL", "name": "press"},
+                                {"long_name": "ICEC:surface", "name": "ice"}]
 
     def mettype(self):
         return self.__mettype
@@ -92,9 +99,10 @@ class NoaaDownloader:
 
         n = 0
         try:
-            inv = requests.get(info['inv'], stream=True, timeout=5)
-        except requests.exceptions.Timeout or requests.exceptions.HTTPError or \
-               requests.exceptions.ConnectionError:
+            inv = requests.get(info['inv'], stream=True, timeout=30)
+        except KeyboardInterrupt:
+            raise
+        except:
             print("[WARNING]: NOAA Server stopped responding. Trying again later")
             return None, 0
 
@@ -127,13 +135,14 @@ class NoaaDownloader:
             for r in retlist:
                 headers = {"Range": "bytes=" + str(r["start"]) + "-" + str(r["end"])}
                 try:
-                    with requests.get(info['grb'], headers=headers, stream=True, timeout=5) as req:
+                    with requests.get(info['grb'], headers=headers, stream=True, timeout=30) as req:
                         req.raise_for_status()
                         with open(floc, 'ab') as f:
                             for chunk in req.iter_content(chunk_size=8192):
                                 f.write(chunk)
-                except requests.exceptions.Timeout or requests.exceptions.HTTPError or \
-                       requests.exceptions.ConnectionError:
+                except KeyboardInterrupt:
+                    raise
+                except:
                     print("    [WARNING]: NOAA Server stopped responding. Trying again later")
                     if os.path.exists(floc):
                         os.remove(floc)
