@@ -21,31 +21,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import setuptools
-from setuptools import setup, find_packages
 
-def read(fname):
-    import os
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+class Isotach:
+    def __init__(self, speed, d1=0, d2=0, d3=0, d4=0):
+        self.__speed = speed
+        self.__distance = [d1, d2, d3, d4]
 
+    def set_speed(self, value):
+        self.__speed = value
 
-setuptools.setup(
-    name='metget', 
-    version="0.0.1",
-    author="Zachary Cobell",
-    author_email="zcobell@thewaterinstitute.org",
-    description="Meteorological downloader for ADCIRC",
-    url="https://github.com/adcirc/metget",
-    license="MIT",
-    install_requires=[ "requests", "BeautifulSoup4", "feedparser" ],
-    packages=['metget'],
-    scripts=['bin/metget'],
-    zip_safe=False,
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: Linux",
-        "Development Status :: 1 - Planning"
-    ],
-    python_requires='>=3.6',
-)
+    def speed(self):
+        return self.__speed
+
+    def set_distance(self, quadrant, distance):
+        if 0 <= quadrant < 4:
+            self.__distance[quadrant] = distance
+
+    def distance(self, quadrant):
+        if 0 <= quadrant < 4:
+            return self.__distance[quadrant]
+        return 0
+
+    def print(self, n=0):
+        isoline = "Isotach".rjust(n)
+        line = "{:d}: {:.1f} {:.1f} {:.1f} {:.1f}".format(
+            self.__speed, self.__distance[0], self.__distance[1],
+            self.__distance[2], self.__distance[3])
+        print(isoline, line)

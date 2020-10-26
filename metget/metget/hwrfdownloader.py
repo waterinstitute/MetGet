@@ -27,7 +27,8 @@ from metget.noaadownloader import NoaaDownloader
 class Hwrfdownloader(NoaaDownloader):
     def __init__(self, dblocation, begin, end):
         address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hur/prod/"
-        NoaaDownloader.__init__(self, "hwrf", "HWRF", address, dblocation, begin, end)
+        NoaaDownloader.__init__(self, "hwrf", "HWRF", address, dblocation,
+                                begin, end)
         self.__downloadlocation = dblocation + "/" + self.mettype()
 
     def download(self):
@@ -73,6 +74,11 @@ class Hwrfdownloader(NoaaDownloader):
             fhour = int(v4)
             cdate = datetime(cyear, cmon, cday, chour, 0, 0)
             fdate = cdate + timedelta(hours=fhour)
-            pairs.append(
-                {"name": name, "grb": glist[i], "inv": glist[i] + ".idx", "cycledate": cdate, "forecastdate": fdate})
+            pairs.append({
+                "name": name,
+                "grb": glist[i],
+                "inv": glist[i] + ".idx",
+                "cycledate": cdate,
+                "forecastdate": fdate
+            })
         return pairs

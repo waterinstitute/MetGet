@@ -27,7 +27,8 @@ from metget.noaadownloader import NoaaDownloader
 class NcepGfsdownloader(NoaaDownloader):
     def __init__(self, dblocation, begin, end):
         address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/"
-        NoaaDownloader.__init__(self, "gfs_ncep", "GFS-NCEP", address, dblocation, begin, end)
+        NoaaDownloader.__init__(self, "gfs_ncep", "GFS-NCEP", address,
+                                dblocation, begin, end)
         self.__downloadlocation = dblocation + "/" + self.mettype()
 
     def download(self):
@@ -86,5 +87,10 @@ class NcepGfsdownloader(NoaaDownloader):
 
             cdate = datetime(yr, mo, dy, cycle, 0, 0)
             fdate = cdate + timedelta(hours=fcst)
-            pairs.append({"grb": glist[i], "inv": glist[i] + ".idx", "cycledate": cdate, "forecastdate": fdate})
+            pairs.append({
+                "grb": glist[i],
+                "inv": glist[i] + ".idx",
+                "cycledate": cdate,
+                "forecastdate": fdate
+            })
         return pairs

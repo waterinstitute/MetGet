@@ -75,6 +75,9 @@ def metget_downloader():
                         help="Run downloader continuously searching for new data")
     parser.add_argument("--sleep", metavar="sec", type=int,
                         help="Number of seconds between iterations in continuous mode")
+    parser.add_argument("--pressure", metavar="method", type=str,
+                        help="Pressure method to use for NHC. Can be: dvorak, knaffzehr, "
+                             "asgs2012, or twoslope. Default: knaffzehr")
 
     args = parser.parse_args()
 
@@ -97,6 +100,12 @@ def metget_downloader():
     dbloc = args.location
     start = args.start
     continuous = args.continuous
+
+    if not args.pressure:
+        pressure_method = "knaffzehr"
+    else:
+        pressure_method = args.pressure
+
     sleep_duration = 60
 
     def sigint_handler(sig, frame):
@@ -123,7 +132,7 @@ def metget_downloader():
     if args.ncep:
         datagather.append(NcepGfsdownloader(dbloc, start, end))
     if args.nhc:
-        datagather.append(NhcDownloader(dbloc))
+        datagather.append(NhcDownloader(dbloc, pressure_method))
 
     # Initialize the database
     db = Metdb(dbloc)

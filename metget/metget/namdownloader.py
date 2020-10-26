@@ -27,7 +27,8 @@ from metget.noaadownloader import NoaaDownloader
 class Namdownloader(NoaaDownloader):
     def __init__(self, dblocation, begin, end):
         address = "https://www.ncei.noaa.gov/data/north-american-mesoscale-model/access/forecast/"
-        NoaaDownloader.__init__(self, "nam_fcst", "NAM", address, dblocation, begin, end)
+        NoaaDownloader.__init__(self, "nam_fcst", "NAM", address, dblocation,
+                                begin, end)
         self.__downloadlocation = dblocation + "/" + self.mettype()
 
     def download(self):
@@ -40,7 +41,8 @@ class Namdownloader(NoaaDownloader):
 
         month_links = s.filelist()
         for l in month_links:
-            dmin2 = datetime(self.begindate().year, self.begindate().month, 1, 0, 0, 0)
+            dmin2 = datetime(self.begindate().year,
+                             self.begindate().month, 1, 0, 0, 0)
             t = self.linkToTime(l)
             if t >= dmin2:
                 print("Processing directory for month: ", t.year, '-', t.month)
@@ -52,7 +54,8 @@ class Namdownloader(NoaaDownloader):
                     if t2 < self.begindate() or t2 > self.enddate():
                         continue
 
-                    print("    Processing directory for day: ", t2.year, '-', t2.month, '-', t2.day)
+                    print("    Processing directory for day: ", t2.year, '-',
+                          t2.month, '-', t2.day)
                     s3 = Spyder(ll)
                     tmp_links = s3.filelist()
 
@@ -66,7 +69,7 @@ class Namdownloader(NoaaDownloader):
                     pairs = self.generateGrbInvPairs(file_links)
                     for p in pairs:
                         fpath, n = self.getgrib(self.__downloadlocation, p, t2)
-                        if fpath not None:
+                        if fpath:
                             db.add(p, self.mettype(), fpath)
                             num_download += n
 
@@ -87,5 +90,10 @@ class Namdownloader(NoaaDownloader):
             cdate = datetime(cyear, cmon, cday, chour, 0, 0)
             fdate = cdate + timedelta(hours=fhour)
             if len(glist) >= i + 2:
-                pairs.append({"grb": glist[i], "inv": glist[i + 1], "cycledate": cdate, "forecastdate": fdate})
+                pairs.append({
+                    "grb": glist[i],
+                    "inv": glist[i + 1],
+                    "cycledate": cdate,
+                    "forecastdate": fdate
+                })
         return pairs

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 # MIT License
 #
 # Copyright (c) 2020 ADCIRC Development Group
@@ -20,14 +20,20 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 """
 Parent class for downloading noaa grib format data
 """
 
 
 class NoaaDownloader:
-    def __init__(self, mettype, metstring, address, dblocation, begin, end, use_rainfall = False):
+    def __init__(self,
+                 mettype,
+                 metstring,
+                 address,
+                 dblocation,
+                 begin,
+                 end,
+                 use_rainfall=False):
         """
         Constructor for the NoaaDownloader class. Initializes the
         :param mettype: Type of metetrology that is to be downloaded
@@ -48,16 +54,36 @@ class NoaaDownloader:
         # The following variables will be used. Presently, these are the
         # variables that ADCIRC can support (wind vector, pressure, and ice)
         if use_rainfall:
-            self.__variables = [{"long_name": "UGRD:10 m above ground", "name": "uvel"},
-                                {"long_name": "VGRD:10 m above ground", "name": "vvel"},
-                                {"long_name": "PRMSL", "name": "press"},
-                                {"long_name": "APCP", "name": "precip"},
-                                {"long_name": "ICEC:surface", "name": "ice"}]
+            self.__variables = [{
+                "long_name": "UGRD:10 m above ground",
+                "name": "uvel"
+            }, {
+                "long_name": "VGRD:10 m above ground",
+                "name": "vvel"
+            }, {
+                "long_name": "PRMSL",
+                "name": "press"
+            }, {
+                "long_name": "APCP",
+                "name": "precip"
+            }, {
+                "long_name": "ICEC:surface",
+                "name": "ice"
+            }]
         else:
-            self.__variables = [{"long_name": "UGRD:10 m above ground", "name": "uvel"},
-                                {"long_name": "VGRD:10 m above ground", "name": "vvel"},
-                                {"long_name": "PRMSL", "name": "press"},
-                                {"long_name": "ICEC:surface", "name": "ice"}]
+            self.__variables = [{
+                "long_name": "UGRD:10 m above ground",
+                "name": "uvel"
+            }, {
+                "long_name": "VGRD:10 m above ground",
+                "name": "vvel"
+            }, {
+                "long_name": "PRMSL",
+                "name": "press"
+            }, {
+                "long_name": "ICEC:surface",
+                "name": "ice"
+            }]
 
     def mettype(self):
         return self.__mettype
@@ -103,7 +129,9 @@ class NoaaDownloader:
         except KeyboardInterrupt:
             raise
         except:
-            print("[WARNING]: NOAA Server stopped responding. Trying again later")
+            print(
+                "[WARNING]: NOAA Server stopped responding. Trying again later"
+            )
             return None, 0
 
         inv_lines = str(inv.text).split("\n")
@@ -114,10 +142,18 @@ class NoaaDownloader:
                     if v["long_name"] in inv_lines[i]:
                         startbits = inv_lines[i].split(":")[1]
                         endbits = inv_lines[i + 1].split(":")[1]
-                        retlist.append({"name": v["name"], "start": startbits, "end": endbits})
+                        retlist.append({
+                            "name": v["name"],
+                            "start": startbits,
+                            "end": endbits
+                        })
                         break
+        except KeyboardInterrupt:
+            raise
         except:
-            print("[WARNING]: NOAA server has not finished posting data yet. Waiting until next cycle")
+            print(
+                "[WARNING]: NOAA server has not finished posting data yet. Waiting until next cycle"
+            )
             return None, 0
 
         fn = info['grb'].rsplit("/")[-1]
@@ -129,13 +165,20 @@ class NoaaDownloader:
         floc = dfolder + "/" + fn
 
         if not os.path.exists(floc):
-            print("     Downloading File: " + fn + " (F: " + info["cycledate"].strftime("%Y-%m-%d %H:%M:%S") +
-                  ", T: " + info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S") + ")", flush=True)
+            print("     Downloading File: " + fn + " (F: " +
+                  info["cycledate"].strftime("%Y-%m-%d %H:%M:%S") + ", T: " +
+                  info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S") + ")",
+                  flush=True)
             n = 1
             for r in retlist:
-                headers = {"Range": "bytes=" + str(r["start"]) + "-" + str(r["end"])}
+                headers = {
+                    "Range": "bytes=" + str(r["start"]) + "-" + str(r["end"])
+                }
                 try:
-                    with requests.get(info['grb'], headers=headers, stream=True, timeout=30) as req:
+                    with requests.get(info['grb'],
+                                      headers=headers,
+                                      stream=True,
+                                      timeout=30) as req:
                         req.raise_for_status()
                         with open(floc, 'ab') as f:
                             for chunk in req.iter_content(chunk_size=8192):
@@ -143,7 +186,9 @@ class NoaaDownloader:
                 except KeyboardInterrupt:
                     raise
                 except:
-                    print("    [WARNING]: NOAA Server stopped responding. Trying again later")
+                    print(
+                        "    [WARNING]: NOAA Server stopped responding. Trying again later"
+                    )
                     if os.path.exists(floc):
                         os.remove(floc)
                     return None, 0
@@ -173,6 +218,7 @@ class NoaaDownloader:
         elif len(dstr) == 8:
             return datetime(int(dstr[0:4]), int(dstr[4:6]), int(dstr[6:8]))
         elif len(dstr) == 10:
-            return datetime(int(dstr[0:4]), int(dstr[4:6]), int(dstr[6:8]), int(dstr[8:10]), 0, 0)
+            return datetime(int(dstr[0:4]), int(dstr[4:6]), int(dstr[6:8]),
+                            int(dstr[8:10]), 0, 0)
         else:
             raise Exception("Could not convert link to a datetime")
