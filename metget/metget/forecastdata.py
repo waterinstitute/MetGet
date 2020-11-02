@@ -101,15 +101,20 @@ class ForecastData:
 
     @staticmethod
     def compute_pressure_knaffzehr(wind):
-        return 1010.0 - ((wind * 0.514444) / 2.30)**(1.0 / 0.760)
+        return ForecastData.compute_pressure_curvefit(wind, 1010.0, 2.3, 0.760)
 
     @staticmethod
     def compute_pressure_dvorak(wind):
-        return 1015.0 - ((wind * 0.514444) / 3.92)**(1.0 / 0.644)
+        return ForecastData.compute_pressure_curvefit(wind, 1015.0, 3.92,
+                                                      0.644)
 
     @staticmethod
     def compute_pressure_ah77(wind):
-        return 1010.0 - ((wind * 0.514444) / 3.4)**(1.0 / 0.644)
+        return ForecastData.compute_pressure_curvefit(wind, 1010.0, 3.4, 0.644)
+
+    @staticmethod
+    def compute_pressure_curvefit(wind_speed, a, b, c):
+        return a - ((wind_speed * 0.514444) / b)**(1.0 / c)
 
     @staticmethod
     def compute_initial_pressure_estimate_asgs(wind, last_vmax, last_pressure):
