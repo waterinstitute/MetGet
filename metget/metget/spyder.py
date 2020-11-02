@@ -46,7 +46,9 @@ class Spyder:
                 response_text = r.text
             else:
                 return []
-        except requests.exceptions.Timeout or requests.exceptions.HTTPError or requests.exceptions.ConnectionError:
+        except KeyboardInterrupt:
+            raise
+        except:
             return []
 
         soup = BeautifulSoup(response_text, 'html.parser')

@@ -126,74 +126,50 @@ class NoaaDownloader:
         n = 0
         try:
             inv = requests.get(info['inv'], stream=True, timeout=30)
-        except KeyboardInterrupt:
-            raise
-        except:
-            print(
-                "[WARNING]: NOAA Server stopped responding. Trying again later"
-            )
-            return None, 0
-
-        inv_lines = str(inv.text).split("\n")
-        retlist = []
-        try:
+            inv_lines = str(inv.text).split("\n")
+            retlist = []
             for i in range(len(inv_lines)):
                 for v in self.__variables:
                     if v["long_name"] in inv_lines[i]:
                         startbits = inv_lines[i].split(":")[1]
                         endbits = inv_lines[i + 1].split(":")[1]
-                        retlist.append({
-                            "name": v["name"],
-                            "start": startbits,
-                            "end": endbits
-                        })
+                        retlist.append({"name": v["name"], "start": startbits, "end": endbits})
                         break
+
+            fn = info['grb'].rsplit("/")[-1]
+            year = "{0:04d}".format(time.year)
+            month = "{0:02d}".format(time.month)
+            day = "{0:02d}".format(time.day)
+            dfolder = folder + "/" + year + "/" + month + "/" + day
+            os.makedirs(dfolder, exist_ok=True)
+            floc = dfolder + "/" + fn
+    
+            if not os.path.exists(floc):
+                print("     Downloading File: " + fn + " (F: " + info["cycledate"].strftime("%Y-%m-%d %H:%M:%S") +
+                      ", T: " + info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S") + ")", flush=True)
+                n = 1
+                for r in retlist:
+                    headers = {"Range": "bytes=" + str(r["start"]) + "-" + str(r["end"])}
+                    try:
+                        with requests.get(info['grb'], headers=headers, stream=True, timeout=30) as req:
+                            req.raise_for_status()
+                            with open(floc, 'ab') as f:
+                                for chunk in req.iter_content(chunk_size=8192):
+                                    f.write(chunk)
+                    except KeyboardInterrupt:
+                        raise
+                    except:
+                        print("    [WARNING]: NOAA Server stopped responding. Trying again later")
+                        if os.path.exists(floc):
+                            os.remove(floc)
+                        return None, 0
+    
+            return floc, n
         except KeyboardInterrupt:
             raise
         except:
-            print(
-                "[WARNING]: NOAA server has not finished posting data yet. Waiting until next cycle"
-            )
+            print("[WARNING]: NOAA Server stopped responding. Trying again later")
             return None, 0
-
-        fn = info['grb'].rsplit("/")[-1]
-        year = "{0:04d}".format(time.year)
-        month = "{0:02d}".format(time.month)
-        day = "{0:02d}".format(time.day)
-        dfolder = folder + "/" + year + "/" + month + "/" + day
-        os.makedirs(dfolder, exist_ok=True)
-        floc = dfolder + "/" + fn
-
-        if not os.path.exists(floc):
-            print("     Downloading File: " + fn + " (F: " +
-                  info["cycledate"].strftime("%Y-%m-%d %H:%M:%S") + ", T: " +
-                  info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S") + ")",
-                  flush=True)
-            n = 1
-            for r in retlist:
-                headers = {
-                    "Range": "bytes=" + str(r["start"]) + "-" + str(r["end"])
-                }
-                try:
-                    with requests.get(info['grb'],
-                                      headers=headers,
-                                      stream=True,
-                                      timeout=30) as req:
-                        req.raise_for_status()
-                        with open(floc, 'ab') as f:
-                            for chunk in req.iter_content(chunk_size=8192):
-                                f.write(chunk)
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    print(
-                        "    [WARNING]: NOAA Server stopped responding. Trying again later"
-                    )
-                    if os.path.exists(floc):
-                        os.remove(floc)
-                    return None, 0
-
-        return floc, n
 
     def download(self):
         raise RuntimeError("Method not implemented")
