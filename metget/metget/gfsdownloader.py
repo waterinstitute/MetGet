@@ -61,7 +61,7 @@ class Gfsdownloader(NoaaDownloader):
                     file_links = s3.filelist()
                     pairs = self.generateGrbInvPairs(file_links)
                     for p in pairs:
-                        fpath, n = self.getgrib(self.__downloadlocation, p, t2)
+                        fpath, n, _ = self.getgrib(self.__downloadlocation, p, t2)
                         db.add(p, self.mettype(), fpath)
                         num_download += n
 

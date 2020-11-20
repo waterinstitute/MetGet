@@ -30,6 +30,7 @@ class NcepNamdownloader(NoaaDownloader):
         NoaaDownloader.__init__(self, "nam_ncep", "NAM-NCEP", address,
                                 dblocation, begin, end)
         self.__downloadlocation = dblocation + "/" + self.mettype()
+        self.__lastdate = self.begindate()
 
     def download(self):
         from metget.spyder import Spyder
@@ -41,6 +42,8 @@ class NcepNamdownloader(NoaaDownloader):
 
         links = []
         day_links = s.filelist()
+        nerror = 0
+        lastdate = self.begindate()
         for l in day_links:
             if "nam." in l:
                 dstr = l[0:-1].rsplit('/', 1)[-1].rsplit('.', 1)[-1]
@@ -48,6 +51,7 @@ class NcepNamdownloader(NoaaDownloader):
                 mo = int(dstr[4:6])
                 dy = int(dstr[6:8])
                 t = datetime(yr, mo, dy, 0, 0, 0)
+                lastdate = t
                 if self.enddate() >= t >= self.begindate():
                     s2 = Spyder(l)
                     hr_links = s2.filelist()
@@ -58,10 +62,14 @@ class NcepNamdownloader(NoaaDownloader):
 
         pairs = self.generateGrbInvPairs(links)
         for p in pairs:
-            fpath, n = self.getgrib(self.__downloadlocation, p, p["cycledate"])
+            fpath, n, err = self.getgrib(self.__downloadlocation, p, p["cycledate"])
+            nerror += err
             if fpath:
                 db.add(p, self.mettype(), fpath)
                 num_download += n
+
+        if nerror == 0:
+            self.__lastdate = lastdate
 
         return num_download
 

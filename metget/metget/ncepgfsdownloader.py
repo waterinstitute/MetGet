@@ -30,6 +30,7 @@ class NcepGfsdownloader(NoaaDownloader):
         NoaaDownloader.__init__(self, "gfs_ncep", "GFS-NCEP", address,
                                 dblocation, begin, end)
         self.__downloadlocation = dblocation + "/" + self.mettype()
+        self.__lastdate = self.begindate()
 
     def download(self):
         from metget.spyder import Spyder
@@ -38,6 +39,7 @@ class NcepGfsdownloader(NoaaDownloader):
         num_download = 0
         s = Spyder(self.address())
         db = Metdb(self.dblocation())
+        lastdate = self.begindate()
 
         links = []
         day_links = s.filelist()
@@ -48,9 +50,10 @@ class NcepGfsdownloader(NoaaDownloader):
                 mo = int(dstr[4:6])
                 dy = int(dstr[6:8])
                 t = datetime(yr, mo, dy, 0, 0, 0)
-                if self.enddate() >= t >= self.begindate():
+                if (self.enddate() >= t >= self.begindate()) and t >= self.__lastdate:
                     s2 = Spyder(l)
                     hr_links = s2.filelist()
+                    lastdate = t
                     for ll in hr_links:
                         s3 = Spyder(ll)
                         files = s3.filelist()
@@ -60,11 +63,16 @@ class NcepGfsdownloader(NoaaDownloader):
                                     links.append(lll)
 
         pairs = self.generateGrbInvPairs(links)
+        nerror = 0
         for p in pairs:
-            fpath, n = self.getgrib(self.__downloadlocation, p, p["cycledate"])
+            fpath, n, err = self.getgrib(self.__downloadlocation, p, p["cycledate"])
+            nerror += err
             if fpath:
                 db.add(p, self.mettype(), fpath)
                 num_download += n
+
+        if nerror == 0:
+            self.__lastdate = lastdate
 
         return num_download
 

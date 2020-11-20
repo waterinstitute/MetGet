@@ -30,6 +30,7 @@ class Namdownloader(NoaaDownloader):
         NoaaDownloader.__init__(self, "nam_fcst", "NAM", address, dblocation,
                                 begin, end)
         self.__downloadlocation = dblocation + "/" + self.mettype()
+        self.__lastdate = self.begindate()
 
     def download(self):
         from metget.spyder import Spyder
@@ -38,6 +39,8 @@ class Namdownloader(NoaaDownloader):
         num_download = 0
         s = Spyder(self.address())
         db = Metdb(self.dblocation())
+        nerror = 0
+        lastdate = self.begindate()
 
         month_links = s.filelist()
         for l in month_links:
@@ -51,11 +54,12 @@ class Namdownloader(NoaaDownloader):
                 for ll in day_links:
                     t2 = self.linkToTime(ll)
 
-                    if t2 < self.begindate() or t2 > self.enddate():
+                    if (t2 < self.begindate() or t2 > self.enddate()) and t2 < self.__lastdate:
                         continue
 
                     print("    Processing directory for day: ", t2.year, '-',
                           t2.month, '-', t2.day)
+                    lastdate = t2
                     s3 = Spyder(ll)
                     tmp_links = s3.filelist()
 
@@ -68,10 +72,14 @@ class Namdownloader(NoaaDownloader):
 
                     pairs = self.generateGrbInvPairs(file_links)
                     for p in pairs:
-                        fpath, n = self.getgrib(self.__downloadlocation, p, t2)
+                        fpath, n, err = self.getgrib(self.__downloadlocation, p, t2)
+                        nerror += err
                         if fpath:
                             db.add(p, self.mettype(), fpath)
                             num_download += n
+
+        if nerror = 0:
+            self.__lastdate = lastdate
 
         return num_download
 

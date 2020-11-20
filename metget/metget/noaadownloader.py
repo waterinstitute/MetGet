@@ -162,14 +162,14 @@ class NoaaDownloader:
                         print("    [WARNING]: NOAA Server stopped responding. Trying again later")
                         if os.path.exists(floc):
                             os.remove(floc)
-                        return None, 0
+                        return None, 0, 1
     
-            return floc, n
+            return floc, n, 0
         except KeyboardInterrupt:
             raise
         except:
             print("[WARNING]: NOAA Server stopped responding. Trying again later")
-            return None, 0
+            return None, 0, 1
 
     def download(self):
         raise RuntimeError("Method not implemented")

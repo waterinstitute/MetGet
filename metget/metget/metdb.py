@@ -248,6 +248,7 @@ class Metdb:
         latest_start = None
         latest_end = None
         latest_length = None
+        cycle_list = []
         for r in reversed(rows):
             sql = "SELECT MIN(DATE) AS FIRST, MAX(DATE) AS LAST FROM " + table + " WHERE FORECASTCYCLE = datetime('" + \
                   r[0] + "')"
@@ -257,6 +258,7 @@ class Metdb:
             avail_len = (end - start).total_seconds() / 3600
             if avail_len >= desired_len:
                 latest_complete = r[0]
+                cycle_list.append(r[0])
                 latest_start = start.strftime("%Y-%m-%d %H:%M:%S")
                 latest_end = end.strftime("%Y-%m-%d %H:%M:%S")
                 latest_length = avail_len
@@ -275,7 +277,8 @@ class Metdb:
             "latest_complete_forecast": latest_complete,
             "latest_complete_forecast_start": latest_start,
             "latest_complete_forecast_end": latest_end,
-            "latest_complete_forecast_length": latest_length
+            "latest_complete_forecast_length": latest_length,
+            "cycle_list": cycle_list
         }
 
     def hwrf_status(self):
@@ -315,6 +318,7 @@ class Metdb:
             latest_end = None
             latest_length = None
             time_since_forecast = 0
+            cycle_list = []
 
             # Backwards loop to see the most recent complete forecast cycle
             for f in reversed(rows):
@@ -326,6 +330,7 @@ class Metdb:
                 end = datetime.strptime(r[0][1], "%Y-%m-%d %H:%M:%S")
                 avail_len = (end - start).total_seconds() / 3600
                 if avail_len >= 126:
+                    cycle_list.append(f[0])
                     latest_start = start.strftime("%Y-%m-%d %H:%M:%S")
                     latest_end = end.strftime("%Y-%m-%d %H:%M:%S")
                     latest_length = avail_len
@@ -356,7 +361,8 @@ class Metdb:
                     "latest_complete_forecast_end":
                     latest_end,
                     "latest_complete_forecast_length":
-                    latest_length
+                    latest_length,
+                    "cycle_list": cycle_list
                 })
 
         return hwrf_stat
