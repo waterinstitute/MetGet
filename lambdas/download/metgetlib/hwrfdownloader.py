@@ -21,22 +21,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from metget.noaadownloader import NoaaDownloader
+from .noaadownloader import NoaaDownloader
 
 
-class Hwrfdownloader(NoaaDownloader):
-    def __init__(self, dblocation, begin, end):
+class HwrfDownloader(NoaaDownloader):
+    def __init__(self, begin, end):
         address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hur/prod/"
-        NoaaDownloader.__init__(self, "hwrf", "HWRF", address, dblocation,
-                                begin, end)
-        self.__downloadlocation = dblocation + "/" + self.mettype()
+        NoaaDownloader.__init__(self, "hwrf", "HWRF", address, begin, end)
 
     def download(self):
-        from metget.spyder import Spyder
-        from metget.metdb import Metdb
+        from .spyder import Spyder
+        from .metdb import Metdb
         num_download = 0
         s = Spyder(self.address())
-        db = Metdb(self.dblocation())
+        db = Metdb()
 
         links = s.filelist()
         files = []
@@ -50,7 +48,7 @@ class Hwrfdownloader(NoaaDownloader):
                             files.append(ll)
         pairs = self.generateGrbInvPairs(files)
         for p in pairs:
-            fpath, n, _ = self.getgrib(self.__downloadlocation, p, p["cycledate"])
+            fpath, n, _ = self.getgrib(p, p["cycledate"])
             if fpath:
                 db.add(p, self.mettype(), fpath)
                 num_download = num_download + n

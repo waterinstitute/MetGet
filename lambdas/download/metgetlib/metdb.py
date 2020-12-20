@@ -23,92 +23,78 @@
 
 
 class Metdb:
-    def __init__(self, location):
+    def __init__(self):
         """
         Initializer for the metdb class. The Metdb class will
         generate a database of files and store the indexing in an
         sqlite3 database
-        :param location:
         """
-        self.__location = location
-        self.__db = self.__location + "/metget.db"
-        self.__initfolderstructure()
+        import os
+        self.__dbhost = os.environ["DBSERVER"]
+        self.__dbpassword = os.environ["DBPASS"]
+        self.__dbusername = os.environ["DBUSER"]
+        self.__dbname = os.environ["DBNAME"]
         self.__initdatabase()
 
-    def __initfolderstructure(self):
-        """
-        Generates the directory structure used in the top level of the database
-        :return:
-        """
-        import os.path
-        if not os.path.exists(self.__location):
-            os.mkdir(self.__location)
-        if not os.path.exists(self.__location + "/gfs_ncep"):
-            os.mkdir(self.__location + "/gfs_ncep")
-        if not os.path.exists(self.__location + "/gfs_fcst"):
-            os.mkdir(self.__location + "/gfs_fcst")
-        if not os.path.exists(self.__location + "/gfs_anl"):
-            os.mkdir(self.__location + "/gfs_anl")
-        if not os.path.exists(self.__location + "/nam_anl"):
-            os.mkdir(self.__location + "/nam_anl")
-        if not os.path.exists(self.__location + "/nam_fcst"):
-            os.mkdir(self.__location + "/nam_fcst")
-        if not os.path.exists(self.__location + "/nam_ncep"):
-            os.mkdir(self.__location + "/nam_ncep")
-        if not os.path.exists(self.__location + "/hwrf"):
-            os.mkdir(self.__location + "/hwrf")
-        if not os.path.exists(self.__location + "/nhc_btk"):
-            os.mkdir(self.__location + "/nhc_btk")
-        if not os.path.exists(self.__location + "/nhc_fcst"):
-            os.mkdir(self.__location + "/nhc_fcst")
+    def connect(self):
+        import sys
+        import pymysql
+        try:
+            db = pymysql.connect(self.__dbhost, user=self.__dbusername,
+                                 passwd=self.__dbpassword, db=self.__dbname, connect_timeout=5)
+        except:
+            print("[ERROR]: Could not connect to MySQL database")
+            sys.exit(1)
+        return db
 
     def __initdatabase(self):
         """
         Initializes the database with the appropriate tables
         :return:
         """
-        import sqlite3
-        db = sqlite3.connect(self.__db)
-        db.execute(
+        db = self.connect()
+        cur = db.cursor()
+
+        cur.execute(
             'CREATE TABLE IF NOT EXISTS gfs_ncep(id INTEGER PRIMARY KEY '
-            'AUTOINCREMENT, forecastcycle DATETIME NOT NULL, date DATETIME NOT NULL, '
-            'path STRING NOT NULL, url STRING NOT NULL, accessed DATETIME NOT NULL);'
+            'AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, '
+            'filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);'
         )
-        db.execute(
+        cur.execute(
             'CREATE TABLE IF NOT EXISTS gfs_fcst(id INTEGER PRIMARY KEY '
-            'AUTOINCREMENT, forecastcycle DATETIME '
-            'NOT NULL, date DATETIME NOT NULL, path STRING NOT NULL, url STRING NOT NULL, '
+            'AUTO_INCREMENT, forecastcycle DATETIME '
+            'NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, '
             'accessed DATETIME NOT NULL);')
         # db.execute('CREATE TABLE IF NOT EXISTS nam_anl(id INTEGER PRIMARY KEY '
         #            'AUTOINCREMENT, forecastcycle DATETIME '
         #            'NOT NULL, date DATETIME NOT NULL, path STRING NOT NULL, url STRING NOT NULL, '
         #            'accessed DATETIME NOT NULL);')
-        db.execute(
+        cur.execute(
             'CREATE TABLE IF NOT EXISTS nam_fcst(id INTEGER PRIMARY KEY '
-            'AUTOINCREMENT, forecastcycle DATETIME '
-            'NOT NULL, date DATETIME NOT NULL, path STRING NOT NULL, url STRING NOT NULL, '
+            'AUTO_INCREMENT, forecastcycle DATETIME '
+            'NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, '
             'accessed DATETIME NOT NULL);')
-        db.execute(
+        cur.execute(
             'CREATE TABLE IF NOT EXISTS hwrf(id INTEGER PRIMARY KEY '
-            'AUTOINCREMENT, stormname STRING NOT NULL, forecastcycle DATETIME '
-            'NOT NULL, date DATETIME NOT NULL, path STRING NOT NULL, '
-            'url STRING NOT NULL, accessed DATETIME NOT NULL);')
-        db.execute(
+            'AUTO_INCREMENT, stormname VARCHAR(256) NOT NULL, forecastcycle DATETIME '
+            'NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, '
+            'url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);')
+        cur.execute(
             'CREATE TABLE IF NOT EXISTS nam_ncep(id INTEGER PRIMARY KEY '
-            'AUTOINCREMENT, forecastcycle DATETIME NOT NULL, date DATETIME NOT NULL, '
-            'path STRING NOT NULL, url STRING NOT NULL, accessed DATETIME NOT NULL);'
+            'AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, '
+            'filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);'
         )
-        db.execute(
+        cur.execute(
             'CREATE TABLE IF NOT EXISTS nhc_btk(id INTEGER PRIMARY KEY '
-            'AUTOINCREMENT, year INTEGER NOT NULL, basin STRING NOT NULL, storm INTEGER NOT NULL, '
+            'AUTO_INCREMENT, storm_year INTEGER NOT NULL, basin VARCHAR(256) NOT NULL, storm INTEGER NOT NULL, '
             'advisory_start DATETIME NOT NULL, advisory_end DATETIME NOT NULL, '
-            'advisory_duration_hr INT NOT NULL, path STRING NOT NULL, accessed DATETIME NOT NULL);'
+            'advisory_duration_hr INT NOT NULL, filepath VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);'
         )
-        db.execute(
+        cur.execute(
             'CREATE TABLE IF NOT EXISTS nhc_fcst(id INTEGER PRIMARY KEY '
-            'AUTOINCREMENT, year INTEGER NOT NULL, basin STRING NOT NULL, storm INTEGER NOT NULL, '
-            'advisory STRING NOT NULL, advisory_start DATETIME NOT NULL, advisory_end DATETIME NOT NULL, '
-            'advisory_duration_hr INT NOT NULL, path STRING NOT NULL, accessed DATETIME NOT NULL);'
+            'AUTO_INCREMENT, storm_year INTEGER NOT NULL, basin VARCHAR(256) NOT NULL, storm INTEGER NOT NULL, '
+            'advisory VARCHAR(256) NOT NULL, advisory_start DATETIME NOT NULL, advisory_end DATETIME NOT NULL, '
+            'advisory_duration_hr INT NOT NULL, filepath VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);'
         )
         db.close()
 
@@ -120,20 +106,17 @@ class Metdb:
         :param filepath: Relative file location
         :return:
         """
-        import sqlite3
-        db = sqlite3.connect(self.__db)
+        db = self.connect()
         if datatype == "hwrf":
             cdate = str(pair["cycledate"])
             fdate = str(pair["forecastdate"])
             url = pair["grb"]
             name = pair["name"]
-            sqlhas = "SELECT Count(*) FROM " + datatype + " WHERE FORECASTCYCLE = datetime('" +\
-                     cdate + "') AND DATE = datetime('" + fdate + "') AND STORMNAME = '" +\
-                     name + "' AND PATH = '" + filepath + "';"
-            sqlinsert = "INSERT INTO " + datatype + \
-                        " (FORECASTCYCLE,DATE,STORMNAME,PATH,URL,ACCESSED) VALUES(datetime('" + cdate +\
-                        "'),datetime('" + fdate + "'),'" + name + "','" + filepath + "','" +\
-                        url + "',datetime('now'));"
+            sqlhas = "SELECT Count(*) FROM " + datatype + " WHERE FORECASTCYCLE = '" + \
+                     cdate + "' AND FORECASTTIME = '" + fdate + "' AND STORMNAME = '" + \
+                     name + "' AND FILEPATH = '" + filepath + "';"
+            sqlinsert = "INSERT INTO " + datatype + " (FORECASTCYCLE,FORECASTTIME,STORMNAME,FILEPATH,URL,ACCESSED) VALUES('" + cdate + \
+                        "','" + fdate + "','" + name + "','" + filepath + "','" + url + "',now());"
             sqlupdate = ""
         elif datatype == "nhc_fcst":
             year = pair["year"]
@@ -159,36 +142,37 @@ class Metdb:
             duration = str(pair["advisory_duration_hr"])
             sqlhas = "SELECT Count(*) FROM " + datatype + " WHERE year = " + str(
                 year) + " AND BASIN = '" + basin + "' AND STORM = " + str(
-                    storm) + ";"
+                storm) + ";"
             sqlinsert = "INSERT INTO " + datatype + " (YEAR,BASIN,STORM,ADVISORY_START,ADVISORY_END," \
                                                     "ADVISORY_DURATION_HR,PATH,ACCESSED) VALUES(" + str(year) + \
                         ",'" + basin + "'," + str(storm) + ", datetime('" + start + \
                         "'), datetime('" + end + "'), " + duration + ",'" + filepath + "', datetime('now'));"
             sqlupdate = "UPDATE " + datatype + " SET ACCESSED = datetime('now') WHERE year = " + str(
                 year) + " AND BASIN = '" + basin + "' AND STORM = " + str(
-                    storm) + ";"
+                storm) + ";"
         else:
             cdate = str(pair["cycledate"])
             fdate = str(pair["forecastdate"])
             url = pair["grb"]
             sqlhas = "SELECT Count(*) FROM " + datatype + \
-                     " WHERE FORECASTCYCLE = datetime('" + \
-                     cdate + "') AND DATE = datetime('" + \
-                     fdate + "') AND PATH = '" + filepath + "';"
+                     " WHERE FORECASTCYCLE = '" + \
+                     cdate + "' AND FORECASTTIME = '" + \
+                     fdate + "' AND FILEPATH = '" + filepath + "';"
             sqlinsert = "INSERT INTO " + datatype + \
-                        " (FORECASTCYCLE,DATE,PATH,URL,ACCESSED) VALUES(datetime('" + \
-                        cdate + "'),datetime('" + fdate + "'),'" + filepath + "','" + \
-                        url + "',datetime('now'));"
+                        " (FORECASTCYCLE,FORECASTTIME,FILEPATH,URL,ACCESSED) VALUES('" + \
+                        cdate + "','" + fdate + "','" + filepath + "','" + \
+                        url + "',now());"
             sqlupdate = ""
 
-        crsr = db.execute(sqlhas)
-        nrows = crsr.fetchall()[0][0]
+        cur = db.cursor()
+        cur.execute(sqlhas)
+        nrows = cur.fetchone()[0]
         if nrows == 0:
-            db.execute(sqlinsert)
-            db.commit()
+            cur.execute(sqlinsert)
         elif nrows > 0 and datatype == "nhc_btk":
-            db.execute(sqlupdate)
+            cur.execute(sqlupdate)
 
+        db.commit()
         db.close()
 
     def status(self, jsonfile):
@@ -220,9 +204,8 @@ class Metdb:
         Generates json status object from the avaialable NCEP-GFS data
         :return: json status object
         """
-        import sqlite3
         from datetime import datetime
-        db = sqlite3.connect(self.__db)
+        db = self.connect()
 
         sql = "SELECT DISTINCT FORECASTCYCLE FROM " + table + " ORDER BY FORECASTCYCLE"
         rows = db.execute(sql).fetchall()
@@ -324,7 +307,7 @@ class Metdb:
             for f in reversed(rows):
                 sql = "SELECT MIN(DATE) AS FIRST, MAX(DATE) AS LAST FROM hwrf WHERE stormname = '" + s[
                     "storm"] + "' AND FORECASTCYCLE = datetime('" + f[
-                        0] + "') ORDER BY DATE"
+                          0] + "') ORDER BY DATE"
                 r = db.execute(sql).fetchall()
                 start = datetime.strptime(r[0][0], "%Y-%m-%d %H:%M:%S")
                 end = datetime.strptime(r[0][1], "%Y-%m-%d %H:%M:%S")
@@ -345,23 +328,23 @@ class Metdb:
             if time_since_forecast < 10:
                 hwrf_stat.append({
                     "storm":
-                    s["storm"],
+                        s["storm"],
                     "min_forecast_date":
-                    fcst_min,
+                        fcst_min,
                     "max_forecast_date":
-                    fcst_max,
+                        fcst_max,
                     "first_available_cycle":
-                    cyc_min,
+                        cyc_min,
                     "last_available_cycle":
-                    cyc_max,
+                        cyc_max,
                     "latest_complete_forecast":
-                    latest_complete,
+                        latest_complete,
                     "latest_complete_forecast_start":
-                    latest_start,
+                        latest_start,
                     "latest_complete_forecast_end":
-                    latest_end,
+                        latest_end,
                     "latest_complete_forecast_length":
-                    latest_length,
+                        latest_length,
                     "cycle_list": cycle_list
                 })
 
@@ -369,7 +352,7 @@ class Metdb:
 
     def nhc_status(self):
         import sqlite3
-        from metget.nhcdownloader import basin2string
+        from .nhcdownloader import basin2string
         db = sqlite3.connect(self.__db)
 
         nhc_btk_stat = []
@@ -385,7 +368,7 @@ class Metdb:
             st = f[2]
             sql = "SELECT advisory, advisory_start, advisory_end, advisory_duration_hr FROM nhc_fcst WHERE year = " + str(
                 yr) + " and basin = '" + bs + "' and storm = " + str(
-                    st) + " ORDER BY advisory;"
+                st) + " ORDER BY advisory;"
             crsr2 = db.execute(sql)
             for ff in crsr2:
                 adv_data = {
@@ -399,17 +382,17 @@ class Metdb:
 
             nhc_fcst_stat.append({
                 "year":
-                yr,
+                    yr,
                 "basin_abbrev":
-                bs,
+                    bs,
                 "basin_string":
-                basin2string(bs),
+                    basin2string(bs),
                 "storm":
-                st,
+                    st,
                 "latest_forecast_advisory":
-                latest_forecast_advisory,
+                    latest_forecast_advisory,
                 "available_forecast_advisories":
-                forecast_advisory_list
+                    forecast_advisory_list
             })
 
         sql = "SELECT DISTINCT year, basin, storm, advisory_start, advisory_end, advisory_duration_hr, accessed " \

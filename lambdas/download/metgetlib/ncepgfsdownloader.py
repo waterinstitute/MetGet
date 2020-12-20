@@ -21,48 +21,52 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from metget.noaadownloader import NoaaDownloader
+from .noaadownloader import NoaaDownloader
 
 
-class NcepNamdownloader(NoaaDownloader):
-    def __init__(self, dblocation, begin, end):
-        address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/nam/prod/"
-        NoaaDownloader.__init__(self, "nam_ncep", "NAM-NCEP", address,
-                                dblocation, begin, end)
-        self.__downloadlocation = dblocation + "/" + self.mettype()
+class NcepGfsdownloader(NoaaDownloader):
+    def __init__(self, begin, end):
+        address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/"
+        NoaaDownloader.__init__(self, "gfs_ncep", "GFS-NCEP", address,
+                                begin, end)
         self.__lastdate = self.begindate()
 
     def download(self):
-        from metget.spyder import Spyder
+        from .spyder import Spyder
         from datetime import datetime
-        from metget.metdb import Metdb
+        from .metdb import Metdb
+        import hashlib
+
         num_download = 0
         s = Spyder(self.address())
-        db = Metdb(self.dblocation())
+        db = Metdb()
+        lastdate = self.begindate()
 
         links = []
         day_links = s.filelist()
-        nerror = 0
-        lastdate = self.begindate()
         for l in day_links:
-            if "nam." in l:
+            if "gfs." in l:
                 dstr = l[0:-1].rsplit('/', 1)[-1].rsplit('.', 1)[-1]
                 yr = int(dstr[0:4])
                 mo = int(dstr[4:6])
                 dy = int(dstr[6:8])
                 t = datetime(yr, mo, dy, 0, 0, 0)
-                lastdate = t
-                if self.enddate() >= t >= self.begindate():
+                if (self.enddate() >= t >= self.begindate()) and t >= self.__lastdate:
                     s2 = Spyder(l)
                     hr_links = s2.filelist()
+                    lastdate = t
                     for ll in hr_links:
-                        if "awphys" in ll:
-                            if "idx" not in ll:
-                                links.append(ll)
+                        s3 = Spyder(ll)
+                        files = s3.filelist()
+                        for lll in files:
+                            if "pgrb2.0p25.f" in lll:
+                                if "idx" not in lll:
+                                    links.append(lll)
 
         pairs = self.generateGrbInvPairs(links)
+        nerror = 0
         for p in pairs:
-            fpath, n, err = self.getgrib(self.__downloadlocation, p, p["cycledate"])
+            fpath, n, err = self.getgrib(p, p["cycledate"])
             nerror += err
             if fpath:
                 db.add(p, self.mettype(), fpath)
@@ -75,23 +79,23 @@ class NcepNamdownloader(NoaaDownloader):
 
     @staticmethod
     def generateGrbInvPairs(glist):
-        from datetime import datetime, timedelta
+        from datetime import datetime
+        from datetime import timedelta
         pairs = []
         for i in range(0, len(glist)):
             lst = glist[i].rsplit("/")
-            v1 = lst[-1].rsplit(".")[-3]
-            v2 = lst[-1].rsplit(".")[-4]
-            v3 = lst[-2].rsplit(".", 1)[-1]
+            v1 = lst[-1]
+            v2 = lst[-2]
+            v3 = lst[-3].rsplit(".", 1)[-1]
 
             yr = int(v3[0:4])
             mo = int(v3[4:6])
             dy = int(v3[6:8])
-            cycle = int(v2[1:3])
-            fcst = int(v1[-2:])
+            cycle = int(v2)
+            fcst = int(v1[-3:])
 
             cdate = datetime(yr, mo, dy, cycle, 0, 0)
             fdate = cdate + timedelta(hours=fcst)
-
             pairs.append({
                 "grb": glist[i],
                 "inv": glist[i] + ".idx",

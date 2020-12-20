@@ -41,15 +41,18 @@ class Spyder:
         import requests
         from bs4 import BeautifulSoup
         try:
-            r = requests.get(self.__url, timeout=10)
+            r = requests.get(self.__url, timeout=30)
             if r.ok:
                 response_text = r.text
             else:
+                print("[WARNING]: Error contacting server: " + self.__url + ", Status:" + str(r.status_code),
+                      flush=True)
                 return []
         except KeyboardInterrupt:
             raise
         except:
-            return []
+            print("[WARNING]: Exception occured while contacting server: " + self.__url, flush=True)
+            raise
 
         soup = BeautifulSoup(response_text, 'html.parser')
 

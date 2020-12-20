@@ -27,7 +27,8 @@ class NhcDownloader:
                  dblocation,
                  use_besttrack=True,
                  use_forecast=True,
-                 pressure_method="knaffzehr"):
+                 pressure_method="knaffzehr",
+                 use_aws=False):
         from datetime import datetime
         from metget.metdb import Metdb
         self.__dblocation = dblocation
@@ -40,6 +41,7 @@ class NhcDownloader:
         self.__pressure_method = pressure_method
         self.__database = Metdb(self.__dblocation)
         self.__use_rss = True
+        self.__use_aws = False
         self.__rss_feeds = [
             "https://www.nhc.noaa.gov/index-at.xml",
             "https://www.nhc.noaa.gov/index-ep.xml",
@@ -78,7 +80,7 @@ class NhcDownloader:
     def read_nhc_rss_feed(self, rss):
         import feedparser
         import os
-        from metget.forecastdata import ForecastData
+        from .forecastdata import ForecastData
 
         try:
             n = 0
@@ -428,7 +430,7 @@ class NhcDownloader:
         import requests
         from bs4 import BeautifulSoup
         try:
-            r = requests.get(url, timeout=10)
+            r = requests.get(url, timeout=30)
             if r.ok:
                 response_text = r.text
             else:

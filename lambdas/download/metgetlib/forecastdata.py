@@ -114,7 +114,38 @@ class ForecastData:
 
     @staticmethod
     def compute_pressure_curvefit(wind_speed, a, b, c):
-        return a - ((wind_speed * 0.514444) / b)**(1.0 / c)
+        return a - ((wind_speed * 0.514444) / b) ** (1.0 / c)
+
+    @staticmethod
+    def compute_pressure_courtneyknaff(wind_speed, forward_speed, eye_latitude):
+        background_pressure = 1013.0
+
+        # Below from Courtney and Knaff 2009
+        vsrm1 = wind_speed * 1.5 * forward_speed ** 0.63
+
+        rmax = 66.785 - 0.09102 * wind_speed + 1.0619 * (eye_latitude - 25.0)  # Knaff and Zehr 2007
+
+        # Two options for v500 ... I assume that vmax is
+        # potentially more broadly applicable than r34
+        # option 1
+        # v500 = r34 / 9.0 - 3.0
+
+        # option 2
+        v500 = wind_speed * ((66.785 - 0.09102 * wind_speed + 1.0619 * (eye_latitude - 25)) / 500) ** (
+                0.1147 + 0.0055 * wind_speed - 0.001 * (eye_latitude - 25))
+
+        # Knaff and Zehr computes v500c
+        v500c = wind_speed * (rmax / 500) ** (0.1147 + 0.0055 * wind_speed - 0.001 * (eye_latitude - 25.0))
+
+        # Storm size parameter
+        S = max(v500 / v500c, 0.4)
+
+        if eye_latitude < 18.0:
+            dp = 5.962 - 0.267 * vsrm1 - (vsrm1 / 18.26) ** 2.0 - 6.8 * S
+        else:
+            dp = 23.286 - 0.483 * vsrm1 - (vsrm1 / 24.254) ** 2.0 - 12.587 * S - 0.483 * eye_latitude
+
+        return dp + background_pressure
 
     @staticmethod
     def compute_initial_pressure_estimate_asgs(wind, last_vmax, last_pressure):
@@ -164,7 +195,7 @@ class ForecastData:
         return self.__pressure
 
     def set_isotach(self, speed, d1, d2, d3, d4):
-        from metget.isotach import Isotach
+        from .isotach import Isotach
         self.__isotach[speed] = Isotach(speed, d1, d2, d3, d4)
 
     def isotach(self, speed):

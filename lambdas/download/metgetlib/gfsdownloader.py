@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from metget.noaadownloader import NoaaDownloader
+from .noaadownloader import NoaaDownloader
 
 
 class Gfsdownloader(NoaaDownloader):
@@ -32,9 +32,9 @@ class Gfsdownloader(NoaaDownloader):
         self.__downloadlocation = dblocation + "/" + self.mettype()
 
     def download(self):
-        from metget.spyder import Spyder
+        from .spyder import Spyder
         from datetime import datetime
-        from metget.metdb import Metdb
+        from .metdb import Metdb
         import os.path
         num_download = 0
         s = Spyder(self.address())

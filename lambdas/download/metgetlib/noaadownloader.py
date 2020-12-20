@@ -30,26 +30,29 @@ class NoaaDownloader:
                  mettype,
                  metstring,
                  address,
-                 dblocation,
                  begin,
                  end,
-                 use_rainfall=False):
+                 use_rainfall=False,
+                 use_aws=True):
         """
         Constructor for the NoaaDownloader class. Initializes the
         :param mettype: Type of metetrology that is to be downloaded
         :param address: Server address
-        :param dblocation: Location for downloaded files
         :param begin: start date for downloaded
         :param end: end date for downloading
         """
-        from metget.metdb import Metdb
+        from .metdb import Metdb
         self.__mettype = mettype
         self.__metstring = metstring
         self.__address = address
-        self.__dblocation = dblocation
-        self.__database = Metdb(self.__dblocation)
         self.__beginDate = begin
         self.__endDate = end
+        self.__use_aws = use_aws
+        self.__database = Metdb()
+
+        if self.__use_aws:
+            from .s3file import S3file
+            self.__s3file = S3file()
 
         # The following variables will be used. Presently, these are the
         # variables that ADCIRC can support (wind vector, pressure, and ice)
@@ -97,8 +100,8 @@ class NoaaDownloader:
     def database(self):
         return self.__database
 
-    def dblocation(self):
-        return self.__dblocation
+    def dynamo(self):
+        return self.__dynamo
 
     def begindate(self):
         return self.__beginDate
@@ -112,16 +115,20 @@ class NoaaDownloader:
     def setenddate(self, date):
         self.__endDate = date
 
-    def getgrib(self, folder, info, time):
+    def use_aws(self):
+        return self.__use_aws
+
+    def getgrib(self, info, time):
         """
         Gets the grib based upon the input data
+        :param folder: folder to place the data
         :param info: variable containing the location of the data
         :param time: time that the data represents
         :return: returns the name of the file that has been downloaded
         """
-        import os
         import os.path
         import requests
+        import tempfile
 
         n = 0
         try:
@@ -140,11 +147,12 @@ class NoaaDownloader:
             year = "{0:04d}".format(time.year)
             month = "{0:02d}".format(time.month)
             day = "{0:02d}".format(time.day)
-            dfolder = folder + "/" + year + "/" + month + "/" + day
-            os.makedirs(dfolder, exist_ok=True)
-            floc = dfolder + "/" + fn
-    
-            if not os.path.exists(floc):
+
+            dfolder = self.mettype() + "/" + year + "/" + month + "/" + day
+            floc = tempfile.gettempdir() + "/" + fn
+            pathfound = self.__s3file.exists(dfolder + "/" + fn)
+
+            if not pathfound:
                 print("     Downloading File: " + fn + " (F: " + info["cycledate"].strftime("%Y-%m-%d %H:%M:%S") +
                       ", T: " + info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S") + ")", flush=True)
                 n = 1
@@ -163,8 +171,13 @@ class NoaaDownloader:
                         if os.path.exists(floc):
                             os.remove(floc)
                         return None, 0, 1
-    
-            return floc, n, 0
+
+                self.__s3file.upload_file(floc, dfolder + "/" + fn)
+                os.remove(floc)
+                return dfolder + "/" + fn, n, 0
+            else:
+                return None, 0, 0
+
         except KeyboardInterrupt:
             raise
         except:

@@ -1,0 +1,5 @@
+pymysql
+requests
+boto3
+bs4
+feedparser

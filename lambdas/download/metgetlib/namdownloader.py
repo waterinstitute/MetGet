@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from metget.noaadownloader import NoaaDownloader
+from .noaadownloader import NoaaDownloader
 
 
 class Namdownloader(NoaaDownloader):
@@ -33,9 +33,9 @@ class Namdownloader(NoaaDownloader):
         self.__lastdate = self.begindate()
 
     def download(self):
-        from metget.spyder import Spyder
+        from .spyder import Spyder
         from datetime import datetime
-        from metget.metdb import Metdb
+        from .metdb import Metdb
         num_download = 0
         s = Spyder(self.address())
         db = Metdb(self.dblocation())
@@ -72,13 +72,13 @@ class Namdownloader(NoaaDownloader):
 
                     pairs = self.generateGrbInvPairs(file_links)
                     for p in pairs:
+                        print(p,flush=True)
                         fpath, n, err = self.getgrib(self.__downloadlocation, p, t2)
                         nerror += err
                         if fpath:
                             db.add(p, self.mettype(), fpath)
                             num_download += n
-
-        if nerror = 0:
+        if nerror == 0:
             self.__lastdate = lastdate
 
         return num_download
