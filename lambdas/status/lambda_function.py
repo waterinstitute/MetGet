@@ -186,15 +186,15 @@ class Database:
                     "storm":
                         s["storm"],
                     "min_forecast_date":
-                        fcst_min.strftime("%Y-%m-%d %H:%M:%S"),
+                        date_or_null(fcst_min),
                     "max_forecast_date":
-                        fcst_max.strftime("%Y-%m-%d %H:%M:%S"),
+                        date_or_null(fcst_max),
                     "first_available_cycle":
-                        cyc_min.strftime("%Y-%m-%d %H:%M:%S"),
+                        date_or_null(cyc_min),
                     "last_available_cycle":
-                        cyc_max.strftime("%Y-%m-%d %H:%M:%S"),
+                        date_or_null(cyc_max),
                     "latest_complete_forecast":
-                        latest_complete.strftime("%Y-%m-%d %H:%M:%S"),
+                        date_or_null(latest_complete),
                     "latest_complete_forecast_start":
                         latest_start,
                     "latest_complete_forecast_end":
@@ -205,6 +205,13 @@ class Database:
                 })
 
         return hwrf_stat
+
+def date_or_null(date):
+    from datetime import datetime
+    if not isinstance(date,datetime):
+        return None
+    else:
+        return date.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def lambda_handler(event, context):
@@ -230,3 +237,4 @@ def lambda_handler(event, context):
             "data": s
         },
     }
+
