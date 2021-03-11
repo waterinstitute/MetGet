@@ -1,0 +1,1267 @@
+# MIT License
+#
+# Copyright (c) 2020 ADCIRC Development Group
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# Author: Zach Cobell
+# Contact: zcobell@thewaterinstitute.org
+#
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+
+  #..................................#
+  # Networking
+  #
+  # Builds a VPC with three subnets. Two subnets
+  # only have private traffic and the third
+  # has public egress only access via an internet
+  # gateway object. Also, constructs internal/external
+  # route tables to appropriately route traffic through
+  # the subnets.
+  #..................................#
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}_VPC"
+
+  InternalSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Sub '${AWS::Region}a'
+      MapPublicIpOnLaunch: false
+      CidrBlock: 10.0.0.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-internalSubnet1"
+    DependsOn:
+      - VPC
+
+  InternalSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Sub '${AWS::Region}b'
+      MapPublicIpOnLaunch: false
+      CidrBlock: 10.0.1.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-internalSubnet2"
+    DependsOn:
+      - VPC
+
+  PublicSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Sub '${AWS::Region}c'
+      MapPublicIpOnLaunch: false
+      CidrBlock: 10.0.2.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-publicsubnet"
+    DependsOn:
+      - VPC
+
+  ElasticIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+    DependsOn:
+      - VPC
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    DependsOn:
+      - VPC
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+    DependsOn:
+      - VPC
+      - InternetGateway
+
+  NatGateway:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      AllocationId: !GetAtt
+        - ElasticIP
+        - AllocationId
+    DependsOn:
+      - PublicSubnet
+      - InternetGateway
+      - AttachGateway
+
+  InternalRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+    DependsOn:
+      - VPC
+
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+    DependsOn:
+      - VPC
+
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+    DependsOn:
+      - InternetGateway
+      - PublicRouteTable
+      - AttachGateway
+
+  InternalRoute:
+      Type: 'AWS::EC2::Route'
+      Properties:
+        DestinationCidrBlock: 0.0.0.0/0
+        NatGatewayId: !Ref NatGateway
+        RouteTableId: !Ref InternalRouteTable
+      DependsOn:
+        - NatGateway
+        - InternalRouteTable
+
+  SubnetRouteAssociation1:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId:
+        Ref: InternalSubnet1
+      RouteTableId:
+        Ref: InternalRouteTable
+    DependsOn:
+      - InternalSubnet2
+      - InternalRouteTable
+
+  SubnetRouteAssociation2:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId:
+        Ref: InternalSubnet2
+      RouteTableId:
+        Ref: InternalRouteTable
+    DependsOn:
+      - InternalSubnet2
+      - InternalRouteTable
+
+  SubnetRouteAssociation3:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId:
+        Ref: PublicSubnet
+      RouteTableId:
+        Ref: PublicRouteTable
+    DependsOn:
+      - PublicSubnet
+      - PublicRouteTable
+
+  NetworkAcl:
+    Type: 'AWS::EC2::NetworkAcl'
+    Properties:
+      VpcId: !Ref VPC
+    DependsOn:
+      - VPC
+
+  NetworkAclEntry:
+    Type: 'AWS::EC2::NetworkAclEntry'
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: true
+      NetworkAclId: !Ref NetworkAcl
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 100
+    DependsOn:
+      - NetworkAcl
+
+  NetworkAclOutputboundEntry:
+    Type: 'AWS::EC2::NetworkAclEntry'
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: false
+      NetworkAclId: !Ref NetworkAcl
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 100
+    DependsOn:
+      - NetworkAcl
+
+  SubnetNetworkACLInternal1:
+    Type: "AWS::EC2::SubnetNetworkAclAssociation"
+    Properties:
+      NetworkAclId: !Ref NetworkAcl
+      SubnetId: !Ref InternalSubnet1
+    DependsOn:
+      - InternalSubnet1
+      - NetworkAcl
+
+  SubnetNetworkACLInternal2:
+    Type: "AWS::EC2::SubnetNetworkAclAssociation"
+    Properties:
+      NetworkAclId: !Ref NetworkAcl
+      SubnetId: !Ref InternalSubnet2
+    DependsOn:
+      - InternalSubnet2
+      - NetworkAcl
+
+  SubnetNetworkACLPublic:
+    Type: "AWS::EC2::SubnetNetworkAclAssociation"
+    Properties:
+      NetworkAclId: !Ref NetworkAcl
+      SubnetId: !Ref PublicSubnet
+    DependsOn:
+      - PublicSubnet
+      - NetworkAcl
+
+  #..................................#
+  # Database
+  #
+  # Generates a MySQL database in the public
+  # subnet. Automatically generates a password
+  # for the administrator account.
+  #..................................#
+  Database:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBInstanceIdentifier: !Sub '${AWS::StackName}-database'
+      AllocatedStorage: 20
+      DBInstanceClass: db.t2.micro
+      Engine: mysql
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::password}}'
+      DBName: !Sub "${MetGetDatabaseName}"
+      PreferredBackupWindow: '07:23-07:53'
+      BackupRetentionPeriod: 7
+      AvailabilityZone: !GetAtt PublicSubnet.AvailabilityZone
+      PreferredMaintenanceWindow: 'wed:06:00-wed:06:30'
+      MultiAZ: false
+      EngineVersion: 8.0.20
+      AutoMinorVersionUpgrade: true
+      LicenseModel: general-public-license
+      PubliclyAccessible: true
+      StorageType: gp2
+      Port: 3306
+      StorageEncrypted: false
+      CopyTagsToSnapshot: true
+      MonitoringInterval: 0
+      EnableIAMDatabaseAuthentication: false
+      EnablePerformanceInsights: false
+      DeletionProtection: false
+      DBSubnetGroupName: !Sub '${AWS::StackName}-dbsubnetgroup'
+      VPCSecurityGroups:
+        - !Ref SecurityGroup
+      MaxAllocatedStorage: 1000
+      DBParameterGroupName: default.mysql8.0
+      OptionGroupName: 'default:mysql-8-0'
+      CACertificateIdentifier: rds-ca-2019
+    DependsOn:
+      - VPC
+      - DatabaseSubnetGroup
+      - PublicSubnet
+      - SecurityGroup
+      - DatabaseSecretManager
+      - NatGateway
+      - AttachGateway
+      - InternetGateway
+
+  DatabaseSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: !Sub "${AWS::StackName} Database Subnet Group"
+      DBSubnetGroupName: !Sub '${AWS::StackName}-dbsubnetgroup'
+      SubnetIds:
+        - !Ref InternalSubnet1
+        - !Ref InternalSubnet2
+        - !Ref PublicSubnet
+    DependsOn:
+      - VPC
+      - InternalSubnet1
+      - InternalSubnet2
+      - PublicSubnet
+      - NatGateway
+      - AttachGateway
+      - InternetGateway
+
+  DatabaseSecretManager:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AWS::StackName}-secretmanager'
+      Description: 'Database secret manager'
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  #..................................#
+  # Access
+  #
+  # IAM roles for access to the various
+  # components
+  #..................................#
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: !Sub 'Security Group for ${AWS::StackName}'
+      GroupName: !Sub '${AWS::StackName}-securitygroup'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - CidrIp: !GetAtt VPC.CidrBlock
+          FromPort: 3306
+          IpProtocol: tcp
+          ToPort: 3306
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: '-1'
+    DependsOn:
+      - VPC
+
+  IAMServiceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      RoleName: !Sub '${AWS::StackName}-servicerole'
+      AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\",\"apigateway.amazonaws.com\"]},\"Action\":\"sts:AssumeRole\"}]}"
+      MaxSessionDuration: 3600
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
+        - "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  LambdaIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}_generate_status:*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}_receive_request:*"
+          PolicyName: !Sub "${AWS::StackName}-lambda"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
+        - "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+
+  IAMServiceInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+        Path: "/"
+        InstanceProfileName: !Ref IAMServiceRole
+        Roles:
+          - !Ref IAMServiceRole
+    DependsOn:
+      - IAMServiceRole
+
+  EventBridgeLambdaPermissionHwrf:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaGetData.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventRunLambdaHwrf.Arn
+    DependsOn:
+      - LambdaGetData
+      - EventRunLambdaHwrf
+
+  EventBridgeLambdaPermissionGfs:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaGetData.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventRunLambdaGfs.Arn
+    DependsOn:
+      - LambdaGetData
+      - EventRunLambdaGfs
+
+  EventBridgeLambdaPermissionNam:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaGetData.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventRunLambdaNam.Arn
+    DependsOn:
+      - LambdaGetData
+      - EventRunLambdaNam
+
+  #..................................#
+  # Autoscaling
+  #
+  # Builds an autoscaling group that attempts to
+  # get the queue state to be zero using
+  # scaledown and scaleup policies
+  #..................................#
+  Autoscaler:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AutoScalingGroupName: !Sub "${AWS::StackName}-autoscalinggroup"
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 0
+      MaxSize: 4
+      DesiredCapacity: 0
+      Cooldown: 60
+      AvailabilityZones:
+        - !Sub "${AWS::Region}a"
+        - !Sub "${AWS::Region}b"
+        - !Sub "${AWS::Region}c"
+      HealthCheckType: "EC2"
+      HealthCheckGracePeriod: 300
+      VPCZoneIdentifier:
+        - !Ref InternalSubnet1
+        - !Ref InternalSubnet2
+        - !Ref PublicSubnet
+      TerminationPolicies:
+        - "Default"
+      MetricsCollection:
+        - Granularity: "1Minute"
+      NewInstancesProtectedFromScaleIn: false
+    DependsOn:
+      - LaunchConfiguration
+      - InternalSubnet1
+      - InternalSubnet2
+      - PublicSubnet
+
+  ScaleDownPolicy:
+    Type: "AWS::AutoScaling::ScalingPolicy"
+    Properties:
+      AutoScalingGroupName: !Ref Autoscaler
+      PolicyType: "SimpleScaling"
+      AdjustmentType: "ChangeInCapacity"
+      ScalingAdjustment: -1
+    DependsOn:
+      - Autoscaler
+
+  ScaleUpPolicy:
+    Type: "AWS::AutoScaling::ScalingPolicy"
+    Properties:
+      AutoScalingGroupName: !Ref Autoscaler
+      PolicyType: "SimpleScaling"
+      AdjustmentType: "ChangeInCapacity"
+      ScalingAdjustment: 1
+      Cooldown: 300
+    DependsOn:
+      - Autoscaler
+
+  DataAvailableAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-data-available"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref ScaleUpPolicy
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Namespace: "AWS/SQS"
+      Statistic: "Average"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SQSQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+    DependsOn:
+      - SQSQueue
+      - ScaleUpPolicy
+
+  NoDataAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-nodata-available"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref ScaleDownPolicy
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Namespace: "AWS/SQS"
+      Statistic: "Average"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SQSQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: "LessThanThreshold"
+    DependsOn:
+      - ScaleDownPolicy
+      - SQSQueue
+
+  LaunchConfiguration:
+    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Properties:
+      LaunchConfigurationName: !Sub "${AWS::StackName}-LaunchConfiguration"
+      ImageId: "ami-0ac1a412576992a97"
+      SecurityGroups:
+        - !Ref SecurityGroup
+      InstanceType: "t2.micro"
+      BlockDeviceMappings:
+        -
+          DeviceName: "/dev/xvda"
+          Ebs:
+            SnapshotId: "snap-0bcf9fbab21c0c7dc"
+            VolumeSize: 16
+            VolumeType: "gp2"
+            DeleteOnTermination: true
+            Encrypted: false
+      InstanceMonitoring: false
+      IamInstanceProfile: !Ref IAMServiceInstanceProfile
+      EbsOptimized: false
+    DependsOn:
+      - SecurityGroup
+      - IAMServiceInstanceProfile
+
+  #..................................#
+  # Queue
+  #
+  # Builds a SQS queue to handle messages
+  # coming from the ApiGateway+Lambda
+  #..................................#
+  SQSQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      DelaySeconds: "0"
+      MaximumMessageSize: "262144"
+      MessageRetentionPeriod: "345600"
+      ReceiveMessageWaitTimeSeconds: "10"
+      VisibilityTimeout: "600"
+      QueueName: !Sub '${AWS::StackName}-queue'
+
+
+  #..................................#
+  # Log Group
+  #
+  # Log group to host all logs from this stack
+  #..................................#
+  LogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub '${AWS::StackName}-loggroup'
+      RetentionInDays: 7
+
+  #..................................#
+  # API Gateway
+  #
+  # API Gateway that implements the MetGet
+  # api, connected to lambda functions
+  #..................................#
+  ApiGateway:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name: !Sub "${AWS::StackName}-API"
+      Description: !Sub "${AWS::StackName} API Access"
+      ApiKeySourceType: "HEADER"
+      EndpointConfiguration:
+        Types:
+          - "REGIONAL"
+      Body:
+        openapi: 3.0.0
+        info:
+          description: API for generating requests from MetGet
+          version: 0.0.1
+          title: MetGet
+          license:
+            name: MIT
+            url: https://opensource.org/licenses/MIT
+          contact:
+            url: http://www.adcirc.org
+        paths:
+          /status:
+            get:
+              summary: Gets the list of available data from the server
+              description: Retrieve a json formatted list of available data from the archive
+              parameters:
+                - name: "x-api-key"
+                  in: "header"
+                  required: true
+                  schema:
+                    type: "string"
+              security:
+                - api_key: []
+              responses:
+                "200":
+                  description: "200 response"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/goodstatusresponse'
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaStatus.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "WHEN_NO_MATCH"
+                httpMethod: "POST"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "AWS"
+          /build:
+            post:
+              summary: Request the build process to begin
+              description: Send a json formatted request to the server for wind field creation
+              parameters:
+                - name: "x-api-key"
+                  in: "header"
+                  required: true
+                  schema:
+                    type: "string"
+              security:
+                - api_key: []
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/buildrequest'
+              responses:
+                "200":
+                  description: "OK"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/goodbuildrequest'
+                "400":
+                  description: "Bad request"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/badrequest'
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaReceiveRequest.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "WHEN_NO_MATCH"
+                httpMethod: "POST"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "AWS"
+        components:
+          securitySchemes:
+            api_key:
+              type: "apiKey"
+              name: "x-api-key"
+              in: "header"
+          schemas:
+            goodstatusresponse:
+              type: object
+              properties:
+                statusCode:
+                  type: number
+                body:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                    version:
+                      type: string
+                    request:
+                      type: string
+                    response_time:
+                      type: number
+                    accessed:
+                      type: string
+                    data:
+                      type: object
+                      properties:
+                        nhc:
+                          description: NHC track file data
+                          type: object
+                          properties:
+                            forecast:
+                              type: array
+                              description: NHC forecast track advisories
+                              items:
+                                $ref: '#/components/schemas/nhcforecast'
+                            best_track:
+                              type: array
+                              description: NHC best track advisories
+                              items:
+                                $ref: '#/components/schemas/nhcforecast'
+                        hwrf:
+                          type: array
+                          description: NOAA HWRF model runs
+                          items:
+                            $ref: '#/components/schemas/hwrf'
+                        gfs-ncep:
+                          type: object
+                          description: NOAA GFS-NCEP model runs
+                          allOf:
+                            - $ref: '#/components/schemas/wrfdata'
+                        nam-ncep:
+                          type: object
+                          description: NOAA NAM-NCEP model runs
+                          allOf:
+                            - $ref: '#/components/schemas/wrfdata'
+            goodbuildrequest:
+              type: object
+              properties:
+                request_id:
+                  type: string
+                request_url:
+                  type: string
+            badrequest:
+              type: object
+              properties:
+                request_id:
+                  type: string
+                error_message:
+                  type: string
+            buildrequest:
+              type: object
+              properties:
+                version:
+                  type: string
+                  description: application version
+                start_date:
+                  type: string
+                  description: output file start date
+                end_date:
+                  type: string
+                  description: output file end date
+                time_step:
+                  type: string
+                  description: output file time increment in seconds
+                background_pressure:
+                  type: number
+                  description: output file background pressure in millibars
+                  default: 1013.0
+                null_value:
+                  type: number
+                  description: value to be used to identify nodata
+                  default: -9999.0
+                creator:
+                  type: string
+                  description: name of application/individual making the request
+                domains:
+                  type: array
+                  description: list of output domains to generate
+                  items:
+                    oneOf:
+                      - $ref: '#/components/schemas/gridwxdx'
+                      - $ref: '#/components/schemas/gridwllur'
+                      - $ref: '#/components/schemas/gridpredefined'
+            gridwxdx:
+              type: object
+              description: grid specified by specifying the origin, resolution, dimension, and rotation
+              properties:
+                name:
+                  type: string
+                  description: name of the domain
+                service:
+                  type: string
+                  description: name of service to use to generate this domain
+                level:
+                  type: integer
+                  description: stacking order for the domains
+                grid_type:
+                  type: integer
+                  description: method for grid generation used
+                x_init:
+                  type: number
+                  description: lower left x-coordinate
+                y_init:
+                  type: number
+                  description: lower left y-coordinate
+                di:
+                  type: number
+                  description: grid resolution in the i-direction
+                dj:
+                  type: number
+                  description: grid resolution in the j-direction
+                ni:
+                  type: integer
+                  description: number of grid cells in the i-direction
+                nj:
+                  type: integer
+                  description: number of grid cells in the j-direction
+                rotation:
+                  type: number
+                  description: grid rotation in degrees counterclockwise
+                x_end:
+                  type: number
+                  description: upper right x-coordinate
+                y_end:
+                  type: number
+                  description: upper right y-coordinate
+                predefined:
+                  type: string
+                  description: predefined grid parameters
+
+            gridwllur:
+              type: object
+              description: grid generated by specifying the corners of a grid
+              properties:
+                name:
+                  type: string
+                  description: name of the domain
+                service:
+                  type: string
+                  description: name of service to use to generate this domain
+                level:
+                  type: integer
+                  description: stacking order for the domains
+                grid_type:
+                  type: integer
+                  description: method for grid generation used
+                x_init:
+                  type: number
+                  description: lower left x-coordinate
+                y_init:
+                  type: number
+                  description: lower left y-coordinate
+                di:
+                  type: number
+                  description: grid resolution in the i-direction
+                dj:
+                  type: number
+                  description: grid resolution in the j-direction
+                x_end:
+                  type: number
+                  description: upper right x-coordinate
+                y_end:
+                  type: number
+                  description: upper right y-coordinate
+
+            gridpredefined:
+              type: object
+              description: predefined grid for shortcuts to grid definitions
+              properties:
+                name:
+                  type: string
+                  description: name of the domain
+                service:
+                  type: string
+                  description: name of service to use to generate this domain
+                predefined_name:
+                  type: string
+                  description: predefined grid option to use for grid parameters
+            hwrf:
+              type: object
+              description: data representing hwrf model output
+              properties:
+                storm:
+                  type: string
+                  description: name of hwrf storm run
+                min_forecast_date:
+                  type: string
+                  description: first available forecast date for this storm
+                max_forecast_date:
+                  type: string
+                  description: last available forecast date for this storm
+                first_available_cycle:
+                  type: string
+                  description: first available forecast cycle where this storm was run
+                last_available_cycle:
+                  type: string
+                  description: last available cycle where this storm was run
+                latest_complete_cycle:
+                  type: string
+                  description: latest cycle that has been verified as complete
+                latest_complete_forecast_start:
+                  type: string
+                  description: start time of the latest complete forecast cycle
+                latest_complete_forecast_end:
+                  type: string
+                  description: end time of the latest complete forecast cycle
+                latest_complete_forecast_length:
+                  type: string
+                  description: duration in hours of the latest complete forecast cycle
+            nhcadvisory:
+              type: object
+              description: individual nhc advisory
+              properties:
+                advisory:
+                  type: string
+                  description: advisory number
+                start:
+                  type: string
+                  description: advisory start date
+                end:
+                  type: string
+                  description: advisory end date
+                duration:
+                  type: number
+                  description: duration of the advisory in hours
+            nhcforecast:
+              type: object
+              description: data representing an available nhc forecast or best track data
+              properties:
+                year:
+                  type: integer
+                  description: year of the storm
+                basin_abbreviation:
+                  type: string
+                  description: abbreviation for the basin code used by NHC
+                basin_string:
+                  type: string
+                  description: full string of the basin where the storm occurs
+                available_advisories:
+                  type: array
+                  description: array of the available forecast advisories
+                  items:
+                    $ref: '#/components/schemas/nhcadvisory'
+            wrfdata:
+              type: object
+              description: model output data generated by NOAA
+              properties:
+                latest_complete_forecast:
+                  type: string
+                  description: latest complete forecast cycle
+                latest_complete_forecast_start:
+                  type: string
+                  description: start time for latest forecast
+                latest_complete_forecast_end:
+                  type: string
+                  description: end time for latest forecast
+                first_available_cycle:
+                  type: string
+                  description: first available cycle in the database
+                last_available_cycle:
+                  type: string
+                  description: last available cycle in the database
+                max_forecast_date:
+                  type: string
+                  description: maximum forecast date that is available
+                min_forecast_date:
+                  type: string
+                  description: minimum forecast date that is available
+                cycle_list:
+                  type: array
+                  description: array of available forecast cycles
+                  items:
+                    type: string
+    DependsOn:
+      - LambdaStatus
+      - LambdaReceiveRequest
+
+  ApiDevelopmentDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    Properties:
+      RestApiId: !Ref ApiGateway
+      StageName: !Sub "${AWS::StackName}-dummyStage"
+    DependsOn:
+      - ApiGateway
+
+  ApiDevelopmentStage:
+    Type: "AWS::ApiGateway::Stage"
+    Properties:
+      RestApiId: !Ref ApiGateway
+      DeploymentId: !Ref ApiDevelopmentDeployment
+      StageName: !Sub "${AWS::StackName}-development"
+    DependsOn:
+      - ApiGateway
+      - ApiDevelopmentDeployment
+
+  #..................................#
+  # Lambda Functions
+  #
+  # The three lambda functions implemented
+  # by this stack.
+  #..................................#
+  LambdaStatus:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "Function to generate a json status via the api"
+      Runtime: "python3.8"
+      Role: !GetAtt LambdaIAMRole.Arn
+      FunctionName: !Sub "${AWS::StackName}_generate_status"
+      Handler: "lambda_function.lambda_handler"
+      MemorySize: 128
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+          - !GetAtt VPC.DefaultSecurityGroup
+        SubnetIds:
+          - !Ref InternalSubnet1
+          - !Ref InternalSubnet2
+      TracingConfig:
+        Mode: "PassThrough"
+      Environment:
+        Variables:
+          DBSERVER: !GetAtt Database.Endpoint.Address
+          DBPASS: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::password}}'
+          DBUSER: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::username}}'
+          DBNAME: !Sub "${MetGetDatabaseName}"
+      Code:
+        S3Bucket: metget-scripts
+        S3Key: metstatus/metget-status.zip
+    DependsOn:
+      - SecurityGroup
+      - InternalSubnet1
+      - InternalSubnet2
+      - VPC
+      - Database
+      - DatabaseSecretManager
+
+
+  LambdaReceiveRequest:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "Function to add work to the metget queue"
+      Runtime: "python3.8"
+      Role: !GetAtt LambdaIAMRole.Arn
+      FunctionName: !Sub "${AWS::StackName}_receive_request"
+      Handler: "index.lambda_handler"
+      MemorySize: 128
+      Timeout: 60
+      TracingConfig:
+        Mode: "PassThrough"
+      Environment:
+        Variables:
+          QUEUE_NAME: !GetAtt SQSQueue.QueueName
+      Code:
+        ZipFile: |
+          def queue_name():
+            import os
+            return os.environ["QUEUE_NAME"]
+
+          def region():
+            import os
+            return os.environ["AWS_REGION"]
+
+          def lambda_handler(event, context):
+            import json
+            import boto3
+            import logging
+
+            logger = logging.getLogger()
+            logger.setLevel(logging.INFO)
+
+            client = boto3.client('sqs',region_name=region())
+            queue_url = client.get_queue_url(QueueName=queue_name())['QueueUrl']
+
+            try:
+              msg = client.send_message(QueueUrl=queue_url,MessageBody=json.dumps(event))
+              status = 200
+            except:
+              logger.error("Could not send the message to the queue. Message has been rejected")
+              status = 201
+
+            if status==200:
+              return {
+              'statusCode': 200,
+              'body': {
+                "error": 0,
+                "status": "Message received and added to queue",
+                "MessageId": msg["MessageId"]
+              }
+            }
+            else:
+              return {
+              'statusCode': 200,
+              'body': {
+                "error": 1,
+                "status": "Message was not added to queue",
+                "error": "Could not send the request to the queue"
+              }
+            }
+    DependsOn:
+      - SQSQueue
+
+  LambdaGetData:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "Function to add work to the metget queue"
+      Runtime: "python3.8"
+      Role: !GetAtt LambdaIAMRole.Arn
+      FunctionName: !Sub "${AWS::StackName}_get_data"
+      Handler: "lambda_function.lambda_handler"
+      MemorySize: 1024
+      Timeout: 900
+      TracingConfig:
+        Mode: "PassThrough"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Sub "${MetGetDataBucket}"
+          DBSERVER: !GetAtt Database.Endpoint.Address
+          DBPASS: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::password}}'
+          DBUSER: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::username}}'
+          DBNAME: !Sub "${MetGetDatabaseName}"
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+          - !GetAtt VPC.DefaultSecurityGroup
+        SubnetIds:
+          - !Ref InternalSubnet1
+          - !Ref InternalSubnet2
+      Code:
+        S3Bucket: metget-scripts
+        S3Key: metdownload/metget-deployment.zip
+    DependsOn:
+      - Database
+      - VPC
+      - SecurityGroup
+      - DatabaseSecretManager
+
+  LambdaStatusAPIPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaStatus.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+    DependsOn:
+      - LambdaStatus
+      - ApiGateway
+
+  LambdaReceiveRequestAPIPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaReceiveRequest.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+    DependsOn:
+      - LambdaReceiveRequest
+      - ApiGateway
+
+  #..................................#
+  # EventBridge
+  #
+  # Event Bridge Drivers to call the retrieval functions
+  # at 15 minute intervals
+  #..................................#
+  EventRunLambdaHwrf:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Executes the event to get the HWRF model data"
+      State: "ENABLED"
+      ScheduleExpression: "rate(15 minutes)"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+             - "LambdaGetData"
+             - "Arn"
+          Id: !Sub "${AWS::StackName}-hwrfLambdaEvent"
+          Input:
+            !Sub |
+              {
+                "service": "hwrf"
+              }
+          RetryPolicy:
+            MaximumRetryAttempts: 0
+            MaximumEventAgeInSeconds: 900
+    DependsOn:
+     - LambdaGetData
+
+  EventRunLambdaGfs:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Executes the event to get the GFS model data"
+      State: "ENABLED"
+      ScheduleExpression: "rate(15 minutes)"
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - "LambdaGetData"
+              - "Arn"
+          Id: !Sub "${AWS::StackName}-gfsLambdaEvent"
+          Input:
+            !Sub |
+            {
+              "service": "gfs"
+            }
+          RetryPolicy:
+            MaximumRetryAttempts: 0
+            MaximumEventAgeInSeconds: 900
+    DependsOn:
+      - LambdaGetData
+
+  EventRunLambdaNam:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Executes the event to get the NAM model data"
+      State: "ENABLED"
+      ScheduleExpression: "rate(15 minutes)"
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - "LambdaGetData"
+              - "Arn"
+          Id: !Sub "${AWS::StackName}-namLambdaEvent"
+          Input:
+            !Sub |
+            {
+              "service": "nam"
+            }
+          RetryPolicy:
+            MaximumRetryAttempts: 0
+            MaximumEventAgeInSeconds: 900
+    DependsOn:
+      - LambdaGetData
+
+#..................................#
+# Input Parameters
+#
+# Inputs passed to CloudFormation
+#..................................#
+Parameters:
+  MetGetDataBucket:
+    Type: String
+    Default: metgetdata
+    Description: "Name of private S3 bucket where meteorological files will be stored"
+  MetGetDatabaseName:
+    Type: String
+    Default: metget
+    Description: "Name of the database to create inside the RDS instance"
+
+#..................................#
+# Output Parameters
+#
+# Outputs passed to user
+#..................................#
+Outputs:
+  APIAddress:
+    Description: Address of the root of the MetGet API deployment
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${ApiDevelopmentStage}
