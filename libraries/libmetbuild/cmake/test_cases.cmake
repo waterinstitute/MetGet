@@ -1,5 +1,6 @@
 if(UNIX OR CYGWIN)
   option(METBUILD_BUILD_TESTS OFF "Build test cases")
+  enable_testing()
   if(METBUILD_BUILD_TESTS)
     # ...C++ Testing
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cxx_testcases)
@@ -14,7 +15,7 @@ if(UNIX OR CYGWIN)
       target_link_libraries(${TESTNAME} metbuild_static metbuild_interface)
       target_include_directories(
         ${TESTNAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-                            ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/catch2)
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/catch2)
       set_target_properties(
         ${TESTNAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                ${CMAKE_BINARY_DIR}/cxx_testcases)

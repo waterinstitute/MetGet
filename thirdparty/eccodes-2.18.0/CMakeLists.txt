@@ -180,7 +180,7 @@ ecbuild_add_option( FEATURE ALIGN_MEMORY        DESCRIPTION "Enable memory align
 ecbuild_add_option( FEATURE GRIB_TIMER          DESCRIPTION "Enable timer" DEFAULT OFF ADVANCED )
 ecbuild_add_option( FEATURE ECCODES_THREADS     DESCRIPTION "Enable POSIX threads" DEFAULT OFF ADVANCED )
 ecbuild_add_option( FEATURE ECCODES_OMP_THREADS DESCRIPTION "Enable OMP threads" DEFAULT OFF ADVANCED )
-ecbuild_add_option( FEATURE EXTRA_TESTS         DESCRIPTION "Enable extended regression testing" DEFAULT OFF ADVANCED )
+#ecbuild_add_option( FEATURE EXTRA_TESTS         DESCRIPTION "Enable extended regression testing" DEFAULT OFF ADVANCED )
 
 ###############################################################################
 # macro processing
@@ -406,12 +406,12 @@ else()
     add_subdirectory( python )
     set( ECCODES_PYTHON_DIR "python" )
 endif()
-add_subdirectory( tests )
+#add_subdirectory( tests )
 add_subdirectory( tigge )
-add_subdirectory( examples )
+#add_subdirectory( examples )
 add_subdirectory( data )
-add_subdirectory( samples )
-add_subdirectory( ifs_samples ) # must come after samples
+#add_subdirectory( samples )
+#add_subdirectory( ifs_samples ) # must come after samples
 
 # ecbuild_dont_pack( DIRS samples DONT_PACK_REGEX "*.grib" )
 ecbuild_dont_pack( DIRS
