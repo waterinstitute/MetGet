@@ -189,3 +189,10 @@ int Meteorology::write_debug_file(int index) const {
 
   return MB_NOERROR;
 }
+
+double Meteorology::generate_time_weight(const MetBuild::Date &t1, const MetBuild::Date &t2, const MetBuild::Date &t_output){
+    double s1 = static_cast<double>(t1.toSeconds());
+    double s2 = static_cast<double>(t2.toSeconds());
+    double s3 = static_cast<double>(t_output.toSeconds());
+    return (s3 - s1) / (s2 - s1);
+}

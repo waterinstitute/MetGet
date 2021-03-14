@@ -52,5 +52,9 @@ TEST_CASE("Simple read", "[Simple read]") {
 
   owi.write(date_start, 0, v.p(), v.u(), v.v());
 
+  auto weight = MetBuild::Meteorology::generate_time_weight(date_start, date_end, date_start+time_step);
+  v = m.to_wind_grid(weight);
+  owi.write(date_start+time_step,0, v.p(), v.u(), v.v()); 
+
   REQUIRE(0 == 0);
 }

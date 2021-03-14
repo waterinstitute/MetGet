@@ -40,6 +40,7 @@ set(metbuild_include_list
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/nanoflann
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.18.0/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/date_hh
+    ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes/src
     ${NETCDF_INCLUDE_DIRS})
 
 target_include_directories(metbuild_objectlib PRIVATE ${metbuild_include_list})

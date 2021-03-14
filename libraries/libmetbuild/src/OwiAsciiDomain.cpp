@@ -115,11 +115,12 @@ void OwiAsciiDomain::write_record(std::ofstream *stream,
   const size_t num_records_per_line = 8;
   size_t n = 0;
   for (const auto &v : value) {
-    *(stream) << boost::str(boost::format(" %8.4f") % v);
+    *(stream) << boost::str(boost::format(" %9.4f") % v);
     n++;
     if (n == num_records_per_line) {
       *(stream) << "\n";
       n = 0;
     }
   }
+  *(stream) << "\n";
 }

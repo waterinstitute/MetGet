@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Date.h"
 #include "Grib.h"
 #include "MetBuild_Global.h"
 #include "WindData.h"
@@ -22,6 +23,8 @@ class Meteorology {
   int METBUILD_EXPORT write_debug_file(int index) const;
 
   MetBuild::WindData METBUILD_EXPORT to_wind_grid(double time_weight = 1.0);
+
+  static double METBUILD_EXPORT generate_time_weight(const MetBuild::Date &t1, const MetBuild::Date &t2, const MetBuild::Date &t_output); 
 
  private:
   constexpr static double epsilon_squared() {
