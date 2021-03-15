@@ -542,7 +542,7 @@ Resources:
     Type: "AWS::AutoScaling::LaunchConfiguration"
     Properties:
       LaunchConfigurationName: !Sub "${AWS::StackName}-LaunchConfiguration"
-      ImageId: "ami-0ac1a412576992a97"
+      ImageId: "ami-031b498eb3af79d97"
       SecurityGroups:
         - !Ref SecurityGroup
       InstanceType: "t2.micro"
