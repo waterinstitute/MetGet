@@ -105,8 +105,7 @@ MetBuild::Point WindGrid::center(const size_t i, const size_t j) const {
 
 MetBuild::Point WindGrid::corner(const size_t i, const size_t j) const {
   assert(i < ni() && j < nj());
-  if (i > ni() || j > nj()) return {0.0, 0.0};
-  return {m_grid[i][j].x(), m_grid[i][j].y()};
+  return i < ni() && j < nj() ? Point(m_grid[i][j].x(), m_grid[i][j].y()) : Point(0.0, 0.0);
 }
 
 size_t WindGrid::ni() const { return m_ni; }

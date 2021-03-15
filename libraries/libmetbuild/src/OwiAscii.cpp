@@ -25,3 +25,9 @@ int MetBuild::OwiAscii::write(const MetBuild::Date& date,
   assert(domain_index < m_domains.size());
   return m_domains[domain_index]->write(date, pressure, wind_u, wind_v);
 }
+
+int MetBuild::OwiAscii::write(const MetBuild::Date &date, 
+			      const size_t domain_index,
+			      const MetBuild::WindData &data){
+  return this->write(date,domain_index,data.p(),data.u(),data.v());
+}

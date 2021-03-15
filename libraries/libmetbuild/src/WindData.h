@@ -16,10 +16,14 @@ class WindData {
 
   static constexpr double background_pressure() { return 1013.0; }
 
-  std::vector<double> &u();
-  std::vector<double> &v();
-  std::vector<double> &p();
+  const std::vector<double> &u() const;
+  const std::vector<double> &v() const;
+  const std::vector<double> &p() const;
   size_t size() const;
+
+  void setU(size_t index, double value);
+  void setV(size_t index, double value);
+  void setP(size_t index, double value);
 
  private:
   size_t m_n;

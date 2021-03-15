@@ -40,10 +40,7 @@ class Queue:
     @staticmethod
     def __get_queue_name():
         import os
-        if "QUEUE_NAME" in os.environ:
-            return os.environ["QUEUE_NAME"]
-        else:
-            return "metget_buildqueue"
+        return os.environ["QUEUE_NAME"]
     
     # Gets the next message from the SQS 
     def get_next_message(self):

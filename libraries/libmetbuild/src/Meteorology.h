@@ -17,6 +17,7 @@ class Meteorology {
   METBUILD_EXPORT explicit Meteorology(const MetBuild::WindGrid *grid);
 
   METBUILD_EXPORT void set_next_file(const std::string &filename);
+  METBUILD_EXPORT void set_next_file(const char *filename);
 
   int METBUILD_EXPORT process_data();
 

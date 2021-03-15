@@ -9,6 +9,7 @@
 
 #include "OwiAsciiDomain.h"
 #include "WindGrid.h"
+#include "WindData.h"
 
 namespace MetBuild {
 
@@ -19,6 +20,9 @@ class OwiAscii {
 
   int addDomain(const MetBuild::WindGrid &w, const std::string &pressureFile,
                 const std::string &windFile);
+
+  int write(const MetBuild::Date &date, const size_t domain_index,
+            const WindData &data);
 
   int write(const MetBuild::Date &date, const size_t domain_index,
             const std::vector<double> &pressure,

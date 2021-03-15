@@ -30,6 +30,10 @@ void Meteorology::set_next_file(const std::string &filename) {
   m_file2 = filename;
 }
 
+void Meteorology::set_next_file(const char *filename){
+  this->set_next_file(std::string(filename));
+}
+
 int Meteorology::process_data() {
   assert(!m_file1.empty());
   assert(!m_file2.empty());
@@ -95,9 +99,9 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
         m_interpolation_2->index[i][0] == 0 &&
         m_interpolation_1->weight[i][0] == 0.0 &&
         m_interpolation_2->weight[i][0] == 0.0) {
-      w.u()[i] = 0.0;
-      w.v()[i] = 0.0;
-      w.p()[i] = WindData::background_pressure();
+      w.setU(i, 0.0);
+      w.setV(i, 0.0);
+      w.setP(i, WindData::background_pressure());
     } else {
       for (auto j = 0; j < c_idw_depth; ++j) {
         const auto idx1 = m_interpolation_1->index[i][j];
@@ -109,9 +113,9 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
         v_star += w1 * v1[idx1] + w2 * v2[idx2];
         p_star += w1 * p1[idx1] + w2 * p2[idx2];
       }
-      w.u()[i] = u_star;
-      w.v()[i] = v_star;
-      w.p()[i] = p_star / 100.0;  // .. Convert to mb
+      w.setU(i,u_star);
+      w.setV(i,v_star);
+      w.setP(i,p_star / 100.0);  // .. Convert to mb
     }
   }
   return w;

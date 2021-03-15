@@ -30,7 +30,7 @@ class CloudWatch:
         self.__region = inst.region()
         self.__client = boto3.client("logs",region_name=self.__region)
         self.__instance = inst.name()
-        self.__logGroup = "metget_build"
+        self.__logGroup = "metget-stack01-loggroup"
         self.__logStream = "metbuild_log_"+self.__instance
         self.__epoch = datetime(1970,1,1,0,0,0)
 
