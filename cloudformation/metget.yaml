@@ -325,6 +325,66 @@ Resources:
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
 
+  SSMUsername:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: !Sub ${AWS::StackName}-dbusername
+      Value: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::username}}'
+      Type: String
+    DependsOn: 
+      - DatabaseSecretManager
+
+  SSMPassword:
+    Type: AWS::SSM::Parameter
+    Properties:
+        Name: !Sub ${AWS::StackName}-dbpassword
+        Value: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::password}}'
+        Type: String
+    DependsOn: 
+      - DatabaseSecretManager
+
+  SSMDBServer:
+    Type: AWS::SSM::Parameter
+    Properties:
+        Name: !Sub ${AWS::StackName}-dbserver
+        Value: !Sub ${Database.Endpoint.Address} 
+        Type: String
+    DependsOn:
+     - Database
+
+  SSMDBName:
+    Type: AWS::SSM::Parameter
+    Properties:
+        Name: !Sub ${AWS::StackName}-dbname
+        Value: !Sub "${MetGetDatabaseName}"
+        Type: String
+    DependsOn: 
+     - Database
+
+  SSMBucket:
+    Type: AWS::SSM::Parameter
+    Properties:
+        Name: !Sub ${AWS::StackName}-bucket
+        Value: !Sub ${MetGetDataBucket}
+        Type: String
+
+  SSMOutputBucket:
+    Type: AWS::SSM::Parameter
+    Properties:
+        Name: !Sub ${AWS::StackName}-outputbucket
+        Value: !Sub ${MetGetOutputBucket}
+        Type: String
+
+  SSMQueueName:
+    Type: AWS::SSM::Parameter
+    Properties: 
+        Name: !Sub ${AWS::StackName}-queue
+        Value: !GetAtt SQSQueue.QueueName
+        Type: String
+    DependsOn:
+      - SQSQueue
+
+
   #..................................#
   # Access
   #
@@ -362,6 +422,7 @@ Resources:
         - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
         - "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
         - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 
   LambdaIAMRole:
     Type: AWS::IAM::Role
@@ -449,7 +510,9 @@ Resources:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:
       AutoScalingGroupName: !Sub "${AWS::StackName}-autoscalinggroup"
-      LaunchConfigurationName: !Ref LaunchConfiguration
+      LaunchTemplate: 
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
       MinSize: 0
       MaxSize: 4
       DesiredCapacity: 0
@@ -470,7 +533,7 @@ Resources:
         - Granularity: "1Minute"
       NewInstancesProtectedFromScaleIn: false
     DependsOn:
-      - LaunchConfiguration
+      - LaunchTemplate
       - InternalSubnet1
       - InternalSubnet2
       - PublicSubnet
@@ -538,26 +601,26 @@ Resources:
       - ScaleDownPolicy
       - SQSQueue
 
-  LaunchConfiguration:
-    Type: "AWS::AutoScaling::LaunchConfiguration"
-    Properties:
-      LaunchConfigurationName: !Sub "${AWS::StackName}-LaunchConfiguration"
-      ImageId: "ami-031b498eb3af79d97"
-      SecurityGroups:
-        - !Ref SecurityGroup
-      InstanceType: "t2.micro"
-      BlockDeviceMappings:
-        -
-          DeviceName: "/dev/xvda"
-          Ebs:
-            SnapshotId: "snap-0bcf9fbab21c0c7dc"
-            VolumeSize: 16
-            VolumeType: "gp2"
-            DeleteOnTermination: true
-            Encrypted: false
-      InstanceMonitoring: false
-      IamInstanceProfile: !Ref IAMServiceInstanceProfile
-      EbsOptimized: false
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties: 
+      LaunchTemplateData: 
+        ImageId: "ami-01b2fdb0c39612dd4"
+        SecurityGroupIds:
+          - !GetAtt SecurityGroup.GroupId
+        InstanceType: "t2.micro"
+        BlockDeviceMappings:
+          -
+            DeviceName: "/dev/xvda"
+            Ebs:
+              VolumeSize: 16
+              VolumeType: "gp2"
+              DeleteOnTermination: true
+              Encrypted: false
+        IamInstanceProfile: 
+          Arn: !GetAtt IAMServiceInstanceProfile.Arn
+        EbsOptimized: false
+      LaunchTemplateName: !Sub "${AWS::StackName}-LaunchTemplate"
     DependsOn:
       - SecurityGroup
       - IAMServiceInstanceProfile
@@ -1253,8 +1316,12 @@ Resources:
 Parameters:
   MetGetDataBucket:
     Type: String
-    Default: metgetdata
+    Default: metget-data
     Description: "Name of private S3 bucket where meteorological files will be stored"
+  MetGetOutputBucket:
+    Type: String
+    Default: metget-output
+    Description: "Name of public S3 bucket where output forcing files will be stored"
   MetGetDatabaseName:
     Type: String
     Default: metget
