@@ -30,7 +30,7 @@ void Meteorology::set_next_file(const std::string &filename) {
   m_file2 = filename;
 }
 
-void Meteorology::set_next_file(const char *filename){
+void Meteorology::set_next_file(const char *filename) {
   this->set_next_file(std::string(filename));
 }
 
@@ -78,6 +78,7 @@ int Meteorology::process_data() {
   return MB_NOERROR;
 }
 
+#include <iostream>
 MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
   const size_t interp_size = m_windGrid->ni() * m_windGrid->nj();
   WindData w(interp_size);
@@ -113,9 +114,9 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
         v_star += w1 * v1[idx1] + w2 * v2[idx2];
         p_star += w1 * p1[idx1] + w2 * p2[idx2];
       }
-      w.setU(i,u_star);
-      w.setV(i,v_star);
-      w.setP(i,p_star / 100.0);  // .. Convert to mb
+      w.setU(i, u_star);
+      w.setV(i, v_star);
+      w.setP(i, p_star / 100.0);  // .. Convert to mb
     }
   }
   return w;
@@ -194,9 +195,11 @@ int Meteorology::write_debug_file(int index) const {
   return MB_NOERROR;
 }
 
-double Meteorology::generate_time_weight(const MetBuild::Date &t1, const MetBuild::Date &t2, const MetBuild::Date &t_output){
-    double s1 = static_cast<double>(t1.toSeconds());
-    double s2 = static_cast<double>(t2.toSeconds());
-    double s3 = static_cast<double>(t_output.toSeconds());
-    return (s3 - s1) / (s2 - s1);
+double Meteorology::generate_time_weight(const MetBuild::Date &t1,
+                                         const MetBuild::Date &t2,
+                                         const MetBuild::Date &t_output) {
+  double s1 = static_cast<double>(t1.toSeconds());
+  double s2 = static_cast<double>(t2.toSeconds());
+  double s3 = static_cast<double>(t_output.toSeconds());
+  return (s3 - s1) / (s2 - s1);
 }

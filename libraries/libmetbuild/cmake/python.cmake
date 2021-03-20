@@ -2,11 +2,11 @@
 # SWIG/PYTHON/PERL Note: This will attempt to default to Python3 Give the flag
 # -DPYTHON2=ON to force Python2 usage
 # ##############################################################################
-#if(${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} GREATER_EQUAL 3.12)
-#  set(Python3_USE_STATIC_LIBS TRUE)
-#  set(Python3_FIND_STRATEGY LOCATION)
-#  find_package(Python3 COMPONENTS Interpreter Development)
-#else()
+if(${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} GREATER_EQUAL 3.12 AND APPLE)
+  set(Python3_USE_STATIC_LIBS TRUE)
+  set(Python3_FIND_STRATEGY LOCATION)
+  find_package(Python3 COMPONENTS Interpreter Development)
+else()
   set(Python_USE_STATIC_LIBS TRUE)
   set(Python_FIND_STRATEGY LOCATION)
   find_package(PythonInterp 3)
@@ -17,7 +17,7 @@
     set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
     set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
   endif()
-  #endif()
+endif()
 
 find_package(SWIG 3.0)
 if(SWIG_FOUND AND Python3_FOUND)

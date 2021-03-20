@@ -1,13 +1,13 @@
 #include "Grib.h"
 
-#include <array>
 #include <cmath>
-#include <fstream>
 #include <iostream>
 #include <memory>
 #include <utility>
 
 #include "Geometry.h"
+#include "Logging.h"
+#include "boost/algorithm/string/trim.hpp"
 #include "boost/format.hpp"
 #include "eccodes.h"
 
@@ -15,8 +15,6 @@ using namespace MetBuild;
 
 Grib::Grib(std::string filename)
     : m_filename(std::move(filename)),
-      m_handle(nullptr),
-      m_index(nullptr),
       m_tree(nullptr),
       m_ni(0),
       m_nj(0),
@@ -25,58 +23,68 @@ Grib::Grib(std::string filename)
   initialize();
 }
 
+Grib::~Grib() = default;
+
 std::string Grib::filename() const { return m_filename; }
 
-void Grib::initialize() {
+bool isnotalpha(char c) { return !isalpha(c) && !isalnum(c); }
+
+codes_handle *Grib::make_handle(const std::string &filename,
+                                const std::string &name) {
+  FILE *f = fopen(filename.c_str(), "r");
   int ierr = 0;
-  // size_t one = 1;
-  codes_grib_multi_support_on(nullptr);
-  m_index =
-      codes_index_new_from_file(nullptr, &m_filename[0], "shortName", &ierr);
-  if (ierr != 0) {
-    throw std::runtime_error("Could not generate the eccodes index");
+
+  while (auto h = codes_handle_new_from_file(codes_context_get_default(), f,
+                                             PRODUCT_GRIB, &ierr)) {
+    CODES_CHECK(ierr, nullptr);
+    std::string pname;
+    size_t plen = 0;
+    CODES_CHECK(codes_get_length(h, "shortName", &plen), nullptr);
+    pname.resize(plen, ' ');
+    CODES_CHECK(codes_get_string(h, "shortName", &pname[0], &plen), nullptr);
+    boost::trim_if(pname, isnotalpha);
+    if (pname == name) {
+      fclose(f);
+      return h;
+    }
   }
-
-  std::string var = "10u";
-  CODES_CHECK(codes_index_select_string(m_index, "shortName", &var[0]),
-              nullptr);
-
-  m_handle = codes_handle_new_from_index(m_index, &ierr);
-
-  CODES_CHECK(codes_get_long(m_handle, "Ni", &m_ni), nullptr);
-  CODES_CHECK(codes_get_long(m_handle, "Nj", &m_nj), nullptr);
-  CODES_CHECK(codes_get_size(m_handle, "values", &m_size), nullptr);
-
-  this->readCoordinates();
-  m_tree = std::make_unique<Kdtree>(m_longitude, m_latitude);
-
-  this->findCorners();
+  fclose(f);
+  metbuild_throw_exception("Could not generate the eccodes handle");
 }
 
-Grib::~Grib() {
-  if (m_handle) {
-    codes_handle_delete(m_handle);
+void Grib::close_handle(codes_handle *handle) {
+  if (handle) {
+    codes_handle_delete(handle);
   }
-  if (m_index) {
-    codes_index_delete(m_index);
-  }
+}
+
+void Grib::initialize() {
+  codes_grib_multi_support_on(grib_context_get_default());
+
+  auto handle = Grib::make_handle(m_filename, "prmsl");
+  CODES_CHECK(codes_get_long(handle, "Ni", &m_ni), nullptr);
+  CODES_CHECK(codes_get_long(handle, "Nj", &m_nj), nullptr);
+  CODES_CHECK(codes_get_size(handle, "values", &m_size), nullptr);
+
+  this->readCoordinates(handle);
+  Grib::close_handle(handle);
+
+  m_tree = std::make_unique<Kdtree>(m_longitude, m_latitude);
+  this->findCorners();
 }
 
 std::vector<double> Grib::getGribArray1d(const std::string &name) {
   auto pvm = m_preread_value_map.find(name);
   if (pvm == m_preread_value_map.end()) {
-    std::vector<double> arr1d(m_size);
+    std::vector<double> arr1d(m_size, 0.0);
     size_t s = m_size;
-    int ierr = 0;
-    std::string cname = name;
-    CODES_CHECK(codes_index_select_string(m_index, "shortName", &cname[0]),
+    auto handle = Grib::make_handle(m_filename, name);
+    CODES_CHECK(codes_get_double_array(handle, "values", arr1d.data(), &s),
                 nullptr);
-    m_handle = codes_handle_new_from_index(m_index, &ierr);
-    CODES_CHECK(codes_get_double_array(m_handle, "values", arr1d.data(), &s),
-                nullptr);
+    Grib::close_handle(handle);
     m_preread_values.push_back(arr1d);
     m_preread_value_map[name] = m_preread_values.size() - 1;
-    return arr1d;
+    return m_preread_values.back();
   } else {
     return m_preread_values[pvm->second];
   }
@@ -113,27 +121,25 @@ std::vector<std::vector<double>> Grib::latitude2d() {
 
 const Kdtree *Grib::kdtree() const { return this->m_tree.get(); }
 
-codes_handle *Grib::handle() const { return m_handle; }
-
 size_t Grib::size() const { return m_size; }
 
 long Grib::ni() const { return m_ni; }
 
 long Grib::nj() const { return m_nj; }
 
-void Grib::readCoordinates() {
+void Grib::readCoordinates(codes_handle *handle) {
   if (this->m_latitude.empty()) {
     m_latitude.resize(m_size);
     size_t s = m_size;
     CODES_CHECK(
-        codes_get_double_array(m_handle, "latitudes", m_latitude.data(), &s),
+        codes_get_double_array(handle, "latitudes", m_latitude.data(), &s),
         nullptr);
   }
   if (this->m_longitude.empty()) {
     m_longitude.resize(m_size);
     size_t s = m_size;
     CODES_CHECK(
-        codes_get_double_array(m_handle, "longitudes", m_longitude.data(), &s),
+        codes_get_double_array(handle, "longitudes", m_longitude.data(), &s),
         nullptr);
     if (m_convention == 0) {
       for (auto &v : m_longitude) {

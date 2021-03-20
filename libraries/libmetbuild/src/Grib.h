@@ -16,6 +16,7 @@ struct grib_handle;
 struct grib_index;
 typedef struct grib_handle codes_handle;
 typedef struct grib_index codes_index;
+typedef struct grib_context codes_context;
 
 namespace MetBuild {
 
@@ -26,8 +27,6 @@ class Grib {
   explicit Grib(std::string filename);
 
   ~Grib();
-
-  codes_handle *handle() const;
 
   size_t size() const;
 
@@ -59,14 +58,14 @@ class Grib {
 
  private:
   void initialize();
-  void readCoordinates();
+  void readCoordinates(codes_handle *handle);
   void findCorners();
   static std::vector<std::vector<double>> mapTo2d(const std::vector<double> &v,
                                                   size_t ni, size_t nj);
+  static codes_handle *make_handle(const std::string &filename, const std::string &name);
+  static void close_handle(codes_handle *handle);
 
   std::string m_filename;
-  codes_handle *m_handle;
-  codes_index *m_index;
   size_t m_size;
   long m_ni;
   long m_nj;
@@ -76,6 +75,7 @@ class Grib {
   std::unordered_map<std::string, size_t> m_preread_value_map;
   std::unique_ptr<MetBuild::Kdtree> m_tree;
   std::unique_ptr<MetBuild::Geometry> m_geometry;
+  std::unique_ptr<FILE *> m_file;
   std::array<MetBuild::Point, 4> m_corners;
   int m_convention;
 };
