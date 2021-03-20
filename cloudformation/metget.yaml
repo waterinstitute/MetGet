@@ -513,13 +513,11 @@ Resources:
       LaunchTemplate: 
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
-      MinSize: 0
+      MinSize: 1
       MaxSize: 4
-      DesiredCapacity: 0
+      DesiredCapacity: 1
       Cooldown: 60
       AvailabilityZones:
-        - !Sub "${AWS::Region}a"
-        - !Sub "${AWS::Region}b"
         - !Sub "${AWS::Region}c"
       HealthCheckType: "EC2"
       HealthCheckGracePeriod: 300
@@ -595,7 +593,7 @@ Resources:
           Value: !GetAtt SQSQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
-      Threshold: 1
+      Threshold: 2
       ComparisonOperator: "LessThanThreshold"
     DependsOn:
       - ScaleDownPolicy
