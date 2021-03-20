@@ -605,7 +605,7 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties: 
       LaunchTemplateData: 
-        ImageId: "ami-01b2fdb0c39612dd4"
+        ImageId: "ami-0ac9418d8a1c09e6f"
         SecurityGroupIds:
           - !GetAtt SecurityGroup.GroupId
         InstanceType: "t2.micro"
