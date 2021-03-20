@@ -23,10 +23,13 @@ export OUTPUT_BUCKET=$(aws --region=$region ssm get-parameter --name "$stack-out
 export QUEUE_NAME=$(aws --region=$region ssm get-parameter --name "$stack-queue" --query Parameter.Value --output text)
 
 #...Infinite loop to process queue messages
-while [[ 0 == 0 ]]
+while [[ 0 == 0 ]] 
 do
     echo "Processing data at $(date)"
     stat=$(python3 /home/ec2-user/$script)
+    echo $stat
+    python3 /home/ec2-user/$script
     echo "Sleeping for $sleepytime seconds"
-    sleep $sleepytime
+    sleep $sleepytime 
 done
+
