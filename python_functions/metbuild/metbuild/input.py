@@ -1,5 +1,5 @@
 class Input:
-    def __init__(self, json_data):
+    def __init__(self, json_data, log, queue, messageid):
         import uuid
         self.__json = json_data
         self.__start_date = None
@@ -12,6 +12,9 @@ class Input:
         self.__domains = []
         self.__parse()
         self.__uuid = str(uuid.uuid4())
+        self.__log = log
+        self.__message = messageid
+        self.__queue = queue
 
     def uuid(self):
         return self.__uuid
@@ -59,22 +62,30 @@ class Input:
         return self.__domains[index]
 
     def __parse(self):
+        import sys
         import dateutil.parser
         from metbuild.domain import Domain
-        self.__version = self.__json["version"]
-        self.__operator = self.__json["creator"]
-        self.__start_date = dateutil.parser.parse(self.__json["start_date"])
-        self.__start_date = self.__start_date.replace(tzinfo=None)
-        self.__end_date = dateutil.parser.parse(self.__json["end_date"])
-        self.__end_date = self.__end_date.replace(tzinfo=None)
-        self.__time_step = self.__json["time_step"]
-        self.__filename = self.__json["filename"]
-        self.__format = self.__json["format"]
-        ndomain = len(self.__json["domains"])
-        if ndomain == 0:
-            raise RuntimeError("You must specify one or more wind domains")
-        for i in range(ndomain):
-            name = self.__json["domains"][i]["name"]
-            service = self.__json["domains"][i]["service"]
-            self.__domains.append(
-                Domain(name, service, self.__json["domains"][i]))  #WindGrid(json=self.__json["domains"][i])))
+        try:
+            self.__version = self.__json["version"]
+            self.__operator = self.__json["creator"]
+            self.__start_date = dateutil.parser.parse(self.__json["start_date"])
+            self.__start_date = self.__start_date.replace(tzinfo=None)
+            self.__end_date = dateutil.parser.parse(self.__json["end_date"])
+            self.__end_date = self.__end_date.replace(tzinfo=None)
+            self.__time_step = self.__json["time_step"]
+            self.__filename = self.__json["filename"]
+            self.__format = self.__json["format"]
+            ndomain = len(self.__json["domains"])
+            if ndomain == 0:
+                raise RuntimeError("You must specify one or more wind domains")
+            for i in range(ndomain):
+                name = self.__json["domains"][i]["name"]
+                service = self.__json["domains"][i]["service"]
+                self.__domains.append(
+                    Domain(name, service, self.__json["domains"][i]))
+        except KeyError as e:
+            self.__log.error("Could not parse the input json data: ",e)
+            self.__queue.delete_message(self.__message)
+            logger.debug("Deleting message "+self.__message++" from the queue")
+            sys.exit(1)
+

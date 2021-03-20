@@ -33,7 +33,7 @@ def datespan(startDate, endDate, delta):
         currentDate += delta
 
 # Main function to process the message and create the output files and post to S3
-def process_message(json_message):
+def process_message(json_message, queue):
     import time
     import json
     import pymetbuild
@@ -44,6 +44,8 @@ def process_message(json_message):
     from metbuild.database import Database
     from metbuild.s3file import S3file
 
+    filelist_name = "filelist.json"
+
     instance = Instance()
 
     instance.enable_termination_protection()
@@ -53,7 +55,7 @@ def process_message(json_message):
 
     logger.info(json_message['Body'])
 
-    inputData = Input(json.loads(json_message['Body']))
+    inputData = Input(json.loads(json_message['Body']), logger, queue, json_message["ReceiptHandle"])
     start_date = inputData.start_date()
     start_date_pmb = inputData.start_date_pmb()
     end_date = inputData.end_date()
@@ -72,6 +74,11 @@ def process_message(json_message):
         fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
         owi_field.addDomain(d.grid().grid_object(),fn1,fn2)
         f = db.generate_file_list(d.service(),start_date,end_date) 
+        if len(f) < 2:
+            logger.error("No data found for domain "+str(i)+". Giving up.")
+            logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+            queue.delete_message(message["ReceiptHandle"])
+            sys.exit(1)
 
         domain_data.append([])
         for item in f:
@@ -79,11 +86,14 @@ def process_message(json_message):
             domain_data[i].append({"time":item[0],"filepath":local_file})
         
 
+    output_file_list=[]
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
         met = pymetbuild.Meteorology(d.grid().grid_object())
         fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
         fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
+        output_file_list.append(fn1)
+        output_file_list.append(fn2)
         t0 = domain_data[i][0]["time"]
         t1 = domain_data[i][1]["time"]
         t0_pmb = Input.date_to_pmb(t0)
@@ -108,7 +118,11 @@ def process_message(json_message):
         s3.upload_file(fn1,path1)
         s3.upload_file(fn2,path2)
 
-
+    output_file_dict = {"files":output_file_list}
+    filelist_path = messageId+"/"+filelist_name
+    with open(filelist_name,'w') as of:
+        of.write(json.dumps(output_file_dict))
+    s3.upload_file(filelist_name,filelist_path)
 
     logger.info("Finished processing message with id: "+json_message["MessageId"])
 
@@ -129,7 +143,7 @@ def main():
     has_message,message = queue.get_next_message()
     if has_message:
         logger.debug("Found message in queue. Beginning to process")
-        process_message(message)
+        process_message(message, queue)
         logger.debug("Deleting message "+message["MessageId"]+" from the queue")
         queue.delete_message(message["ReceiptHandle"])
     else:
