@@ -33,12 +33,13 @@ def datespan(startDate, endDate, delta):
         currentDate += delta
 
 # Main function to process the message and create the output files and post to S3
-def process_message(json_message, queue):
+def process_message(json_message, queue, json_file=None):
     import time
     import json
     import pymetbuild
     import datetime
     import os
+    import json
     from metbuild.instance import Instance
     from metbuild.input import Input
     from metbuild.database import Database
@@ -50,12 +51,17 @@ def process_message(json_message, queue):
 
     instance.enable_termination_protection()
 
-    logger.info("Processing message with id: "+json_message["MessageId"])
-    messageId = json_message["MessageId"]
+    if json_file:
+        logger.info("Processing message from file: "+json_file)
+        with open(json_file) as f:
+            json_data = json.load(f)
+        inputData = Input(json_data,None,None,None)
+    else:
+        logger.info("Processing message with id: "+json_message["MessageId"])
+        messageId = json_message["MessageId"]
+        logger.info(json_message['Body'])
+        inputData = Input(json.loads(json_message['Body']), logger, queue, json_message["ReceiptHandle"])
 
-    logger.info(json_message['Body'])
-
-    inputData = Input(json.loads(json_message['Body']), logger, queue, json_message["ReceiptHandle"])
     start_date = inputData.start_date()
     start_date_pmb = inputData.start_date_pmb()
     end_date = inputData.end_date()
@@ -76,8 +82,9 @@ def process_message(json_message, queue):
         f = db.generate_file_list(d.service(),start_date,end_date) 
         if len(f) < 2:
             logger.error("No data found for domain "+str(i)+". Giving up.")
-            logger.debug("Deleting message "+message["MessageId"]+" from the queue")
-            queue.delete_message(message["ReceiptHandle"])
+            if not json_file:
+                logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+                queue.delete_message(message["ReceiptHandle"])
             sys.exit(1)
 
         domain_data.append([])
@@ -113,22 +120,52 @@ def process_message(json_message, queue):
             values = met.to_wind_grid(weight)
             owi_field.write(Input.date_to_pmb(t),i,values)
 
-        path1 = messageId + "/" + fn1
-        path2 = messageId + "/" + fn2
-        s3.upload_file(fn1,path1)
-        s3.upload_file(fn2,path2)
+        if not json_file:
+            path1 = messageId + "/" + fn1
+            path2 = messageId + "/" + fn2
+            s3.upload_file(fn1,path1)
+            s3.upload_file(fn2,path2)
 
-    output_file_dict = {"files":output_file_list}
-    filelist_path = messageId+"/"+filelist_name
-    with open(filelist_name,'w') as of:
-        of.write(json.dumps(output_file_dict))
-    s3.upload_file(filelist_name,filelist_path)
+    if json_file:
+        logger.info("Finished processing file: "+json_file)
+    else:
+        output_file_dict = {"files":output_file_list}
+        filelist_path = messageId+"/"+filelist_name
+        with open(filelist_name,'w') as of:
+            of.write(json.dumps(output_file_dict))
+        s3.upload_file(filelist_name,filelist_path)
 
-    logger.info("Finished processing message with id: "+json_message["MessageId"])
+        logger.info("Finished processing message with id: "+json_message["MessageId"])
 
     instance.disable_termination_protection()
 
     return
+
+def initialize_environment_variables():
+    import os
+    import boto3
+    import requests
+
+    region = requests.get("http://169.254.169.254/latest/meta-data/placement/availability-zone").text[0:-1]
+    ec2 = boto3.client("ec2",region_name=region)
+    ssm = boto3.client("ssm",region_name=region)
+    stackname = ec2.describe_tags(Filters=[{"Name":"key","Values":["aws:cloudformation:stack-name"]}])["Tags"][0]["Value"]
+    dbpassword = ssm.get_parameter(Name=stackname+"-dbpassword")["Parameter"]["Value"]
+    dbusername = ssm.get_parameter(Name=stackname+"-dbusername")["Parameter"]["Value"]
+    dbserver = ssm.get_parameter(Name=stackname+"-dbserver")["Parameter"]["Value"]
+    dbname = ssm.get_parameter(Name=stackname+"-dbname")["Parameter"]["Value"]
+    bucket = ssm.get_parameter(Name=stackname+"-bucket")["Parameter"]["Value"]
+    outbucket = ssm.get_parameter(Name=stackname+"-outputbucket")["Parameter"]["Value"]
+    queue = ssm.get_parameter(Name=stackname+"-queue")["Parameter"]["Value"]
+
+    os.environ["DBPASS"] = dbpassword
+    os.environ["DBUSER"] = dbusername
+    os.environ["DBSERVER"] = dbserver
+    os.environ["DBNAME"] = dbname
+    os.environ["BUCKET"] = bucket
+    os.environ["OUTPUT_BUCKET"] = outbucket
+    os.environ["QUEUE_NAME"] = queue
+    os.environ["AWS_DEFAULT_REGION"] = region
 
 
 # Main function
@@ -136,18 +173,33 @@ def process_message(json_message, queue):
 # otherwise, we're outta here
 def main():
     from metbuild.queue import Queue
+    import sys
+    import os
+
     logger.debug("Beginning execution")
 
-    queue = Queue(logger)
-    
-    has_message,message = queue.get_next_message()
-    if has_message:
-        logger.debug("Found message in queue. Beginning to process")
-        process_message(message, queue)
-        logger.debug("Deleting message "+message["MessageId"]+" from the queue")
-        queue.delete_message(message["ReceiptHandle"])
+    initialize_environment_variables()
+
+    print(len(sys.argv))
+
+    if len(sys.argv)==2:
+        jsonfile = sys.argv[1]
+        if os.path.exists(jsonfile): 
+            process_message(None,None,json_file=jsonfile)
+        else:
+            print("[ERROR]: File "+jsonfile+" does not exist.")
+            exit(1)
     else:
-        logger.info("No message available in queue. Shutting down.")
+        queue = Queue(logger)
+        
+        has_message,message = queue.get_next_message()
+        if has_message:
+            logger.debug("Found message in queue. Beginning to process")
+            process_message(message, queue)
+            logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+            queue.delete_message(message["ReceiptHandle"])
+        else:
+            logger.info("No message available in queue. Shutting down.")
 
     logger.debug("Exiting script with status 0")
     exit(0)

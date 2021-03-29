@@ -9,6 +9,8 @@ class Input:
         self.__filename = None
         self.__format = None
         self.__time_step = None
+        self.__nowcast = False
+        self.__multiple_forecasts = False
         self.__domains = []
         self.__parse()
         self.__uuid = str(uuid.uuid4())
@@ -61,6 +63,12 @@ class Input:
     def domain(self, index):
         return self.__domains[index]
 
+    def nowcast(self):
+        return self.__nowcast
+
+    def multiple_forecasts(self):
+        return self.__multiple_forecasts
+
     def __parse(self):
         import sys
         import dateutil.parser
@@ -75,6 +83,13 @@ class Input:
             self.__time_step = self.__json["time_step"]
             self.__filename = self.__json["filename"]
             self.__format = self.__json["format"]
+
+            if "nowcast" in self.__json.keys():
+                self.__nowcast = self.__json["nowcast"]
+
+            if "multiple_forecasts" in self.__json.keys():
+                self.__multiple_forecasts = self.__json["multiple_forecasts"]
+
             ndomain = len(self.__json["domains"])
             if ndomain == 0:
                 raise RuntimeError("You must specify one or more wind domains")
@@ -84,8 +99,12 @@ class Input:
                 self.__domains.append(
                     Domain(name, service, self.__json["domains"][i]))
         except KeyError as e:
-            self.__log.error("Could not parse the input json data: ",e)
-            self.__queue.delete_message(self.__message)
-            logger.debug("Deleting message "+self.__message++" from the queue")
+            if self.__log:
+                self.__log.error("Could not parse the input json data: ",e)
+                self.__log.debug("Deleting message "+self.__message+" from the queue")
+            else:
+                print("[ERROR]: Could not parse the input json dataset: ",e)
+            if self.__queue:
+                self.__queue.delete_message(self.__message)
             sys.exit(1)
 
