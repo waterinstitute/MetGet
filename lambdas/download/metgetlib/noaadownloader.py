@@ -32,8 +32,8 @@ class NoaaDownloader:
                  address,
                  begin,
                  end,
-                 use_rainfall=False,
-                 use_aws=True):
+                 use_rainfall=True,
+                 use_aws=False):
         """
         Constructor for the NoaaDownloader class. Initializes the
         :param mettype: Type of metetrology that is to be downloaded
@@ -69,9 +69,6 @@ class NoaaDownloader:
             }, {
                 "long_name": "APCP",
                 "name": "precip"
-            }, {
-                "long_name": "ICEC:surface",
-                "name": "ice"
             }]
         else:
             self.__variables = [{
@@ -129,54 +126,94 @@ class NoaaDownloader:
         import os.path
         import requests
         import tempfile
+        from requests.adapters import HTTPAdapter
+        from requests.packages.urllib3.util.retry import Retry
+
+        #...Note: Status 302 is NOAA speak for "chill out", not a redirect as in normal http
+        retry_strategy = Retry(total=20,redirect=6,backoff_factor=1.0,status_forcelist=[302,429,500,502,503,504],method_whitelist=["HEAD","GET","OPTIONS"])
+        adaptor = HTTPAdapter(max_retries=retry_strategy)
 
         n = 0
         try:
-            inv = requests.get(info['inv'], stream=True, timeout=30)
-            inv_lines = str(inv.text).split("\n")
-            retlist = []
-            for i in range(len(inv_lines)):
-                for v in self.__variables:
-                    if v["long_name"] in inv_lines[i]:
-                        startbits = inv_lines[i].split(":")[1]
-                        endbits = inv_lines[i + 1].split(":")[1]
-                        retlist.append({"name": v["name"], "start": startbits, "end": endbits})
-                        break
+            with requests.Session() as http:
+                http.mount("https://",adaptor)
+                http.mount("http://",adaptor)
 
-            fn = info['grb'].rsplit("/")[-1]
-            year = "{0:04d}".format(time.year)
-            month = "{0:02d}".format(time.month)
-            day = "{0:02d}".format(time.day)
+                inv = http.get(info['inv'], timeout=30)
+                inv.raise_for_status()
+                if(inv.status_code == 302):
+                    print("RESP: ",inv.text)
+                inv_lines = str(inv.text).split("\n")
+                retlist = []
+                for i in range(len(inv_lines)):
+                    for v in self.__variables:
+                        if v["long_name"] in inv_lines[i]:
+                            startbits = inv_lines[i].split(":")[1]
+                            endbits = inv_lines[i + 1].split(":")[1]
+                            retlist.append({"name": v["name"], "start": startbits, "end": endbits})
+                            break
 
-            dfolder = self.mettype() + "/" + year + "/" + month + "/" + day
-            floc = tempfile.gettempdir() + "/" + fn
-            pathfound = self.__s3file.exists(dfolder + "/" + fn)
+                if not len(retlist) == len(self.__variables):
+                    print("[ERROR]: Could not gather the inventory or missing variables detected. Trying again later.")
+                    return None, 0, 1
 
-            if not pathfound:
-                print("     Downloading File: " + fn + " (F: " + info["cycledate"].strftime("%Y-%m-%d %H:%M:%S") +
-                      ", T: " + info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S") + ")", flush=True)
-                n = 1
-                for r in retlist:
-                    headers = {"Range": "bytes=" + str(r["start"]) + "-" + str(r["end"])}
-                    try:
-                        with requests.get(info['grb'], headers=headers, stream=True, timeout=30) as req:
-                            req.raise_for_status()
-                            with open(floc, 'ab') as f:
-                                for chunk in req.iter_content(chunk_size=8192):
-                                    f.write(chunk)
-                    except KeyboardInterrupt:
-                        raise
-                    except:
-                        print("    [WARNING]: NOAA Server stopped responding. Trying again later")
-                        if os.path.exists(floc):
-                            os.remove(floc)
-                        return None, 0, 1
+                fn = info['grb'].rsplit("/")[-1]
+                year = "{0:04d}".format(time.year)
+                month = "{0:02d}".format(time.month)
+                day = "{0:02d}".format(time.day)
 
-                self.__s3file.upload_file(floc, dfolder + "/" + fn)
-                os.remove(floc)
-                return dfolder + "/" + fn, n, 0
-            else:
-                return None, 0, 0
+                dfolder = self.mettype() + "/" + year + "/" + month + "/" + day
+                floc = tempfile.gettempdir() + "/" + fn
+
+                if self.__use_aws:
+                    pathfound = self.__s3file.exists(dfolder + "/" + fn)
+                else:
+                    pathfound = os.path.exists(fn)
+
+                if not pathfound:
+                    print("     Downloading File: " + fn + " (F: " + info["cycledate"].strftime("%Y-%m-%d %H:%M:%S") +
+                          ", T: " + info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S") + ")", flush=True)
+                    n = 1
+                    total_size = 0
+                    got_size = 0
+
+                    for r in retlist:
+                        headers = {"Range": "bytes=" + str(r["start"]) + "-" + str(r["end"])}
+
+                        #...Get the expected size of the download + 1 byte of http response metadata
+                        total_size += int(r["end"])-int(r["start"])+1
+                        try:
+                            with http.get(info['grb'], headers=headers, stream=True, timeout=30) as req:
+                                req.raise_for_status()
+                                got_size += len(req.content) 
+                                with open(floc, 'ab') as f:
+                                    for chunk in req.iter_content(chunk_size=8192):
+                                        f.write(chunk)
+                        except KeyboardInterrupt:
+                            raise
+                        except:
+                            print("    [WARNING]: NOAA Server stopped responding. Trying again later")
+                            if os.path.exists(floc):
+                                os.remove(floc)
+                            return None, 0, 1
+
+                    #...Check that the full path was downloaded
+                    delta_size = got_size - total_size
+                    if delta_size != 0 and got_size > 0:
+                        print("[ERROR]: Did not get the full file from NOAA. Trying again later.")
+                        os.remove(floc)
+                        return None, 0, 0
+
+                    if self.__use_aws:
+                        self.__s3file.upload_file(floc, dfolder + "/" + fn)
+                        os.remove(floc)
+                    else:
+                        os.rename(floc,fn)
+
+
+                    return dfolder + "/" + fn, n, 0
+                else:
+                    return None, 0, 0
 
         except KeyboardInterrupt:
             raise
