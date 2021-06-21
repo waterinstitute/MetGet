@@ -56,10 +56,10 @@ class NcepGfsdownloader(NoaaDownloader):
                     hr_links = s2.filelist()
                     lastdate = t
                     for ll in hr_links:
-                        s3 = Spyder(ll)
+                        s3 = Spyder(ll+"atmos/")
                         files = s3.filelist()
                         for lll in files:
-                            if "pgrb2.0p25.f" in lll:
+                            if ".pgrb2.0p25.f" in lll:
                                 if "idx" not in lll:
                                     links.append(lll)
 
@@ -85,8 +85,8 @@ class NcepGfsdownloader(NoaaDownloader):
         for i in range(0, len(glist)):
             lst = glist[i].rsplit("/")
             v1 = lst[-1]
-            v2 = lst[-2]
-            v3 = lst[-3].rsplit(".", 1)[-1]
+            v2 = lst[-3]
+            v3 = lst[-4].rsplit(".", 1)[-1]
 
             yr = int(v3[0:4])
             mo = int(v3[4:6])
