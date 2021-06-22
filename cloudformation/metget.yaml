@@ -522,8 +522,6 @@ Resources:
       HealthCheckType: "EC2"
       HealthCheckGracePeriod: 300
       VPCZoneIdentifier:
-        - !Ref InternalSubnet1
-        - !Ref InternalSubnet2
         - !Ref PublicSubnet
       TerminationPolicies:
         - "Default"
@@ -603,7 +601,7 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties: 
       LaunchTemplateData: 
-        ImageId: "ami-0ac9418d8a1c09e6f"
+        ImageId: "ami-00bf9294f667c570e"
         SecurityGroupIds:
           - !GetAtt SecurityGroup.GroupId
         InstanceType: "t2.micro"
@@ -618,6 +616,7 @@ Resources:
         IamInstanceProfile: 
           Arn: !GetAtt IAMServiceInstanceProfile.Arn
         EbsOptimized: false
+        KeyName: "zcobell_ssh"
       LaunchTemplateName: !Sub "${AWS::StackName}-LaunchTemplate"
     DependsOn:
       - SecurityGroup
