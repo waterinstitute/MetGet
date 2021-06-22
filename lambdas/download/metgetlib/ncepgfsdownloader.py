@@ -30,6 +30,10 @@ class NcepGfsdownloader(NoaaDownloader):
         NoaaDownloader.__init__(self, "gfs_ncep", "GFS-NCEP", address,
                                 begin, end)
         self.__lastdate = self.begindate()
+        self.add_download_variable("ICEC:surface","ice")
+        self.add_download_variable("PRATE","precip_rate")
+        self.add_download_variable("RH:30-0 mb above ground","humidity")
+        self.add_download_variable("TMP:30-0 mb above ground","temperature")
 
     def download(self):
         from .spyder import Spyder

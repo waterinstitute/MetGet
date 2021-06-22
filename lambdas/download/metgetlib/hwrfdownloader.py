@@ -28,6 +28,9 @@ class HwrfDownloader(NoaaDownloader):
     def __init__(self, begin, end):
         address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hur/prod/"
         NoaaDownloader.__init__(self, "hwrf", "HWRF", address, begin, end)
+        self.add_download_variable("APCP","accumulated_precip")
+        self.add_download_variable("RH:2 m above ground","humidity")
+        self.add_download_variable("TMP:2 m above ground","temperature")
 
     def download(self):
         from .spyder import Spyder

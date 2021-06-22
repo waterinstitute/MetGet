@@ -40,7 +40,7 @@ class Metdb:
         import sys
         import pymysql
         try:
-            db = pymysql.connect(self.__dbhost, user=self.__dbusername,
+            db = pymysql.connect(host=self.__dbhost, user=self.__dbusername,
                                  passwd=self.__dbpassword, db=self.__dbname, connect_timeout=5)
         except:
             print("[ERROR]: Could not connect to MySQL database")

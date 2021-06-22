@@ -32,8 +32,7 @@ class NoaaDownloader:
                  address,
                  begin,
                  end,
-                 use_rainfall=True,
-                 use_aws=False):
+                 use_aws=True):
         """
         Constructor for the NoaaDownloader class. Initializes the
         :param mettype: Type of metetrology that is to be downloaded
@@ -54,36 +53,21 @@ class NoaaDownloader:
             from .s3file import S3file
             self.__s3file = S3file()
 
-        # The following variables will be used. Presently, these are the
-        # variables that ADCIRC can support (wind vector, pressure, and ice)
-        if use_rainfall:
-            self.__variables = [{
-                "long_name": "UGRD:10 m above ground",
-                "name": "uvel"
-            }, {
-                "long_name": "VGRD:10 m above ground",
-                "name": "vvel"
-            }, {
-                "long_name": "PRMSL",
-                "name": "press"
-            }, {
-                "long_name": "APCP",
-                "name": "precip"
-            }]
-        else:
-            self.__variables = [{
-                "long_name": "UGRD:10 m above ground",
-                "name": "uvel"
-            }, {
-                "long_name": "VGRD:10 m above ground",
-                "name": "vvel"
-            }, {
-                "long_name": "PRMSL",
-                "name": "press"
-            }, {
-                "long_name": "ICEC:surface",
-                "name": "ice"
-            }]
+        #...The default variable list. Must haves for
+        #   this system at present
+        self.__variables = [{
+            "long_name": "UGRD:10 m above ground",
+            "name": "uvel"
+        }, {
+            "long_name": "VGRD:10 m above ground",
+            "name": "vvel"
+        }, {
+            "long_name": "PRMSL",
+            "name": "press"
+        }]
+
+    def add_download_variable(self,long_name,name):
+        self.__variables.append({"long_name":long_name,"name":name})
 
     def mettype(self):
         return self.__mettype
@@ -145,8 +129,8 @@ class NoaaDownloader:
                     print("RESP: ",inv.text)
                 inv_lines = str(inv.text).split("\n")
                 retlist = []
-                for i in range(len(inv_lines)):
-                    for v in self.__variables:
+                for v in self.__variables:
+                    for i in range(len(inv_lines)):
                         if v["long_name"] in inv_lines[i]:
                             startbits = inv_lines[i].split(":")[1]
                             endbits = inv_lines[i + 1].split(":")[1]
