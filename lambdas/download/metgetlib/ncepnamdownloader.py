@@ -30,9 +30,9 @@ class NcepNamdownloader(NoaaDownloader):
         NoaaDownloader.__init__(self, "nam_ncep", "NAM-NCEP", address,
                                 begin, end)
         self.__lastdate = self.begindate()
-        self.add_download_variable("APCP","accumulated_precip")
-        self.add_download_variable("RH:30-0 mb above ground","humidity")
-        self.add_download_variable("TMP:30-0 mb above ground","temperature")
+        self.add_download_variable("APCP", "accumulated_precip")
+        self.add_download_variable("RH:30-0 mb above ground", "humidity")
+        self.add_download_variable("TMP:30-0 mb above ground", "temperature")
 
     def download(self):
         from .spyder import Spyder

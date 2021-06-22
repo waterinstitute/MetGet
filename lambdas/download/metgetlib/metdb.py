@@ -30,22 +30,26 @@ class Metdb:
         sqlite3 database
         """
         import os
-        self.__dbhost = os.environ["DBSERVER"]
-        self.__dbpassword = os.environ["DBPASS"]
-        self.__dbusername = os.environ["DBUSER"]
-        self.__dbname = os.environ["DBNAME"]
+        # self.__dbhost = os.environ["DBSERVER"]
+        # self.__dbpassword = os.environ["DBPASS"]
+        # self.__dbusername = os.environ["DBUSER"]
+        # self.__dbname = os.environ["DBNAME"]
+        self.__dbhost = "localhost"
+        self.__dbpassword = "***REMOVED***"
+        self.__dbusername = "zcobell"
+        self.__dbname = "metget"
+
         self.__initdatabase()
 
     def connect(self):
         import sys
         import pymysql
         try:
-            db = pymysql.connect(host=self.__dbhost, user=self.__dbusername,
-                                 passwd=self.__dbpassword, db=self.__dbname, connect_timeout=5)
+            return pymysql.connect(host=self.__dbhost, user=self.__dbusername,
+                                   passwd=self.__dbpassword, db=self.__dbname, connect_timeout=5)
         except:
             print("[ERROR]: Could not connect to MySQL database")
             sys.exit(1)
-        return db
 
     def __initdatabase(self):
         """
@@ -126,12 +130,12 @@ class Metdb:
             start = str(pair["advisory_start"])
             end = str(pair["advisory_end"])
             duration = str(pair["advisory_duration_hr"])
-            sqlhas = "SELECT Count(*) FROM " + datatype + " WHERE year = " + str(year) + " AND ADVISORY = " + \
+            sqlhas = "SELECT Count(*) FROM " + datatype + " WHERE storm_year = " + str(year) + " AND ADVISORY = " + \
                      advisory + " AND BASIN = '" + basin + "' AND STORM = " + str(storm) + ";"
-            sqlinsert = "INSERT INTO " + datatype + " (YEAR,BASIN,STORM,ADVISORY,ADVISORY_START,ADVISORY_END," \
-                                                    "ADVISORY_DURATION_HR,PATH,ACCESSED) VALUES(" + str(year) + \
-                        ",'" + basin + "'," + str(storm) + "," + advisory + ", datetime('" + start + \
-                        "'), datetime('" + end + "'), " + duration + ",'" + filepath + "', datetime('now'));"
+            sqlinsert = "INSERT INTO " + datatype + " (STORM_YEAR,BASIN,STORM,ADVISORY,ADVISORY_START,ADVISORY_END," \
+                                                    "ADVISORY_DURATION_HR,FILEPATH,ACCESSED) VALUES(" + str(year) + \
+                        ",'" + basin + "'," + str(storm) + "," + advisory + ", '" + start + \
+                        "', '" + end + "', " + duration + ",'" + filepath + "', now());"
             sqlupdate = ""
         elif datatype == "nhc_btk":
             year = pair["year"]
@@ -140,14 +144,14 @@ class Metdb:
             start = str(pair["advisory_start"])
             end = str(pair["advisory_end"])
             duration = str(pair["advisory_duration_hr"])
-            sqlhas = "SELECT Count(*) FROM " + datatype + " WHERE year = " + str(
+            sqlhas = "SELECT Count(*) FROM " + datatype + " WHERE storm_year = " + str(
                 year) + " AND BASIN = '" + basin + "' AND STORM = " + str(
                 storm) + ";"
-            sqlinsert = "INSERT INTO " + datatype + " (YEAR,BASIN,STORM,ADVISORY_START,ADVISORY_END," \
-                                                    "ADVISORY_DURATION_HR,PATH,ACCESSED) VALUES(" + str(year) + \
-                        ",'" + basin + "'," + str(storm) + ", datetime('" + start + \
-                        "'), datetime('" + end + "'), " + duration + ",'" + filepath + "', datetime('now'));"
-            sqlupdate = "UPDATE " + datatype + " SET ACCESSED = datetime('now') WHERE year = " + str(
+            sqlinsert = "INSERT INTO " + datatype + " (STORM_YEAR,BASIN,STORM,ADVISORY_START,ADVISORY_END," \
+                                                    "ADVISORY_DURATION_HR,FILEPATH,ACCESSED) VALUES(" + str(year) + \
+                        ",'" + basin + "'," + str(storm) + ", '" + start + \
+                        "', '" + end + "', " + duration + ",'" + filepath + "', now());"
+            sqlupdate = "UPDATE " + datatype + " SET ACCESSED = now() WHERE storm_year = " + str(
                 year) + " AND BASIN = '" + basin + "' AND STORM = " + str(
                 storm) + ";"
         else:

@@ -72,7 +72,7 @@ class Namdownloader(NoaaDownloader):
 
                     pairs = self.generateGrbInvPairs(file_links)
                     for p in pairs:
-                        print(p,flush=True)
+                        print(p, flush=True)
                         fpath, n, err = self.getgrib(self.__downloadlocation, p, t2)
                         nerror += err
                         if fpath:

@@ -57,7 +57,7 @@ class NoaaDownloader:
             else:
                 self.__s3file = S3file()
 
-        #...The default variable list. Must haves for
+        # The default variable list. Must haves for
         #   this system at present
         self.__variables = [{
             "long_name": "UGRD:10 m above ground",
@@ -70,8 +70,8 @@ class NoaaDownloader:
             "name": "press"
         }]
 
-    def add_download_variable(self,long_name,name):
-        self.__variables.append({"long_name":long_name,"name":name})
+    def add_download_variable(self, long_name, name):
+        self.__variables.append({"long_name": long_name, "name": name})
 
     def mettype(self):
         return self.__mettype
@@ -117,20 +117,22 @@ class NoaaDownloader:
         from requests.adapters import HTTPAdapter
         from requests.packages.urllib3.util.retry import Retry
 
-        #...Note: Status 302 is NOAA speak for "chill out", not a redirect as in normal http
-        retry_strategy = Retry(total=20,redirect=6,backoff_factor=1.0,status_forcelist=[302,429,500,502,503,504],method_whitelist=["HEAD","GET","OPTIONS"])
+        # ...Note: Status 302 is NOAA speak for "chill out", not a redirect as in normal http
+        retry_strategy = Retry(total=20, redirect=6, backoff_factor=1.0,
+                               status_forcelist=[302, 429, 500, 502, 503, 504],
+                               method_whitelist=["HEAD", "GET", "OPTIONS"])
         adaptor = HTTPAdapter(max_retries=retry_strategy)
 
         n = 0
         try:
             with requests.Session() as http:
-                http.mount("https://",adaptor)
-                http.mount("http://",adaptor)
+                http.mount("https://", adaptor)
+                http.mount("http://", adaptor)
 
                 inv = http.get(info['inv'], timeout=30)
                 inv.raise_for_status()
-                if(inv.status_code == 302):
-                    print("RESP: ",inv.text)
+                if (inv.status_code == 302):
+                    print("RESP: ", inv.text)
                 inv_lines = str(inv.text).split("\n")
                 retlist = []
                 for v in self.__variables:
@@ -168,12 +170,12 @@ class NoaaDownloader:
                     for r in retlist:
                         headers = {"Range": "bytes=" + str(r["start"]) + "-" + str(r["end"])}
 
-                        #...Get the expected size of the download + 1 byte of http response metadata
-                        total_size += int(r["end"])-int(r["start"])+1
+                        # ...Get the expected size of the download + 1 byte of http response metadata
+                        total_size += int(r["end"]) - int(r["start"]) + 1
                         try:
                             with http.get(info['grb'], headers=headers, stream=True, timeout=30) as req:
                                 req.raise_for_status()
-                                got_size += len(req.content) 
+                                got_size += len(req.content)
                                 with open(floc, 'ab') as f:
                                     for chunk in req.iter_content(chunk_size=8192):
                                         f.write(chunk)
@@ -185,7 +187,7 @@ class NoaaDownloader:
                                 os.remove(floc)
                             return None, 0, 1
 
-                    #...Check that the full path was downloaded
+                    # ...Check that the full path was downloaded
                     delta_size = got_size - total_size
                     if delta_size != 0 and got_size > 0:
                         print("[ERROR]: Did not get the full file from NOAA. Trying again later.")
@@ -196,8 +198,7 @@ class NoaaDownloader:
                         self.__s3file.upload_file(floc, dfolder + "/" + fn)
                         os.remove(floc)
                     else:
-                        os.rename(floc,fn)
-
+                        os.rename(floc, fn)
 
                     return dfolder + "/" + fn, n, 0
                 else:
@@ -205,7 +206,7 @@ class NoaaDownloader:
 
         except KeyboardInterrupt:
             raise
-        #except:
+        # except:
         #    print("[WARNING]: NOAA Server stopped responding. Trying again later")
         #    return None, 0, 1
 

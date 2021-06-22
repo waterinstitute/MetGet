@@ -40,7 +40,8 @@ class S3file:
         """
         # Upload the file
         try:
-            response = self.__client.upload_file(local_file, self.__bucket, remote_path,ExtraArgs={'StorageClass':'INTELLIGENT_TIERING'})
+            response = self.__client.upload_file(local_file, self.__bucket, remote_path,
+                                                 ExtraArgs={'StorageClass': 'INTELLIGENT_TIERING'})
         except ClientError as e:
             print("[ERROR]: ", e, flush=True)
             return False
