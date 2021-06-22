@@ -65,7 +65,7 @@ def nhc_download():
     nhc = NhcDownloader()
     print("[INFO:] Beginning downloading NHC data")
     n = nhc.download()
-    print("[INFO]: Finished downloading NHC data")
+    print("[INFO]: NHC complete. " + str(n) + " files downloaded", flush=True)
     return n
 
 
