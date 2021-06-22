@@ -24,24 +24,38 @@
 
 class NhcDownloader:
     def __init__(self,
-                 dblocation,
+                 dblocation=".",
                  use_besttrack=True,
                  use_forecast=True,
                  pressure_method="knaffzehr",
                  use_aws=False):
         from datetime import datetime
-        from metget.metdb import Metdb
-        self.__dblocation = dblocation
-        self.__downloadlocation = dblocation + "/nhc"
+        from .metdb import Metdb
+        import tempfile
+
         self.__mettype = "nhc"
         self.__metstring = "NHC"
         self.__use_forecast = use_besttrack
         self.__use_hindcast = use_forecast
         self.__year = datetime.now().year
         self.__pressure_method = pressure_method
-        self.__database = Metdb(self.__dblocation)
         self.__use_rss = True
-        self.__use_aws = False
+        self.__use_aws = use_aws
+        self.__database = Metdb()
+
+        if self.__use_aws:
+            from .s3file import S3file
+            import os
+            self.__dblocation = tempfile.gettempdir()
+            self.__downloadlocation = dblocation + "/nhc"
+            if "BUCKET_NAME" in os.environ:
+                self.__s3file = S3file(os.environ["BUCKET_NAME"])
+            else:
+                self.__s3file = S3file()
+        else:
+            self.__dblocation = dblocation
+            self.__downloadlocation = self.__dblocation + "/nhc"
+
         self.__rss_feeds = [
             "https://www.nhc.noaa.gov/index-at.xml",
             "https://www.nhc.noaa.gov/index-ep.xml",
@@ -52,6 +66,7 @@ class NhcDownloader:
         return self.__mettype
 
     def metstring(self):
+        return self.__metstring
         return self.__metstring
 
     def download(self):
@@ -94,13 +109,20 @@ class NhcDownloader:
                     storm_str = id_str[2:4]
                     year_str = id_str[-4:]
                     vmax = 0
-    
+
                     storm_name = e['title'].split(
                         "Forecast Advisory")[0].split()[-1]
                     # storm_type = e['title'].split(storm_name)[0]
-    
-                    filepath = self.__downloadlocation + "_fcst/nhc_fcst_" + year_str + "_" + basin_str + "_" + storm_str + "_" + adv_number + ".fcst"
-                    if not os.path.exists(filepath):
+
+                    fn = "nhc_fcst_" + year_str + "_" + basin_str + "_" + storm_str + "_" + adv_number + ".fcst"
+                    if self.__use_aws:
+                        filepath = self.mettype() + "/forecast/" + fn
+                        pathfound = self.__s3file.exists(filepath)
+                    else:
+                        filepath = self.__downloadlocation + "_fcst/" + fn
+                        pathfound = os.path.exists(filepath)
+
+                    if not pathfound:
                         print("    Downloading NHC forecast for Basin: " +
                               basin2string(basin_str) + ", Year: " + year_str +
                               ", Storm: " + storm_name + "(" + storm_str +
@@ -109,8 +131,7 @@ class NhcDownloader:
                         i = 0
                         forecasts = [ForecastData(self.__pressure_method)]
                         while i < len(adv_lines):
-                            if "CENTER LOCATED NEAR" in adv_lines[
-                                    i] and "REPEAT" not in adv_lines[i]:
+                            if "CENTER LOCATED NEAR" in adv_lines[i] and "REPEAT" not in adv_lines[i]:
                                 data = adv_lines[i].split("...")[0].split()
                                 x, y = self.get_storm_center(data[-3], data[-4])
                                 time = self.get_rss_time(data[-1])
@@ -136,14 +157,13 @@ class NhcDownloader:
                                 fwdspd = int(adv_lines[i].split()[-2])
                                 forecasts[0].set_heading(heading)
                                 forecasts[0].set_forward_speed(fwdspd)
-                            elif "FORECAST VALID" in adv_lines[
-                                    i] and "ABSORBED" not in adv_lines[i]:
+                            elif "FORECAST VALID" in adv_lines[i] and "ABSORBED" not in adv_lines[i]:
                                 data = adv_lines[i].split("...")[0].split()
-    
+
                                 # This should be specified in the rss, but if not, compute a value before going further
                                 if forecasts[0].pressure() == -1:
                                     forecasts[0].compute_pressure()
-    
+
                                 if len(data) >= 4:
                                     forecasts.append(
                                         ForecastData(self.__pressure_method))
@@ -164,7 +184,7 @@ class NhcDownloader:
                                     forecasts[-1].compute_pressure(
                                         vmax, forecasts[-2].max_wind(),
                                         forecasts[-2].pressure())
-    
+
                                     while "KT" in adv_lines[i + 1]:
                                         i += 1
                                         iso, d1, d2, d3, d4 = self.parse_isotachs(
@@ -172,12 +192,18 @@ class NhcDownloader:
                                         forecasts[-1].set_isotach(
                                             iso, d1, d2, d3, d4)
                             i += 1
-    
-                        # self.print_forecast_data(year_str, basin_str, storm_name, storm_str, adv_number, forecasts)
-                        self.write_atcf(filepath, basin_str, storm_name, storm_str,
-                                        forecasts)
-                        start_date, end_date, duration = self.get_nhc_start_end_date(
-                            filepath, True)
+
+                        if self.__use_aws:
+                            self.write_atcf(self.__dblocation + "/" + fn, basin_str, storm_name, storm_str, forecasts)
+                            self.__s3file.upload_file(self.__dblocation + "/" + fn, filepath)
+                            start_date, end_date, duration = self.get_nhc_start_end_date(
+                                self.__dblocation + "/" + fn, True)
+                        else:
+                            self.write_atcf(filepath, basin_str, storm_name, storm_str,
+                                            forecasts)
+                            start_date, end_date, duration = self.get_nhc_start_end_date(
+                                filepath, True)
+
                         nhc_metadata = {
                             "year": year_str,
                             "basin": basin_str,
@@ -188,7 +214,7 @@ class NhcDownloader:
                             'advisory_duration_hr': duration
                         }
                         self.__database.add(nhc_metadata, "nhc_fcst", filepath)
-    
+
                         # Increment the counter
                         n += 1
             return n
@@ -302,9 +328,9 @@ class NhcDownloader:
             ftp.login()
             ftp.cwd('atcf/fst')
             filelist = ftp.nlst("*.fst")
-    
+
             n = 0
-    
+
             for f in filelist:
                 year = f[4:8]
                 if int(year) == self.__year:
@@ -341,13 +367,12 @@ class NhcDownloader:
         except KeyboardInterrupt:
             raise
         except:
-            print("[ERROR]: An error occured connecting to the NHC ftp site",flush=True)
+            print("[ERROR]: An error occured connecting to the NHC ftp site", flush=True)
             return 0
 
     def download_hindcast(self):
         from ftplib import FTP
         import os.path
-        import hashlib
 
         print("[INFO]: Connecting to NHC FTP site")
 
@@ -410,9 +435,8 @@ class NhcDownloader:
         except KeyboardInterrupt:
             raise
         except:
-            print("[ERROR]: An error occured connecting to the NHC ftp site",flush=True)
+            print("[ERROR]: An error occured connecting to the NHC ftp site", flush=True)
             return 0
-
 
     @staticmethod
     def generate_storm_forecast_homepage_url(year, basin, storm):

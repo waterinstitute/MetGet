@@ -57,6 +57,16 @@ def hwrf_download():
     print("[INFO]: Beginning to run HWRF from " + start.isoformat() + " to " + end.isoformat(), flush=True)
     n = hwrf.download()
     print("[INFO]: HWRF complete. " + str(n) + " files downloaded", flush=True)
+    return n
+
+
+def nhc_download():
+    from metgetlib.nhcdownloader import NhcDownloader
+    nhc = NhcDownloader()
+    print("[INFO:] Beginning downloading NHC data")
+    n = nhc.download()
+    print("[INFO]: Finished downloading NHC data")
+    return n
 
 
 def lambda_handler(event, context):
@@ -78,6 +88,8 @@ def lambda_handler(event, context):
         n = gfs_download()
     elif request_type == "hwrf":
         n = hwrf_download()
+    elif request_type == "nhc":
+        n = nhc_download()
 
     returndata = {
         "statusCode": 200,
