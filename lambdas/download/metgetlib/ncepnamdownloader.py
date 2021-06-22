@@ -28,7 +28,7 @@ class NcepNamdownloader(NoaaDownloader):
     def __init__(self, begin, end):
         address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/nam/prod/"
         NoaaDownloader.__init__(self, "nam_ncep", "NAM-NCEP", address,
-                                begin, end, False, True)
+                                begin, end)
         self.__lastdate = self.begindate()
         self.add_download_variable("APCP","accumulated_precip")
         self.add_download_variable("RH:30-0 mb above ground","humidity")
