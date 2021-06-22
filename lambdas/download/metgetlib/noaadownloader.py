@@ -41,6 +41,7 @@ class NoaaDownloader:
         :param end: end date for downloading
         """
         from .metdb import Metdb
+        import os
         self.__mettype = mettype
         self.__metstring = metstring
         self.__address = address
@@ -51,7 +52,10 @@ class NoaaDownloader:
 
         if self.__use_aws:
             from .s3file import S3file
-            self.__s3file = S3file()
+            if "BUCKET_NAME" in os.environ:
+                self.__s3file = S3file(os.environ["BUCKET_NAME"])
+            else:
+                self.__s3file = S3file()
 
         #...The default variable list. Must haves for
         #   this system at present
@@ -201,9 +205,9 @@ class NoaaDownloader:
 
         except KeyboardInterrupt:
             raise
-        except:
-            print("[WARNING]: NOAA Server stopped responding. Trying again later")
-            return None, 0, 1
+        #except:
+        #    print("[WARNING]: NOAA Server stopped responding. Trying again later")
+        #    return None, 0, 1
 
     def download(self):
         raise RuntimeError("Method not implemented")
