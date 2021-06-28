@@ -28,7 +28,7 @@ class NhcDownloader:
                  use_besttrack=True,
                  use_forecast=True,
                  pressure_method="knaffzehr",
-                 use_aws=False):
+                 use_aws=True):
         from datetime import datetime
         from .metdb import Metdb
         import tempfile
@@ -102,7 +102,7 @@ class NhcDownloader:
             feed = feedparser.parse(rss)
             for e in feed.entries:
                 if "Forecast Advisory" in e['title']:
-                    adv_number = e['title'].split()[-1]
+                    adv_number = "{:03d}".format(int(e['title'].split()[-1]))
                     adv_lines = e["description"].split("\n")
                     id_str = (adv_lines[7].split()[-1]).lstrip()
                     basin_str = id_str[0:2]
@@ -175,6 +175,7 @@ class NhcDownloader:
                                     forecasts[-1].set_max_wind(float(data[2]))
                                     vmax = max(vmax, forecasts[-1].max_wind())
                                     forecasts[-1].set_max_gust(float(data[5]))
+
                                     forecasts[-1].set_storm_center(x, y)
                                     forecasts[-1].set_time(time)
                                     forecasts[-1].set_forecast_hour(
@@ -221,6 +222,7 @@ class NhcDownloader:
         except KeyboardInterrupt:
             raise
         except:
+            print("[ERROR]: An error occured reading the NHC RSS feed")
             return n
 
     @staticmethod
@@ -268,19 +270,31 @@ class NhcDownloader:
                     y.strip().rjust(5),
                     x.strip().rjust(6), d.max_wind(), d.pressure(),
                     windcode.rjust(3))
-                for it in sorted(d.isotach_levels()):
-                    iso = d.isotach(it)
+
+                if d.heading() > -900:
+                    heading = d.heading()
+                else:
+                    heading = 0
+
+                if d.forward_speed() > -900:
+                    fspd = d.forward_speed()
+                else:
+                    fspd = 0
+
+                if len(d.isotach_levels()) > 0:
+                    for it in sorted(d.isotach_levels()):
+                        iso = d.isotach(it)
+                        itline = line + "{:4d}, NEQ,{:5d},{:5d},{:5d},{:5d},".format(
+                            it, iso.distance(0), iso.distance(1), iso.distance(2),
+                            iso.distance(3))
+                        itline = itline + " 1013,    0,   0,{:4.0f},   0,   0,    ,METG,{:4d},{:4d}," \
+                                          "{:11s},  ,  0, NEQ,    0,    0,    0,    0,            ,    ,".format(
+                            d.max_gust(), heading, fspd, storm_name.upper().rjust(11))
+                        f.write(itline)
+                        f.write(os.linesep)
+                else:
                     itline = line + "{:4d}, NEQ,{:5d},{:5d},{:5d},{:5d},".format(
-                        it, iso.distance(0), iso.distance(1), iso.distance(2),
-                        iso.distance(3))
-                    if d.heading() > -900:
-                        heading = d.heading()
-                    else:
-                        heading = 0
-                    if d.forward_speed() > -900:
-                        fspd = d.forward_speed()
-                    else:
-                        fspd = 0
+                        34, 0, 0, 0, 0)
                     itline = itline + " 1013,    0,   0,{:4.0f},   0,   0,    ,METG,{:4d},{:4d}," \
                                       "{:11s},  ,  0, NEQ,    0,    0,    0,    0,            ,    ,".format(
                         d.max_gust(), heading, fspd, storm_name.upper().rjust(11))
@@ -307,7 +321,11 @@ class NhcDownloader:
         now = datetime.utcnow()
         day = int(time_str[0:2])
         hr = int(time_str[3:5])
-        return datetime(now.year, now.month, day, hr, 0, 0)
+        d = datetime(now.year, now.month, day, hr, 0, 0)
+        if d < datetime.now():
+            return datetime(now.year, now.month + 1, day, hr, 0, 0)
+        else:
+            return d
 
     @staticmethod
     def parse_isotachs(line):
@@ -486,10 +504,9 @@ class NhcDownloader:
             reader = csv.reader(csvfile)
             line = 0
             for l in reader:
+                lastline = l
                 if line == 0:
                     firstline = l
-                else:
-                    lastline = l
                 line += 1
 
         start_date = datetime.strptime(str.strip(firstline[2]), "%Y%m%d%H")
