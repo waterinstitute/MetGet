@@ -30,14 +30,10 @@ class Metdb:
         sqlite3 database
         """
         import os
-        # self.__dbhost = os.environ["DBSERVER"]
-        # self.__dbpassword = os.environ["DBPASS"]
-        # self.__dbusername = os.environ["DBUSER"]
-        # self.__dbname = os.environ["DBNAME"]
-        self.__dbhost = "localhost"
-        self.__dbpassword = "***REMOVED***"
-        self.__dbusername = "zcobell"
-        self.__dbname = "metget"
+        self.__dbhost = os.environ["DBSERVER"]
+        self.__dbpassword = os.environ["DBPASS"]
+        self.__dbusername = os.environ["DBUSER"]
+        self.__dbname = os.environ["DBNAME"]
 
         self.__initdatabase()
 
