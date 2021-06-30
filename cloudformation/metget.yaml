@@ -498,6 +498,17 @@ Resources:
     DependsOn:
       - LambdaGetData
       - EventRunLambdaNam
+  
+  EventBridgeLambdaPermissionNhc:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaGetData.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventRunLambdaNhc.Arn
+    DependsOn:
+      - LambdaGetData
+      - EventRunLambdaNhc
 
   #..................................#
   # Autoscaling
@@ -1298,6 +1309,29 @@ Resources:
             !Sub |
             {
               "service": "nam"
+            }
+          RetryPolicy:
+            MaximumRetryAttempts: 0
+            MaximumEventAgeInSeconds: 900
+    DependsOn:
+      - LambdaGetData
+  
+  EventRunLambdaNhc:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Executes the event to get the NHC data"
+      State: "ENABLED"
+      ScheduleExpression: "rate(15 minutes)"
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - "LambdaGetData"
+              - "Arn"
+          Id: !Sub "${AWS::StackName}-nhcLambdaEvent"
+          Input:
+            !Sub |
+            {
+              "service": "nhc"
             }
           RetryPolicy:
             MaximumRetryAttempts: 0

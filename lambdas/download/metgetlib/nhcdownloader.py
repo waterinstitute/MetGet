@@ -28,7 +28,7 @@ class NhcDownloader:
                  use_besttrack=True,
                  use_forecast=True,
                  pressure_method="knaffzehr",
-                 use_aws=False):
+                 use_aws=True):
         from datetime import datetime
         from .metdb import Metdb
         import tempfile
@@ -488,7 +488,9 @@ class NhcDownloader:
                         }
                         if self.__use_aws:
                             self.__s3file.upload_file(file_path, remote_path)
-                        self.__database.add(data, "nhc_btk", file_path)
+                            self.__database.add(data, "nhc_btk", remote_path)
+                        else:
+                            self.__database.add(data, "nhc_btk", file_path)
                         n += 1
             return n
         except KeyboardInterrupt:
