@@ -48,6 +48,16 @@ class S3file:
 
         return True
 
+
+    def download_file(self, remote_path, local_path):
+        try:
+            response = self.__client.download_file(self.__bucket,remote_path,local_path)
+        except ClientError as e:
+            print("[ERROR]: ",e,flush=True)
+            return False
+        return True
+
+
     def exists(self, path):
         try:
             self.__resource.Object(self.__bucket, path).load()

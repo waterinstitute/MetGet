@@ -28,7 +28,7 @@ class NhcDownloader:
                  use_besttrack=True,
                  use_forecast=True,
                  pressure_method="knaffzehr",
-                 use_aws=True):
+                 use_aws=False):
         from datetime import datetime
         from .metdb import Metdb
         import tempfile
@@ -42,6 +42,7 @@ class NhcDownloader:
         self.__use_rss = True
         self.__use_aws = use_aws
         self.__database = Metdb()
+        self.__min_forecast_length = 2
 
         if self.__use_aws:
             from .s3file import S3file
@@ -66,7 +67,6 @@ class NhcDownloader:
         return self.__mettype
 
     def metstring(self):
-        return self.__metstring
         return self.__metstring
 
     def download(self):
@@ -95,12 +95,20 @@ class NhcDownloader:
     def read_nhc_rss_feed(self, rss):
         import feedparser
         import os
+        from datetime import datetime
         from .forecastdata import ForecastData
 
         try:
             n = 0
             feed = feedparser.parse(rss)
+
+            # ... During month changes, we need to be able to roll
+            # the date correctly
+            rss_date_str = feed["date"][5:-4]
+            rss_date = datetime.strptime(rss_date_str, "%d %b %Y %H:%M:%S")
+
             for e in feed.entries:
+
                 if "Forecast Advisory" in e['title']:
                     adv_number = "{:03d}".format(int(e['title'].split()[-1]))
                     adv_lines = e["description"].split("\n")
@@ -117,12 +125,18 @@ class NhcDownloader:
                     fn = "nhc_fcst_" + year_str + "_" + basin_str + "_" + storm_str + "_" + adv_number + ".fcst"
                     if self.__use_aws:
                         filepath = self.mettype() + "/forecast/" + fn
-                        pathfound = self.__s3file.exists(filepath)
                     else:
                         filepath = self.__downloadlocation + "_fcst/" + fn
-                        pathfound = os.path.exists(filepath)
 
-                    if not pathfound:
+                    metadata = {
+                        "year": year_str,
+                        "basin": basin_str,
+                        "storm": storm_str,
+                        "advisory": adv_number
+                    }
+                    entry_found = self.__database.has("nhc_fcst", metadata)
+
+                    if not entry_found:
                         print("    Downloading NHC forecast for Basin: " +
                               basin2string(basin_str) + ", Year: " + year_str +
                               ", Storm: " + storm_name + "(" + storm_str +
@@ -134,7 +148,7 @@ class NhcDownloader:
                             if "CENTER LOCATED NEAR" in adv_lines[i] and "REPEAT" not in adv_lines[i]:
                                 data = adv_lines[i].split("...")[0].split()
                                 x, y = self.get_storm_center(data[-3], data[-4])
-                                time = self.get_rss_time(data[-1])
+                                time = self.get_rss_time(rss_date, data[-1])
                                 forecasts[0].set_storm_center(x, y)
                                 forecasts[0].set_time(time)
                             elif "ESTIMATED MINIMUM CENTRAL" in adv_lines[i]:
@@ -168,7 +182,7 @@ class NhcDownloader:
                                     forecasts.append(
                                         ForecastData(self.__pressure_method))
                                     data = adv_lines[i].split("...")[0].split()
-                                    time = self.get_rss_time(data[2])
+                                    time = self.get_rss_time(rss_date, data[2])
                                     x, y = self.get_storm_center(data[4], data[3])
                                     i += 1
                                     data = adv_lines[i].replace(".", " ").split()
@@ -192,38 +206,52 @@ class NhcDownloader:
                                             adv_lines[i])
                                         forecasts[-1].set_isotach(
                                             iso, d1, d2, d3, d4)
+
+                                    # ... TODO: Do we want a record that has no isotachs?
+                                    # Maybe there are some assumptions to be made here
+                                    if forecasts[-1].nisotachs() == 0:
+                                        del forecasts[-1]
                             i += 1
 
-                        if self.__use_aws:
-                            self.write_atcf(self.__dblocation + "/" + fn, basin_str, storm_name, storm_str, forecasts)
-                            self.__s3file.upload_file(self.__dblocation + "/" + fn, filepath)
-                            start_date, end_date, duration = self.get_nhc_start_end_date(
-                                self.__dblocation + "/" + fn, True)
+                        # ... TODO: What is the minimum number of forecast snaps that are acceptable?
+                        if len(forecasts) > self.__min_forecast_length:
+                            if self.__use_aws:
+                                self.write_atcf(self.__dblocation + "/" + fn, basin_str, storm_name, storm_str,
+                                                forecasts)
+                                self.__s3file.upload_file(self.__dblocation + "/" + fn, filepath)
+                                start_date, end_date, duration = self.get_nhc_start_end_date(
+                                    self.__dblocation + "/" + fn, True)
+                                md5 = self.compute_checksum(self.__dblocation + "/" + fn)
+                            else:
+                                self.write_atcf(filepath, basin_str, storm_name, storm_str,
+                                                forecasts)
+                                start_date, end_date, duration = self.get_nhc_start_end_date(
+                                    filepath, True)
+                                md5 = self.compute_checksum(filepath)
+
+                            nhc_metadata = {
+                                "year": year_str,
+                                "basin": basin_str,
+                                "storm": storm_str,
+                                "advisory": adv_number,
+                                "md5": md5,
+                                'advisory_start': start_date,
+                                'advisory_end': end_date,
+                                'advisory_duration_hr': duration
+                            }
+                            self.__database.add(nhc_metadata, "nhc_fcst", filepath)
+
+                            # Increment the counter
+                            n += 1
                         else:
-                            self.write_atcf(filepath, basin_str, storm_name, storm_str,
-                                            forecasts)
-                            start_date, end_date, duration = self.get_nhc_start_end_date(
-                                filepath, True)
-
-                        nhc_metadata = {
-                            "year": year_str,
-                            "basin": basin_str,
-                            "storm": storm_str,
-                            "advisory": adv_number,
-                            'advisory_start': start_date,
-                            'advisory_end': end_date,
-                            'advisory_duration_hr': duration
-                        }
-                        self.__database.add(nhc_metadata, "nhc_fcst", filepath)
-
-                        # Increment the counter
-                        n += 1
+                            print("      [WARNING]: Dropping forecast for having <", self.__min_forecast_length,
+                                  "forecast records")
             return n
         except KeyboardInterrupt:
             raise
-        except:
-            print("[ERROR]: An error occured reading the NHC RSS feed")
-            return n
+        # except:
+        #     print("[ERROR]: An error occured reading the NHC RSS feed")
+        #     return n
 
     @staticmethod
     def print_forecast_data(year, basin, storm_name, storm_number,
@@ -316,14 +344,18 @@ class NhcDownloader:
         return x, y
 
     @staticmethod
-    def get_rss_time(time_str):
+    def get_rss_time(start_time, time_str):
         from datetime import datetime
-        now = datetime.utcnow()
         day = int(time_str[0:2])
         hr = int(time_str[3:5])
-        d = datetime(now.year, now.month, day, hr, 0, 0)
-        if d < datetime.now():
-            return datetime(now.year, now.month + 1, day, hr, 0, 0)
+        d = datetime(start_time.year, start_time.month, day, hr, 0, 0)
+
+        # ... Generate a query time since it we allege that only the hours, minutes, and seconds could put
+        # the forecasted time ahead of the time in the rss feed
+        query_time = datetime(start_time.year, start_time.month, start_time.day, 0, 0, 0)
+
+        if d < query_time:
+            return datetime(start_time.year, start_time.month + 1, day, hr, 0, 0)
         else:
             return d
 
@@ -370,10 +402,12 @@ class NhcDownloader:
                             ftp.retrbinary("RETR " + f, open(filepath, 'wb').write)
                             start_date, end_date, duration = self.get_nhc_start_end_date(
                                 filepath, True)
+                            md5 = self.compute_checksum(filepath)
                             data = {
                                 "year": int(year),
                                 "basin": basin,
                                 "storm": int(storm),
+                                "md5": md5,
                                 "advisory": latest_advisory,
                                 'advisory_start': start_date,
                                 'advisory_end': end_date,
@@ -391,6 +425,7 @@ class NhcDownloader:
     def download_hindcast(self):
         from ftplib import FTP
         import os.path
+        import tempfile
 
         print("[INFO]: Connecting to NHC FTP site")
 
@@ -399,34 +434,37 @@ class NhcDownloader:
             ftp = FTP('ftp.nhc.noaa.gov')
             ftp.login()
             ftp.cwd('atcf/btk')
-            filelist = ftp.nlst("*.dat")
+            file_list = ftp.nlst("*.dat")
             print("[INFO]: NHC FTP connection successful")
 
             n = 0
 
             # Iterate through files and find the associated advisory
-            for f in filelist:
+            for f in file_list:
                 year = f[5:9]
                 if int(year) == self.__year:
                     basin = f[1:3]
                     storm = f[3:5]
-                    filepath = self.__downloadlocation + "_btk/nhc_btk_" + year + "_" + basin + "_" + storm + ".btk"
 
-                    if os.path.exists(filepath):
-                        md5_original = self.compute_checksum(filepath)
+                    fn = "nhc_btk_" + year + "_" + basin + "_" + storm + ".btk"
+                    md5_original = self.__database.get_nhc_md5("nhc_btk", year, basin, storm)
+
+                    if self.__use_aws:
+                        file_path = tempfile.gettempdir() + "/" + fn
+                        remote_path = "nhc/besttrack/" + fn
                     else:
-                        md5_original = 0
+                        file_path = self.mettype() + "_btk/" + fn
+                        remote_path = None
 
                     try:
-                        ftp.retrbinary("RETR " + f, open(filepath, 'wb').write)
-                    except KeyboardInterrupt:
-                        raise
+                        ftp.retrbinary("RETR " + f, open(file_path, 'wb').write)
                     except:
+                        print("[ERROR]: Error getting file from NHC FTP")
                         continue
 
                     start_date, end_date, duration = self.get_nhc_start_end_date(
-                        filepath, False)
-                    md5_updated = self.compute_checksum(filepath)
+                        file_path, False)
+                    md5_updated = self.compute_checksum(file_path)
                     if not md5_original == md5_updated:
                         if md5_original == 0:
                             print("    Downloaded NHC best track for Basin: " +
@@ -443,18 +481,21 @@ class NhcDownloader:
                             "year": int(year),
                             "basin": basin,
                             "storm": storm,
+                            "md5": md5_updated,
                             'advisory_start': start_date,
                             'advisory_end': end_date,
                             'advisory_duration_hr': duration
                         }
-                        self.__database.add(data, "nhc_btk", filepath)
+                        if self.__use_aws:
+                            self.__s3file.upload_file(file_path, remote_path)
+                        self.__database.add(data, "nhc_btk", file_path)
                         n += 1
             return n
         except KeyboardInterrupt:
             raise
-        except:
-            print("[ERROR]: An error occured connecting to the NHC ftp site", flush=True)
-            return 0
+        # except:
+        #     print("[ERROR]: An error occured connecting to the NHC ftp site", flush=True)
+        #     return 0
 
     @staticmethod
     def generate_storm_forecast_homepage_url(year, basin, storm):
