@@ -113,7 +113,7 @@ class NhcDownloader:
                     adv_number = "{:03d}".format(int(e['title'].split()[-1]))
                     adv_lines = e["description"].split("\n")
                     id_str = (adv_lines[7].split()[-1]).lstrip()
-                    basin_str = id_str[0:2]
+                    basin_str = str(id_str[0:2]).lower()
                     storm_str = id_str[2:4]
                     year_str = id_str[-4:]
                     vmax = 0
