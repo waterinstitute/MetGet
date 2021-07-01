@@ -493,9 +493,9 @@ class Metdb:
                     "ADVISORY_DURATION_HR,FILEPATH,MD5,ACCESSED) VALUES(" + str(year) + \
                     ",'" + basin + "'," + str(storm) + ", '" + start + \
                     "', '" + end + "', " + duration + ",'" + filepath + "', '" + md5 + "', now());"
-        sqlupdate = "UPDATE nhc_btk SET ACCESSED = now() WHERE storm_year = " + str(
+        sqlupdate = "UPDATE nhc_btk SET ACCESSED = now(), MD5 = " + md5 + " WHERE storm_year = " + str(
             year) + " AND BASIN = '" + basin + "' AND STORM = " + str(
-            storm) + " AND MD5 = " + md5 + ";"
+            storm) + ";"
         return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
 
     @staticmethod
