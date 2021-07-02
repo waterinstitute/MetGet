@@ -92,6 +92,21 @@ class NhcDownloader:
         print("[INFO]: Finished reading RSS feed")
         return n
 
+    @staticmethod
+    def generate_advisory_number(string):
+        """
+        Takes input for an advisory and reformats it using 3 places so it is ordered in the table
+        :param string: advisory number, i.e. 2b or 2
+        :return: advisory number padded with zeros, i.e. 002b or 002
+        """
+        import re
+        split = re.split("([0-9]{1,2})", string)
+        if len(split) == 2:
+            adv_number = "{:03}".format(int(split[1]))
+        else:
+            adv_number = "{:03}".format(int(split[1])) + split[2]
+        return adv_number
+
     def read_nhc_rss_feed(self, rss):
         import feedparser
         import os
@@ -110,7 +125,10 @@ class NhcDownloader:
             for e in feed.entries:
 
                 if "Forecast Advisory" in e['title']:
-                    adv_number = "{:03d}".format(int(e['title'].split()[-1]))
+
+                    adv_number_str = e['title'].split()[-1]
+                    adv_number = NhcDownloader.generate_advisory_number(adv_number_str)
+
                     adv_lines = e["description"].split("\n")
                     id_str = (adv_lines[7].split()[-1]).lstrip()
                     basin_str = str(id_str[0:2]).lower()
@@ -209,8 +227,8 @@ class NhcDownloader:
 
                                     # ... TODO: Do we want a record that has no isotachs?
                                     # Maybe there are some assumptions to be made here
-                                    if forecasts[-1].nisotachs() == 0:
-                                        del forecasts[-1]
+                                    # if forecasts[-1].nisotachs() == 0:
+                                    #     del forecasts[-1]
                             i += 1
 
                         # ... TODO: What is the minimum number of forecast snaps that are acceptable?

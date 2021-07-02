@@ -493,7 +493,7 @@ class Metdb:
                     "ADVISORY_DURATION_HR,FILEPATH,MD5,ACCESSED) VALUES(" + str(year) + \
                     ",'" + basin + "'," + str(storm) + ", '" + start + \
                     "', '" + end + "', " + duration + ",'" + filepath + "', '" + md5 + "', now());"
-        sqlupdate = "UPDATE nhc_btk SET ACCESSED = now(), MD5 = " + md5 + " WHERE storm_year = " + str(
+        sqlupdate = "UPDATE nhc_btk SET ACCESSED = now(), MD5 = '" + md5 + "' WHERE storm_year = " + str(
             year) + " AND BASIN = '" + basin + "' AND STORM = " + str(
             storm) + ";"
         return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
@@ -502,11 +502,11 @@ class Metdb:
     def __generate_sql_nhc_fcst(filepath, pair):
         year, storm, basin, md5, start, end, duration = Metdb.__generate_nhc_vars_from_pair(pair)
         advisory = pair["advisory"]
-        sqlhas = "SELECT Count(*) FROM nhc_fcst WHERE storm_year = " + str(year) + " AND ADVISORY = " + \
-                 advisory + " AND BASIN = '" + basin + "' AND STORM = " + str(storm) + ";"
+        sqlhas = "SELECT Count(*) FROM nhc_fcst WHERE storm_year = " + str(year) + " AND ADVISORY = '" + \
+                 advisory + "' AND BASIN = '" + basin + "' AND STORM = " + str(storm) + ";"
         sqlinsert = "INSERT INTO nhc_fcst (STORM_YEAR,BASIN,STORM,ADVISORY,ADVISORY_START,ADVISORY_END," \
                     "ADVISORY_DURATION_HR,FILEPATH,MD5,ACCESSED) VALUES(" + str(year) + \
-                    ",'" + basin + "'," + str(storm) + "," + advisory + ", '" + start + \
+                    ",'" + basin + "'," + str(storm) + ",'" + advisory + "', '" + start + \
                     "', '" + end + "', " + duration + ",'" + filepath + "', '" + md5 + "', now());"
         sqlupdate = ""
         return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
