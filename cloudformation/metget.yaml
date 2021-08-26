@@ -1117,6 +1117,42 @@ Resources:
       - VPC
       - Database
       - DatabaseSecretManager
+  
+  LambdaStatusCache:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "Function to generate a json status via the api"
+      Runtime: "python3.8"
+      Role: !GetAtt LambdaIAMRole.Arn
+      FunctionName: !Sub "${AWS::StackName}_generate_cached_status"
+      Handler: "lambda_function.lambda_handler"
+      MemorySize: 128
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+          - !GetAtt VPC.DefaultSecurityGroup
+        SubnetIds:
+          - !Ref InternalSubnet1
+          - !Ref InternalSubnet2
+      TracingConfig:
+        Mode: "PassThrough"
+      Environment:
+        Variables:
+          DBSERVER: !GetAtt Database.Endpoint.Address
+          DBPASS: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::password}}'
+          DBUSER: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::username}}'
+          DBNAME: !Sub "${MetGetDatabaseName}"
+      Code:
+        S3Bucket: metget-scripts
+        S3Key: metstatuscache/metget-statuscache.zip
+    DependsOn:
+      - SecurityGroup
+      - InternalSubnet1
+      - InternalSubnet2
+      - VPC
+      - Database
+      - DatabaseSecretManager
 
 
   LambdaReceiveRequest:
@@ -1229,7 +1265,7 @@ Resources:
     DependsOn:
       - LambdaStatus
       - ApiGateway
-
+  
   LambdaReceiveRequestAPIPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -1338,6 +1374,24 @@ Resources:
             MaximumEventAgeInSeconds: 900
     DependsOn:
       - LambdaGetData
+  
+  EventRunLambdaStatusCache:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Executes the event to cache the lambda status"
+      State: "ENABLED"
+      ScheduleExpression: "rate(10 minutes)"
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - "LambdaStatusCache"
+              - "Arn"
+          Id: !Sub "${AWS::StackName}-LambdaStatusCacheEvent"
+          RetryPolicy:
+            MaximumRetryAttempts: 0
+            MaximumEventAgeInSeconds: 900
+    DependsOn:
+      - LambdaStatusCache
 
 #..................................#
 # Input Parameters
