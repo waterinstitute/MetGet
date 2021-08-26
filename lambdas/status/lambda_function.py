@@ -47,9 +47,21 @@ class Database:
         jsondata['metget']['hwrf'] = self.generate_hwrf_status()
         return jsondata
 
+    @staticmethod
+    def generate_record_period():
+        from datetime import datetime
+        from datetime import timedelta
+        now = datetime.now()
+        prev_month = now - timedelta(days=31)
+        prev_month = datetime(prev_month.year, prev_month.month, prev_month.day, 0, 0, 0)
+        return str(prev_month)
+
     def generate_status_generic(self, table, desired_len):
         from datetime import datetime
-        self.cursor().execute("SELECT DISTINCT FORECASTCYCLE FROM " + table + " ORDER BY FORECASTCYCLE")
+
+        search_period = Database.generate_record_period()
+
+        self.cursor().execute("SELECT DISTINCT FORECASTCYCLE FROM " + table + " WHERE FORECASTCYCLE > '"+search_period+"' ORDER BY FORECASTCYCLE")
 
         rows = self.cursor().fetchall()
         if len(rows) < 1:
@@ -129,10 +141,12 @@ class Database:
         """
         from datetime import datetime
 
+        search_period = Database.generate_record_period()
+
         # Use SQL to generate a distinct list of storms and then
         # iterate over them to determine the available forecast data
         stormlist = []
-        self.cursor().execute("SELECT DISTINCT stormname from hwrf")
+        self.cursor().execute("SELECT DISTINCT stormname from hwrf WHERE FORECASTCYCLE > '"+search_period+"'")
         rows = self.cursor().fetchall()
         for row in rows:
             stormlist.append({"storm": row[0]})
@@ -178,7 +192,7 @@ class Database:
                     latest_length = avail_len
                     latest_complete = f[0]
                     time_since_forecast = (datetime.now() - f[0]).total_seconds() / 86400
-                    break
+                    continue
 
             # Assemble a storm object. We're only going to write data available in the last 10 days
             if time_since_forecast < 10:
