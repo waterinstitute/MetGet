@@ -1,0 +1,3 @@
+@reboot /home/ec2-user/run_job.sh 2>&1 > /home/ec2-user/log.txt
+@hourly find /home/ec2-user -mmin +7200 -type f \( -name \*.pre -o -iname \*.wnd \) -delete
+@daily find /home/ec2-user -mtime +7 -name log.txt -delete
