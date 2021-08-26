@@ -42,13 +42,34 @@ class Database:
             print("ERROR: Invalid data type")
             sys.exit(1)
 
-    def generate_generic_file_list(self, table, start, end):
+    def generate_generic_file_list(self, table, start, end, nowcast, multiple_forecasts):
         from datetime import timedelta
-        sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
-              " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
-              "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
-            "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
-            "%Y-%m-%d %H:%M:%S") + "';"
+        if nowcast:
+            sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
+                  " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
+                  "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecastcycle >= '" + start.strftime(
+                  "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle <= '" + end.strftime(
+                  "%Y-%m-%d %H:%M:%S") + " AND t1.forecastcycle == t1.forecasttime';"
+        else:
+            if multiple_forecasts:
+                sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
+                      " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
+                      "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
+                      "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
+                      "%Y-%m-%d %H:%M:%S") + "';"
+            else:
+                sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
+                      " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
+                      "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
+                      "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
+                      "%Y-%m-%d %H:%M:%S") + "';"
+
+        print(self.__dbhost)
+        print(self.__dbserver)
+        print(self.__dbname)
+        print(self.__dbpass)
+        print(sql)
+
         self.cursor().execute(sql)
         rows = self.cursor().fetchall()
         return_list = []

@@ -10,7 +10,7 @@ class Input:
         self.__format = None
         self.__time_step = None
         self.__nowcast = False
-        self.__multiple_forecasts = False
+        self.__multiple_forecasts = True
         self.__domains = []
         self.__parse()
         self.__uuid = str(uuid.uuid4())

@@ -73,13 +73,16 @@ def process_message(json_message, queue, json_file=None):
     db = Database()
     owi_field = pymetbuild.OwiAscii(start_date_pmb,end_date_pmb,time_step)
 
+    nowcast = inputData.nowcast()
+    multiple_forecasts = inputData.multiple_forecasts()
+
     domain_data = []
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
         fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
         fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
         owi_field.addDomain(d.grid().grid_object(),fn1,fn2)
-        f = db.generate_file_list(d.service(),start_date,end_date) 
+        f = db.generate_file_list(d.service(),start_date,end_date,nowcast,multiple_forecasts) 
         if len(f) < 2:
             logger.error("No data found for domain "+str(i)+". Giving up.")
             if not json_file:
