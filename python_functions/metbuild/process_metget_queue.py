@@ -82,7 +82,7 @@ def process_message(json_message, queue, json_file=None):
         fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
         fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
         owi_field.addDomain(d.grid().grid_object(),fn1,fn2)
-        f = db.generate_file_list(d.service(),start_date,end_date,nowcast,multiple_forecasts) 
+        f = db.generate_file_list(d.service(),start_date,end_date,d.storm(),nowcast,multiple_forecasts) 
         if len(f) < 2:
             logger.error("No data found for domain "+str(i)+". Giving up.")
             if not json_file:
@@ -182,8 +182,6 @@ def main():
     logger.debug("Beginning execution")
 
     initialize_environment_variables()
-
-    print(len(sys.argv))
 
     if len(sys.argv)==2:
         jsonfile = sys.argv[1]

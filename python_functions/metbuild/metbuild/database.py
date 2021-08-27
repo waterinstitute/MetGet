@@ -31,11 +31,11 @@ class Database:
     def bucket(self):
         return self.__bucket
 
-    def generate_file_list(self, service, start, end, storm=None):
+    def generate_file_list(self, service, start, end, storm, nowcast, multiple_forecasts):
         if service == "gfs-ncep":
-            return self.generate_generic_file_list("gfs_ncep", start, end)
+            return self.generate_generic_file_list("gfs_ncep", start, end, nowcast, multiple_forecasts)
         elif service == "nam-ncep":
-            return self.generate_generic_file_list("nam_ncep", start, end)
+            return self.generate_generic_file_list("nam_ncep", start, end, nowcast, multiple_forecasts)
         elif service == "hwrf":
             return self.generate_hwrf_file_list(start, end, storm)
         else:
@@ -49,7 +49,7 @@ class Database:
                   " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
                   "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecastcycle >= '" + start.strftime(
                   "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle <= '" + end.strftime(
-                  "%Y-%m-%d %H:%M:%S") + " AND t1.forecastcycle == t1.forecasttime';"
+                  "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle = t1.forecasttime';"
         else:
             if multiple_forecasts:
                 sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
@@ -64,12 +64,6 @@ class Database:
                       "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
                       "%Y-%m-%d %H:%M:%S") + "';"
 
-        print(self.__dbhost)
-        print(self.__dbserver)
-        print(self.__dbname)
-        print(self.__dbpass)
-        print(sql)
-
         self.cursor().execute(sql)
         rows = self.cursor().fetchall()
         return_list = []
@@ -78,7 +72,17 @@ class Database:
         return return_list
 
     def generate_hwrf_file_list(self, start, end, storm):
-        return None
+        sql = "select t1.id,t1.stormname,t1.forecastcycle,t1.forecasttime,t1.filepath from hwrf " \
+              "t1 JOIN(select forecasttime, max(id) id FROM hwrf group by forecasttime order by forecasttime) t2 " \
+              "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecastcycle >= '" + start.strftime(
+              "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle <= '" + end.strftime(
+              "%Y-%m-%d %H:%M:%S") + "' AND t1.stormname = '"+storm+"';"
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+        for f in rows:
+            return_list.append([f[3], f[4]])
+        return return_list
 
     def get_file(self, db_path, service, time, dry_run=False):
         import tempfile
