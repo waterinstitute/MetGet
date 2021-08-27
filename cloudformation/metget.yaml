@@ -509,6 +509,17 @@ Resources:
     DependsOn:
       - LambdaGetData
       - EventRunLambdaNhc
+  
+  EventBridgeLambdaPermissionStatusCache:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaStatusCache.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventRunLambdaStatusCache.Arn
+    DependsOn:
+      - LambdaStatusCache
+      - EventRunLambdaStatusCache
 
   #..................................#
   # Autoscaling
@@ -1387,6 +1398,11 @@ Resources:
               - "LambdaStatusCache"
               - "Arn"
           Id: !Sub "${AWS::StackName}-LambdaStatusCacheEvent"
+          Input:
+            !Sub |
+            {
+              "service": "empty"
+            }
           RetryPolicy:
             MaximumRetryAttempts: 0
             MaximumEventAgeInSeconds: 900
