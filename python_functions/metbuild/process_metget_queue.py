@@ -112,12 +112,10 @@ def process_message(json_message, queue, json_file=None):
         met.set_next_file(domain_data[i][0]["filepath"])
         met.set_next_file(domain_data[i][1]["filepath"])
         for t in datespan(start_date,end_date,datetime.timedelta(seconds=time_step)): 
-            print(t)
             if t > t1:
                 index += 1
                 t0 = t1
                 t1 = domain_data[i][index]["time"]
-                print(t0, t1, t, domain_data[i][index]["filepath"])
                 met.set_next_file(domain_data[i][index]["filepath"])
                 met.process_data()
             weight = met.generate_time_weight(Input.date_to_pmb(t0),
