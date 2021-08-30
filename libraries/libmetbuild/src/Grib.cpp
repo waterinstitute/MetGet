@@ -120,14 +120,6 @@ std::vector<std::vector<double>> Grib::latitude2d() {
   return mapTo2d(this->m_latitude, ni(), nj());
 }
 
-const Kdtree *Grib::kdtree() const { return this->m_tree.get(); }
-
-size_t Grib::size() const { return m_size; }
-
-long Grib::ni() const { return m_ni; }
-
-long Grib::nj() const { return m_nj; }
-
 void Grib::readCoordinates(codes_handle *handle) {
   if (this->m_latitude.empty()) {
     m_latitude.resize(m_size);
@@ -148,12 +140,6 @@ void Grib::readCoordinates(codes_handle *handle) {
       }
     }
   }
-}
-
-std::tuple<size_t, size_t> Grib::indexToPair(const size_t index) const {
-  size_t j = index % nj();
-  size_t i = index / nj();
-  return std::make_pair(i, j);
 }
 
 bool Grib::point_inside(const Point &p) const {

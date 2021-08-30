@@ -1,9 +1,6 @@
 
 #include "WindGrid.h"
 
-#include <array>
-#include <cassert>
-#include <cmath>
 #include <fstream>
 #include <iostream>
 
@@ -96,34 +93,6 @@ void WindGrid::generateGrid() {
   }
 }
 
-MetBuild::Point WindGrid::center(const size_t i, const size_t j) const {
-  assert(i < ni() - 1 && j < nj() - 1);
-  if (i > ni() - 1 || j > nj() + 1) return {0, 0};
-  return {(m_grid[i][j].x() + m_grid[i + i][j + 1].x()) / 2.0,
-          (m_grid[i][j].y() + m_grid[i + 1][j + 1].y()) / 2.0};
-}
-
-MetBuild::Point WindGrid::corner(const size_t i, const size_t j) const {
-  assert(i < ni() && j < nj());
-  return i < ni() && j < nj() ? Point(m_grid[i][j].x(), m_grid[i][j].y()) : Point(0.0, 0.0);
-}
-
-size_t WindGrid::ni() const { return m_ni; }
-size_t WindGrid::nj() const { return m_nj; }
-double WindGrid::rotation() const { return m_rotation * 180.0 / M_PI; }
-double WindGrid::di() const { return m_di; }
-double WindGrid::dj() const { return m_dj; }
-double WindGrid::dxx() const { return m_dxx; }
-double WindGrid::dxy() const { return m_dxy; }
-double WindGrid::dyx() const { return m_dyx; }
-double WindGrid::dyy() const { return m_dyy; }
-double WindGrid::dx() const { return m_dxx; }
-double WindGrid::dy() const { return m_dyy; }
-Point WindGrid::bottom_left() const { return m_corners[0]; }
-Point WindGrid::bottom_right() const { return m_corners[1]; }
-Point WindGrid::top_left() const { return m_corners[3]; }
-Point WindGrid::top_right() const { return m_corners[2]; }
-
 void WindGrid::write(const std::string &filename) const {
   std::ofstream fout;
   fout.open(filename);
@@ -141,18 +110,6 @@ void WindGrid::write(const std::string &filename) const {
   }
   fout.close();
 }
-
-//MetBuild::Point WindGrid::corner(const size_t index) const {
-//  size_t j = index % nj();
-//  size_t i = index / nj();
-//  return this->corner(i, j);
-//}
-//
-//MetBuild::Point WindGrid::center(const size_t index) const {
-//  size_t j = index % nj();
-//  size_t i = index / nj();
-//  return this->center(i, j);
-//}
 
 bool WindGrid::point_inside(const MetBuild::Point &p) const {
   return this->m_geometry->is_inside(p);

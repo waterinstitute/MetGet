@@ -28,7 +28,7 @@ class Grib {
 
   ~Grib();
 
-  size_t size() const;
+  constexpr size_t size() const { return m_size; }
 
   std::vector<std::vector<double>> latitude2d();
   const std::vector<double> &latitude1d() const;
@@ -36,13 +36,17 @@ class Grib {
   std::vector<std::vector<double>> longitude2d();
   const std::vector<double> &longitude1d() const;
 
-  const Kdtree *kdtree() const;
+  Kdtree *kdtree() const { return m_tree.get(); }
 
-  long ni() const;
+  constexpr long ni() const { return m_ni; }
 
-  long nj() const;
+  constexpr long nj() const { return m_nj; }
 
-  std::tuple<size_t, size_t> indexToPair(size_t index) const;
+  constexpr std::tuple<size_t, size_t> indexToPair(size_t index) const {
+    size_t j = index % nj();
+    size_t i = index / nj();
+    return std::make_pair(i, j);
+  }
 
   std::vector<double> getGribArray1d(const std::string &name);
   std::vector<std::vector<double>> getGribArray2d(const std::string &name);

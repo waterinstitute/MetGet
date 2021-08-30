@@ -20,8 +20,8 @@ class WindData {
   const std::vector<std::vector<double>> &v() const;
   const std::vector<std::vector<double>> &p() const;
 
-  size_t ni() const;
-  size_t nj() const;
+  constexpr size_t ni() const { return m_ni; }
+  constexpr size_t nj() const { return m_nj; }
 
   void setU(size_t i, size_t j, double value);
   void setV(size_t i, size_t j, double value);

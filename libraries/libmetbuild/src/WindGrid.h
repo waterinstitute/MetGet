@@ -3,6 +3,8 @@
 #define METGET_WINDGRID_H
 
 #include <array>
+#include <cassert>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <vector>
@@ -26,28 +28,33 @@ class WindGrid {
 
   WindGrid(const WindGrid &w);
 
-  double dx() const;
-  double dy() const;
-  size_t ni() const;
-  size_t nj() const;
-  double rotation() const;
-  double di() const;
-  double dj() const;
-  double dxx() const;
-  double dxy() const;
-  double dyx() const;
-  double dyy() const;
+  constexpr size_t ni() const { return m_ni; }
+  constexpr size_t nj() const { return m_nj; }
+  constexpr double rotation() const { return m_rotation * 180.0 / M_PI; }
+  constexpr double di() const { return m_di; }
+  constexpr double dj() const { return m_dj; }
+  constexpr double dxx() const { return m_dxx; }
+  constexpr double dxy() const { return m_dxy; }
+  constexpr double dyx() const { return m_dyx; }
+  constexpr double dyy() const { return m_dyy; }
+  constexpr double dx() const { return m_dxx; }
+  constexpr double dy() const { return m_dyy; }
+  constexpr Point bottom_left() const { return m_corners[0]; }
+  constexpr Point bottom_right() const { return m_corners[1]; }
+  constexpr Point top_left() const { return m_corners[3]; }
+  constexpr Point top_right() const { return m_corners[2]; }
 
-  Point top_left() const;
-  Point top_right() const;
-  Point bottom_left() const;
-  Point bottom_right() const;
+  Point center(const size_t i, const size_t j) const {
+    assert(i < ni() - 1 && j < nj() - 1);
+    if (i > ni() - 1 || j > nj() + 1) return {0, 0};
+    return {(m_grid[i][j].x() + m_grid[i + i][j + 1].x()) / 2.0,
+            (m_grid[i][j].y() + m_grid[i + 1][j + 1].y()) / 2.0};
+  }
 
-  Point corner(size_t i, size_t j) const;
-  Point center(size_t i, size_t j) const;
-
-//  Point corner(size_t index) const;
-//  Point center(size_t index) const;
+  Point corner(const size_t i, const size_t j) const {
+    assert(i < ni() && j < nj());
+    return i < ni() && j < nj() ? Point(m_grid[i][j].x(), m_grid[i][j].y()) : Point(0.0, 0.0);
+  }
 
   bool point_inside(const MetBuild::Point &p) const;
 

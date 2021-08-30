@@ -34,7 +34,3 @@ void WindData::setP(size_t i, size_t j, double value){
   assert(j < m_nj);
   m_p[i][j] = value;
 }
-
-size_t WindData::ni() const { return m_ni; }
-
-size_t WindData::nj() const { return m_nj; }

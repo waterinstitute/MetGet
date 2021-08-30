@@ -12,7 +12,6 @@ set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/NcFile.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Logging.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/WindData.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Point.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OwiAscii.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OwiNetcdf.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/OwiAsciiDomain.cpp)

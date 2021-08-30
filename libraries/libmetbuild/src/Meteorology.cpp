@@ -92,8 +92,6 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
   const auto v2 = m_grib2->getGribArray1d("10v");
   const auto p2 = m_grib2->getGribArray1d("prmsl");
 
-  std::cout << "Time Weight: " << time_weight << std::endl;
-
   for (auto i = 0; i < m_windGrid->ni(); ++i) {
     for (auto j = 0; j < m_windGrid->nj(); ++j) {
 
