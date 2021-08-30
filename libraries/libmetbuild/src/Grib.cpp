@@ -51,6 +51,7 @@ codes_handle *Grib::make_handle(const std::string &filename,
   }
   fclose(f);
   metbuild_throw_exception("Could not generate the eccodes handle");
+  return nullptr;
 }
 
 void Grib::close_handle(codes_handle *handle) {
