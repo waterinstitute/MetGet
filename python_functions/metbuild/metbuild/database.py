@@ -72,16 +72,23 @@ class Database:
         return return_list
 
     def generate_hwrf_file_list(self, start, end, storm):
-        sql = "select t1.id,t1.stormname,t1.forecastcycle,t1.forecasttime,t1.filepath from hwrf " \
-              "t1 JOIN(select forecasttime, max(id) id FROM hwrf group by forecasttime order by forecasttime) t2 " \
-              "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecastcycle >= '" + start.strftime(
-              "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle <= '" + end.strftime(
-              "%Y-%m-%d %H:%M:%S") + "' AND t1.stormname = '"+storm+"';"
+
+       # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
+        sql_tmptable = "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from hwrf where stormname = '"+storm+"';"
+        sql_tmptable2 = "create temporary table tmptbl2 select * from tmptbl1;"
+        sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1 " \
+             " t1 JOIN(select forecasttime, max(id) id FROM tmptbl2 group by forecasttime order by forecasttime) t2 " \
+             "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
+             "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
+             "%Y-%m-%d %H:%M:%S") + "';"
+
+        self.cursor().execute(sql_tmptable)
+        self.cursor().execute(sql_tmptable2)
         self.cursor().execute(sql)
         rows = self.cursor().fetchall()
         return_list = []
         for f in rows:
-            return_list.append([f[3], f[4]])
+            return_list.append([f[2], f[3]])
         return return_list
 
     def get_file(self, db_path, service, time, dry_run=False):
