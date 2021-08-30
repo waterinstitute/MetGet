@@ -34,11 +34,11 @@ class Meteorology {
   }
   constexpr static size_t c_idw_depth = 6;
   struct InterpolationWeights {
-    std::vector<std::array<double, c_idw_depth>> weight;
-    std::vector<std::array<unsigned, c_idw_depth>> index;
-    void resize(size_t sz) {
-      weight.resize(sz);
-      index.resize(sz);
+    std::vector<std::vector<std::array<double, c_idw_depth>>> weight;
+    std::vector<std::vector<std::array<unsigned, c_idw_depth>>> index;
+    void resize(size_t ni, size_t nj) {
+      weight = std::vector<std::vector<std::array<double,c_idw_depth>>>(ni, std::vector<std::array<double,c_idw_depth>>(nj));
+      index = std::vector<std::vector<std::array<unsigned,c_idw_depth>>>(ni, std::vector<std::array<unsigned, c_idw_depth>>(nj)); 
     };
   };
 

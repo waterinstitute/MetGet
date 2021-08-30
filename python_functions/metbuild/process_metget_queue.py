@@ -111,13 +111,15 @@ def process_message(json_message, queue, json_file=None):
         index = 1
         met.set_next_file(domain_data[i][0]["filepath"])
         met.set_next_file(domain_data[i][1]["filepath"])
-        met.process_data()
         for t in datespan(start_date,end_date,datetime.timedelta(seconds=time_step)): 
+            print(t)
             if t > t1:
                 index += 1
                 t0 = t1
                 t1 = domain_data[i][index]["time"]
+                print(t0, t1, t, domain_data[i][index]["filepath"])
                 met.set_next_file(domain_data[i][index]["filepath"])
+                met.process_data()
             weight = met.generate_time_weight(Input.date_to_pmb(t0),
                     Input.date_to_pmb(t1),Input.date_to_pmb(t))
             values = met.to_wind_grid(weight)
@@ -137,12 +139,21 @@ def process_message(json_message, queue, json_file=None):
         with open(filelist_name,'w') as of:
             of.write(json.dumps(output_file_dict))
         s3.upload_file(filelist_name,filelist_path)
-
         logger.info("Finished processing message with id: "+json_message["MessageId"])
+
+    cleanup_temp_files(domain_data)
 
     instance.disable_termination_protection()
 
     return
+
+
+def cleanup_temp_files(data):
+    import os
+    for domain in data:
+        for f in domain:
+            os.remove(f["filepath"])
+
 
 def initialize_environment_variables():
     import os

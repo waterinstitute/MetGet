@@ -25,9 +25,9 @@ class OwiAscii {
             const WindData &data);
 
   int write(const MetBuild::Date &date, const size_t domain_index,
-            const std::vector<double> &pressure,
-            const std::vector<double> &wind_u,
-            const std::vector<double> &wind_v);
+            const std::vector<std::vector<double>> &pressure,
+            const std::vector<std::vector<double>> &wind_u,
+            const std::vector<std::vector<double>> &wind_v);
 
  private:
   const Date m_startdate;

@@ -60,9 +60,10 @@ void OwiAsciiDomain::close() {
   m_isOpen = false;
 }
 
-int OwiAsciiDomain::write(const Date &date, const std::vector<double> &pressure,
-                          const std::vector<double> &wind_u,
-                          const std::vector<double> &wind_v) {
+int OwiAsciiDomain::write(const Date &date, 
+                          const std::vector<std::vector<double>> &pressure,
+                          const std::vector<std::vector<double>> &wind_u,
+                          const std::vector<std::vector<double>> &wind_v) {
   if (!m_isOpen) {
     metbuild_throw_exception("OWI Domain not open");
   }
@@ -111,16 +112,18 @@ std::string OwiAsciiDomain::generateRecordHeader(const Date &date,
 }
 
 void OwiAsciiDomain::write_record(std::ofstream *stream,
-                                  const std::vector<double> &value) {
+                                  const std::vector<std::vector<double>> &value) const {
   const size_t num_records_per_line = 8;
   size_t n = 0;
-  for (const auto &v : value) {
-    *(stream) << boost::str(boost::format(" %9.4f") % v);
-    n++;
-    if (n == num_records_per_line) {
-      *(stream) << "\n";
-      n = 0;
+  for (size_t j=0; j< m_windGrid->nj(); ++j) {
+    for(size_t i=0; i< m_windGrid->ni(); ++i){	  
+      *(stream) << boost::str(boost::format(" %9.4f") % value[i][j]);
+      n++;
+      if (n == num_records_per_line) {
+        *(stream) << "\n";
+        n = 0;
+      }
     }
   }
-  *(stream) << "\n";
+  if(n!=num_records_per_line) *(stream) << "\n";
 }

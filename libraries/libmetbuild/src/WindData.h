@@ -12,24 +12,27 @@ namespace MetBuild {
 
 class WindData {
  public:
-  explicit WindData(size_t n);
+  explicit WindData(size_t ni, size_t nj);
 
   static constexpr double background_pressure() { return 1013.0; }
 
-  const std::vector<double> &u() const;
-  const std::vector<double> &v() const;
-  const std::vector<double> &p() const;
-  size_t size() const;
+  const std::vector<std::vector<double>> &u() const;
+  const std::vector<std::vector<double>> &v() const;
+  const std::vector<std::vector<double>> &p() const;
 
-  void setU(size_t index, double value);
-  void setV(size_t index, double value);
-  void setP(size_t index, double value);
+  size_t ni() const;
+  size_t nj() const;
+
+  void setU(size_t i, size_t j, double value);
+  void setV(size_t i, size_t j, double value);
+  void setP(size_t i, size_t j, double value);
 
  private:
-  size_t m_n;
-  std::vector<double> m_u;
-  std::vector<double> m_v;
-  std::vector<double> m_p;
+  size_t m_ni;
+  size_t m_nj;
+  std::vector<std::vector<double>> m_u;
+  std::vector<std::vector<double>> m_v;
+  std::vector<std::vector<double>> m_p;
 };
 
 }  // namespace MetBuild

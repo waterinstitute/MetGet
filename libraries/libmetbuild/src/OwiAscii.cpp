@@ -19,9 +19,9 @@ int MetBuild::OwiAscii::addDomain(const MetBuild::WindGrid& w,
 
 int MetBuild::OwiAscii::write(const MetBuild::Date& date,
                               const size_t domain_index,
-                              const std::vector<double>& pressure,
-                              const std::vector<double>& wind_u,
-                              const std::vector<double>& wind_v) {
+                              const std::vector<std::vector<double>>& pressure,
+                              const std::vector<std::vector<double>>& wind_u,
+                              const std::vector<std::vector<double>>& wind_v) {
   assert(domain_index < m_domains.size());
   return m_domains[domain_index]->write(date, pressure, wind_u, wind_v);
 }

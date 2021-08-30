@@ -7,28 +7,34 @@
 
 using namespace MetBuild;
 
-WindData::WindData(size_t n)
-    : m_n(n), m_u(n, 0.0), m_v(n, 0.0), m_p(n, background_pressure()) {}
+WindData::WindData(size_t ni, size_t nj)
+    : m_ni(ni), m_nj(nj), m_u(ni, std::vector<double>(nj, 0.0)), m_v(ni, std::vector<double>(nj, 0.0)),
+      m_p(ni, std::vector<double>(nj, background_pressure())) {}
 
-const std::vector<double>& WindData::u() const { return m_u; }
+const std::vector<std::vector<double>>& WindData::u() const { return m_u; }
 
-const std::vector<double>& WindData::v() const { return m_v; }
+const std::vector<std::vector<double>>& WindData::v() const { return m_v; }
 
-const std::vector<double>& WindData::p() const { return m_p; }
+const std::vector<std::vector<double>>& WindData::p() const { return m_p; }
 
-void WindData::setU(size_t index, double value){
-  assert(index < m_u.size());
-  m_u[index] = value;
+void WindData::setU(size_t i, size_t j, double value){
+  assert(i < m_ni);
+  assert(j < m_nj);
+  m_u[i][j] = value;
 }
 
-void WindData::setV(size_t index, double value){
-  assert(index < m_v.size());
-  m_v[index] = value;
+void WindData::setV(size_t i, size_t j, double value){
+  assert(i < m_ni);
+  assert(j < m_nj);
+  m_v[i][j] = value;
 }
 
-void WindData::setP(size_t index, double value){
-  assert(index < m_p.size());
-  m_p[index] = value;
+void WindData::setP(size_t i, size_t j, double value){
+  assert(i < m_ni);
+  assert(j < m_nj);
+  m_p[i][j] = value;
 }
 
-size_t WindData::size() const { return m_n; }
+size_t WindData::ni() const { return m_ni; }
+
+size_t WindData::nj() const { return m_nj; }

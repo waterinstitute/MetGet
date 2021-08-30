@@ -24,9 +24,10 @@ class OwiAsciiDomain {
 
   ~OwiAsciiDomain();
 
-  int write(const MetBuild::Date &date, const std::vector<double> &pressure,
-            const std::vector<double> &wind_u,
-            const std::vector<double> &wind_v);
+  int write(const MetBuild::Date &date, 
+            const std::vector<std::vector<double>> &pressure,
+            const std::vector<std::vector<double>> &wind_u,
+            const std::vector<std::vector<double>> &wind_v);
 
   void open();
 
@@ -38,8 +39,8 @@ class OwiAsciiDomain {
   static std::string generateHeaderLine(const Date &date1, const Date &date2);
   static std::string generateRecordHeader(const Date &date,
                                           const WindGrid *grid);
-  static void write_record(std::ofstream *stream,
-                           const std::vector<double> &value);
+  void write_record(std::ofstream *stream,
+                           const std::vector<std::vector<double>> &value) const;
 
   bool m_isOpen;
   const Date m_startDate;

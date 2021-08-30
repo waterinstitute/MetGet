@@ -142,17 +142,17 @@ void WindGrid::write(const std::string &filename) const {
   fout.close();
 }
 
-MetBuild::Point WindGrid::corner(const size_t index) const {
-  size_t j = index % nj();
-  size_t i = index / nj();
-  return this->corner(i, j);
-}
-
-MetBuild::Point WindGrid::center(const size_t index) const {
-  size_t j = index % nj();
-  size_t i = index / nj();
-  return this->center(i, j);
-}
+//MetBuild::Point WindGrid::corner(const size_t index) const {
+//  size_t j = index % nj();
+//  size_t i = index / nj();
+//  return this->corner(i, j);
+//}
+//
+//MetBuild::Point WindGrid::center(const size_t index) const {
+//  size_t j = index % nj();
+//  size_t i = index / nj();
+//  return this->center(i, j);
+//}
 
 bool WindGrid::point_inside(const MetBuild::Point &p) const {
   return this->m_geometry->is_inside(p);

@@ -56,6 +56,8 @@ class Grib {
   Point top_left() const { return m_corners[3]; }
   Point top_right() const { return m_corners[2]; }
 
+  void write_to_ascii(const std::string &filename, const std::string &varname);
+
  private:
   void initialize();
   void readCoordinates(codes_handle *handle);

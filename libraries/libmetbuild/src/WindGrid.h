@@ -46,8 +46,8 @@ class WindGrid {
   Point corner(size_t i, size_t j) const;
   Point center(size_t i, size_t j) const;
 
-  Point corner(size_t index) const;
-  Point center(size_t index) const;
+//  Point corner(size_t index) const;
+//  Point center(size_t index) const;
 
   bool point_inside(const MetBuild::Point &p) const;
 

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <utility>
+#include <fstream>
 
 #include "Geometry.h"
 #include "Logging.h"
@@ -178,3 +179,13 @@ void Grib::findCorners() {
                Point(xtl, ytl)};
   m_geometry = std::make_unique<Geometry>(m_corners);
 }
+
+
+void Grib::write_to_ascii(const std::string &filename, const std::string &varname){
+  auto values = this->getGribArray1d(varname);  
+  std::ofstream f(filename);
+  for(auto i=0; i < this->size(); ++i){
+    f << m_longitude[i] << ", " << m_latitude[i] << ", " << values[i] << "\n";
+  }
+  f.close();
+}	

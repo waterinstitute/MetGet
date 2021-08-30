@@ -68,20 +68,21 @@ int Meteorology::process_data() {
   m_grib2 = std::make_unique<Grib>(m_file2);
 
   if (m_grib1->latitude1d() == m_grib2->latitude1d() &&
-      m_grib1->longitude1d() == m_grib2->longitude1d()) {
-    m_interpolation_2 = m_interpolation_1;
+    m_grib1->longitude1d() == m_grib2->longitude1d()) {
+    m_interpolation_2 = std::make_shared<InterpolationWeights>(*m_interpolation_1);
   } else {
     m_interpolation_2 = std::make_shared<InterpolationWeights>(
-        Meteorology::generate_interpolation_weight(m_grib2.get(), m_windGrid));
+      Meteorology::generate_interpolation_weight(m_grib2.get(), m_windGrid));
   }
 
   return MB_NOERROR;
 }
 
-#include <iostream>
 MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
-  const size_t interp_size = m_windGrid->ni() * m_windGrid->nj();
-  WindData w(interp_size);
+
+  this->process_data();
+  
+  WindData w(m_windGrid->ni(), m_windGrid->nj());
 
   const auto u1 = m_grib1->getGribArray1d("10u");
   const auto v1 = m_grib1->getGribArray1d("10v");
@@ -91,32 +92,63 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
   const auto v2 = m_grib2->getGribArray1d("10v");
   const auto p2 = m_grib2->getGribArray1d("prmsl");
 
-  for (auto i = 0; i < interp_size; ++i) {
-    double u_star = 0.0;
-    double v_star = 0.0;
-    double p_star = 0.0;
+  std::cout << "Time Weight: " << time_weight << std::endl;
 
-    if (m_interpolation_1->index[i][0] == 0 &&
-        m_interpolation_2->index[i][0] == 0 &&
-        m_interpolation_1->weight[i][0] == 0.0 &&
-        m_interpolation_2->weight[i][0] == 0.0) {
-      w.setU(i, 0.0);
-      w.setV(i, 0.0);
-      w.setP(i, WindData::background_pressure());
-    } else {
-      for (auto j = 0; j < c_idw_depth; ++j) {
-        const auto idx1 = m_interpolation_1->index[i][j];
-        const auto idx2 = m_interpolation_2->index[i][j];
-        const auto w1 =
-            (1.0 - time_weight) * m_interpolation_1->weight[i].at(j);
-        const auto w2 = time_weight * m_interpolation_2->weight[i].at(j);
-        u_star += w1 * u1[idx1] + w2 * u2[idx2];
-        v_star += w1 * v1[idx1] + w2 * v2[idx2];
-        p_star += w1 * p1[idx1] + w2 * p2[idx2];
+  for (auto i = 0; i < m_windGrid->ni(); ++i) {
+    for (auto j = 0; j < m_windGrid->nj(); ++j) {
+
+      if (m_interpolation_1->index[i][j][0] == 0 ||
+          m_interpolation_2->index[i][j][0] == 0 ||
+          m_interpolation_1->weight[i][j][0] == 0.0 ||
+          m_interpolation_2->weight[i][j][0] == 0.0) {
+        w.setU(i, j, 0.0);
+        w.setV(i, j, 0.0);
+        w.setP(i, j, WindData::background_pressure());
+      } else {
+        double u_star = 0.0;
+        double v_star = 0.0;
+        double p_star = 0.0;
+        double u_star1 = 0.0;
+        double v_star1 = 0.0;
+        double p_star1 = 0.0;
+        double u_star2 = 0.0;
+        double v_star2 = 0.0;
+        double p_star2 = 0.0;
+        double w1_sum = 0.0;
+        double w2_sum = 0.0;
+        for (auto k = 0; k < c_idw_depth; ++k) {
+          const auto idx1 = m_interpolation_1->index[i][j][k];
+          const auto idx2 = m_interpolation_2->index[i][j][k];
+          const auto w1 = m_interpolation_1->weight[i][j][k];
+          const auto w2 = m_interpolation_2->weight[i][j][k];
+          u_star1 += w1 * u1[idx1];
+          u_star2 += w2 * u2[idx2];
+          v_star1 += w1 * v1[idx1];
+          v_star2 += w2 * v2[idx2];
+          p_star1 += w1 * p1[idx1];
+          p_star2 += w2 * p2[idx2];
+          w1_sum += w1;
+          w2_sum += w2;
+        }
+
+        if(w1_sum == 0.0 && w2_sum == 0.0){
+          w.setU(i, j, 0.0);
+          w.setV(i, j, 0.0);
+          w.setP(i, j, WindData::background_pressure()); 
+        } else if (w1_sum == 0.0 && w2_sum != 0.0){
+          w.setU(i, j, u_star2 * ( 1.0 / w2_sum ));
+          w.setV(i, j, v_star2 * ( 1.0 / w2_sum ));
+          w.setP(i, j, p_star2 * ( 1.0 / w2_sum ) / 100.0);  // .. Convert to mb
+        } else if (w1_sum != 0.0 && w2_sum == 0.0){
+          w.setU(i, j, u_star1 * ( 1.0 / w1_sum ) );
+          w.setV(i, j, v_star1 * ( 1.0 / w1_sum ));
+          w.setP(i, j, p_star1 * ( 1.0 / w2_sum ) / 100.0);  // .. Convert to mb
+        } else {
+          w.setU(i, j, (1.0 - time_weight) * u_star1 + time_weight * u_star2 );
+          w.setV(i, j, (1.0 - time_weight) * v_star1 + time_weight * v_star2 );
+          w.setP(i, j, ((1.0 - time_weight) * p_star1 + time_weight * p_star2) / 100.0); // .. Convert to mb
+        }
       }
-      w.setU(i, u_star);
-      w.setV(i, v_star);
-      w.setP(i, p_star / 100.0);  // .. Convert to mb
     }
   }
   return w;
@@ -127,40 +159,38 @@ Meteorology::InterpolationWeights Meteorology::generate_interpolation_weight(
   const auto &g = wind_grid->grid_positions();
 
   InterpolationWeights weights;
-  weights.resize(wind_grid->ni() * wind_grid->nj());
+  weights.resize(wind_grid->ni(), wind_grid->nj());
 
-  size_t count = 0;
   for (auto i = 0; i < wind_grid->ni(); ++i) {
     for (auto j = 0; j < wind_grid->nj(); ++j) {
       const auto p = wind_grid->corner(i, j);
 
       if (!grib->point_inside(p)) {
-        std::fill(weights.index[count].begin(), weights.index[count].end(), 0);
-        std::fill(weights.weight[count].begin(), weights.weight[count].end(),
+        std::fill(weights.index[i][j].begin(), weights.index[i][j].end(), 0);
+        std::fill(weights.weight[i][j].begin(), weights.weight[i][j].end(),
                   0.0);
       } else {
         const auto result =
             grib->kdtree()->findXNearest(p.x(), p.y(), c_idw_depth);
 
         if (result[0].second < Meteorology::epsilon_squared()) {
-          std::fill(weights.index[count].begin(), weights.index[count].end(),
+          std::fill(weights.index[i][j].begin(), weights.index[i][j].end(),
                     result[0].first);
-          std::fill(weights.weight[count].begin() + 1,
-                    weights.weight[count].end(), 0.0);
-          weights.weight[count][0] = 1.0;
+          std::fill(weights.weight[i][j].begin() + 1,
+                    weights.weight[i][j].end(), 0.0);
+          weights.weight[i][j][0] = 1.0;
         } else {
           double w_total = 0.0;
           for (auto k = 0; k < c_idw_depth; ++k) {
-            weights.weight[count][k] = 1.0 / result[k].second;
+            weights.weight[i][j][k] = 1.0 / result[k].second;
             w_total += 1.0 / result[k].second;
-            weights.index[count][k] = result[k].first;
+            weights.index[i][j][k] = result[k].first;
           }
-          for (auto &w : weights.weight[count]) {
+          for (auto &w : weights.weight[i][j]) {
             w = w / w_total;
           }
         }
       }
-      count++;
     }
   }
   return weights;
