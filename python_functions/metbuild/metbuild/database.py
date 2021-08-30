@@ -32,6 +32,7 @@ class Database:
         return self.__bucket
 
     def generate_file_list(self, service, start, end, storm, nowcast, multiple_forecasts):
+        import sys
         if service == "gfs-ncep":
             return self.generate_generic_file_list("gfs_ncep", start, end, nowcast, multiple_forecasts)
         elif service == "nam-ncep":
