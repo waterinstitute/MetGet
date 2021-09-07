@@ -15,6 +15,7 @@ class WindData {
   explicit WindData(size_t ni, size_t nj);
 
   static constexpr double background_pressure() { return 1013.0; }
+  static constexpr double flag_value() { return -999.0; }
 
   const std::vector<std::vector<double>> &u() const;
   const std::vector<std::vector<double>> &v() const;

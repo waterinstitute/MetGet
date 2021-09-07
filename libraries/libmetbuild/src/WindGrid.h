@@ -53,7 +53,7 @@ class WindGrid {
 
   Point corner(const size_t i, const size_t j) const {
     assert(i < ni() && j < nj());
-    return i < ni() && j < nj() ? Point(m_grid[i][j].x(), m_grid[i][j].y()) : Point(0.0, 0.0);
+    return {m_grid[i][j].x(), m_grid[i][j].y()};
   }
 
   bool point_inside(const MetBuild::Point &p) const;

@@ -58,49 +58,49 @@ class WindGrid:
         nx = None
         ny = None
         if self.__json:
-            if "x_init" in self.__json:
+            if "x_init" in self.__json.keys():
                 xinit = self.__json["x_init"]
-            if "y_init" in self.__json:
+            if "y_init" in self.__json.keys():
                 yinit = self.__json["y_init"]
-            if "x_end" in self.__json:
+            if "x_end" in self.__json.keys():
                 xend = self.__json["x_end"]
-            if "y_end" in self.__json:
+            if "y_end" in self.__json.keys():
                 yend = self.__json["y_end"]
-            if "rotation" in self.__json:
+            if "rotation" in self.__json.keys():
                 rotation = self.__json["rotation"]
-            if "di" in self.__json:
+            if "di" in self.__json.keys():
                 dx = self.__json["di"]
-            if "dj" in self.__json:
+            if "dj" in self.__json.keys():
                 dy = self.__json["dj"]
-            if "ni" in self.__json:
+            if "ni" in self.__json.keys():
                 nx = self.__json["ni"]
-            if "nj" in self.__json:
+            if "nj" in self.__json.keys():
                 ny = self.__json["nj"]
-            if "predefined_domain" in self.__json:
+            if "predefined_domain" in self.__json.keys():
                 xinit, yinit, xend, yend, dx, dy = self.predefined_domain(
                     self.__json["predefined_domain"])
 
-        if not xinit or not yinit:
+        if xinit is None or yinit is None:
             raise RuntimeError("Lower left corner not specified")
-        if (not xend or not yend) and (not nx or not ny):
+        if (xend is None or yend is None) and (nx is None or ny is None):
             raise RuntimeError("Must specify xur/yur or nx/ny")
-        if (xend or yend) and (nx or ny):
+        if (xend is not None or yend is not None) and (nx is not None or ny is not None):
             raise RuntimeError("Cannot specify both xur/yur and nx/ny")
-        if (xend and not yend) or (yend and not xend):
+        if (xend is not None and yend is None) or (yend is not None and xend is None):
             raise RuntimeError("Must specify both of xur/yur")
-        if (nx and not ny) or (ny and not nx):
+        if (nx is not None and ny is not None) or (ny is not None and nx is None):
             raise RuntimeError("Must specify both of nx/ny")
-        if rotation and (xend or yend):
+        if rotation is not None and (xend is not None or yend is not None):
             raise RuntimeError("Cannot specify rotation with xur/yur")
-        if rotation and not (nx and ny):
+        if rotation is not None and not (nx is not None and ny is not None):
             raise RuntimeError("Must specify nx/ny with rotation")
-        if not dx or not dy:
+        if dx is None or dy is None:
             raise RuntimeError("Must specify dx/dy")
 
-        if xinit and yinit and xend and yend:
+        if xinit is not None and yinit is not None and xend is not None and yend is not None:
             self.__wg = pymetbuild.WindGrid(xinit,yinit,xend,yend,dx,dy)
-        elif self.xinit() and self.yinit() and self.nx() and self.ny():
-            if not rotation:
+        elif xinit is not None and yinit is not None  and nx is not None and ny is not None:
+            if rotation is not None:
                 rotation = 0.0
             self.__wg = pymetbuild.WindGrid(xinit,yinit,nx,ny,dx,dy,rotation)
 

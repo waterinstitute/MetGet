@@ -73,6 +73,7 @@ class Input:
         import sys
         import dateutil.parser
         from metbuild.domain import Domain
+        from metbuild.cloudwatch import CloudWatch
         try:
             self.__version = self.__json["version"]
             self.__operator = self.__json["creator"]

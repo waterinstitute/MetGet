@@ -36,6 +36,7 @@ class OwiAsciiDomain {
  private:
   void write_header();
 
+  static std::string formatHeaderCoordinates(double value);
   static std::string generateHeaderLine(const Date &date1, const Date &date2);
   static std::string generateRecordHeader(const Date &date,
                                           const WindGrid *grid);

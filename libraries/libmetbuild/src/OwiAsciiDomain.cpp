@@ -101,23 +101,35 @@ std::string OwiAsciiDomain::generateHeaderLine(const Date &date1,
       date2.month() % date2.day() % date2.hour());
 }
 
+std::string OwiAsciiDomain::formatHeaderCoordinates(const double value) {
+    if(value <= -100.0){
+        return boost::str(boost::format("%8.3f")%value);
+    } else if(value < 0.0 || value >= 100.0){
+        return boost::str(boost::format("%8.4f")%value);
+    } else {
+        return boost::str(boost::format("%8.5f")%value);
+    }
+}    
+
 std::string OwiAsciiDomain::generateRecordHeader(const Date &date,
                                                  const WindGrid *grid) {
+  auto lonstring = formatHeaderCoordinates(grid->bottom_left().x());
+  auto latstring = formatHeaderCoordinates(grid->bottom_left().y());
   return boost::str(
-      boost::format("iLat=%4diLong=%4dDX=%6.4fDY=%6.4fSWLat=%8.5fSWLon=%8.4fDT="
+      boost::format("iLat=%4diLong=%4dDX=%6.4fDY=%6.4fSWLat=%8sSWLon=%8sDT="
                     "%4.4i%02i%02i%02i%02i\n") %
       grid->nj() % grid->ni() % grid->dy() % grid->dx() %
-      grid->bottom_left().y() % grid->bottom_left().x() % date.year() %
-      date.month() % date.day() % date.hour() % date.minute());
+      latstring % lonstring % date.year() % date.month() % 
+      date.day() % date.hour() % date.minute());
 }
 
 void OwiAsciiDomain::write_record(std::ofstream *stream,
                                   const std::vector<std::vector<double>> &value) const {
-  const size_t num_records_per_line = 8;
+  constexpr size_t num_records_per_line = 8;
   size_t n = 0;
   for (size_t j=0; j< m_windGrid->nj(); ++j) {
     for(size_t i=0; i< m_windGrid->ni(); ++i){	  
-      *(stream) << boost::str(boost::format(" %9.4f") % value[i][j]);
+      *(stream) << boost::str(boost::format("%10.4f") % value[j][i]);
       n++;
       if (n == num_records_per_line) {
         *(stream) << "\n";

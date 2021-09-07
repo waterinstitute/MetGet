@@ -32,13 +32,15 @@ class Meteorology {
     return std::numeric_limits<double>::epsilon() *
            std::numeric_limits<double>::epsilon();
   }
+
   constexpr static size_t c_idw_depth = 6;
+
   struct InterpolationWeights {
     std::vector<std::vector<std::array<double, c_idw_depth>>> weight;
     std::vector<std::vector<std::array<unsigned, c_idw_depth>>> index;
     void resize(size_t ni, size_t nj) {
-      weight = std::vector<std::vector<std::array<double,c_idw_depth>>>(ni, std::vector<std::array<double,c_idw_depth>>(nj));
-      index = std::vector<std::vector<std::array<unsigned,c_idw_depth>>>(ni, std::vector<std::array<unsigned, c_idw_depth>>(nj)); 
+      weight = std::vector<std::vector<std::array<double,c_idw_depth>>>(nj, std::vector<std::array<double,c_idw_depth>>(ni));
+      index = std::vector<std::vector<std::array<unsigned,c_idw_depth>>>(nj, std::vector<std::array<unsigned, c_idw_depth>>(ni)); 
     };
   };
 
@@ -52,6 +54,7 @@ class Meteorology {
   std::string m_file2;
   std::shared_ptr<InterpolationWeights> m_interpolation_1;
   std::shared_ptr<InterpolationWeights> m_interpolation_2;
+  bool m_useBackgroundFlag;
 };
 }  // namespace MetBuild
 #endif  // METBUILD_METEOROLOGY_H
