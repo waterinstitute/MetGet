@@ -81,9 +81,19 @@ int Meteorology::process_data() {
 
 MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
 
+  WindData w(m_windGrid->ni(), m_windGrid->nj());
+  
+  if(time_weight < 0.0){
+    if(this->m_useBackgroundFlag){
+       w.fill(WindData::flag_value());
+    } else {
+       w.fill(0.0,0.0,WindData::background_pressure());
+    }
+    return w;
+  }
+
   this->process_data();
   
-  WindData w(m_windGrid->ni(), m_windGrid->nj());
 
   const auto u1 = m_grib1->getGribArray1d("10u");
   const auto v1 = m_grib1->getGribArray1d("10v");

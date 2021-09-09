@@ -83,11 +83,10 @@ WindGrid::WindGrid(const WindGrid &w)
       m_geometry(std::make_unique<Geometry>(m_corners)) {}
 
 void WindGrid::generateGrid() {
-  m_grid.resize(ni());
-  for (size_t i = 0; i < ni(); ++i) {
-    m_grid[i].resize(nj());
-    for (size_t j = 0; j < nj(); ++j) {
-      m_grid[i][j] = {bottom_left().x() + i * m_dxx - j * m_dyx,
+  m_grid = std::vector<std::vector<Point>>(nj(), std::vector<Point>(ni()));
+  for (size_t j = 0; j < nj(); ++j) {
+    for (size_t i = 0; i < ni(); ++i) {
+      m_grid[j][i] = {bottom_left().x() + i * m_dxx - j * m_dyx,
                       bottom_left().y() + j * m_dyy + i * m_dyx};
     }
   }

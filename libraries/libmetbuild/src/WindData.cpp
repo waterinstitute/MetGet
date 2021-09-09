@@ -34,3 +34,15 @@ void WindData::setP(size_t i, size_t j, double value){
   assert(j < m_nj);
   m_p[j][i] = value;
 }
+
+void WindData::fill(double value){
+  this->fill(value, value, value);
+}
+
+void WindData::fill(double u, double v, double p){
+  for(auto j = 0; j < m_nj; ++j){
+    std::fill(m_u[j].begin(),m_u[j].end(),u);
+    std::fill(m_v[j].begin(),m_v[j].end(),v);
+    std::fill(m_p[j].begin(),m_p[j].end(),p);
+  }
+}

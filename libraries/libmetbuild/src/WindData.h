@@ -24,6 +24,9 @@ class WindData {
   constexpr size_t ni() const { return m_ni; }
   constexpr size_t nj() const { return m_nj; }
 
+  void fill(double u, double v, double p);
+  void fill(double value);
+
   void setU(size_t i, size_t j, double value);
   void setV(size_t i, size_t j, double value);
   void setP(size_t i, size_t j, double value);

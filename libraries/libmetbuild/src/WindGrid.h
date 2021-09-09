@@ -47,13 +47,13 @@ class WindGrid {
   Point center(const size_t i, const size_t j) const {
     assert(i < ni() - 1 && j < nj() - 1);
     if (i > ni() - 1 || j > nj() + 1) return {0, 0};
-    return {(m_grid[i][j].x() + m_grid[i + i][j + 1].x()) / 2.0,
-            (m_grid[i][j].y() + m_grid[i + 1][j + 1].y()) / 2.0};
+    return {(m_grid[j][i].x() + m_grid[j + 1][i + 1].x()) / 2.0,
+            (m_grid[j][i].y() + m_grid[j + 1][i + 1].y()) / 2.0};
   }
 
   Point corner(const size_t i, const size_t j) const {
     assert(i < ni() && j < nj());
-    return {m_grid[i][j].x(), m_grid[i][j].y()};
+    return {m_grid[j][i].x(), m_grid[j][i].y()};
   }
 
   bool point_inside(const MetBuild::Point &p) const;

@@ -55,9 +55,10 @@ codes_handle *Grib::make_handle(const std::string &filename,
 }
 
 void Grib::close_handle(codes_handle *handle) {
-  if (handle) {
-    codes_handle_delete(handle);
-  }
+  auto err = codes_handle_delete(handle);
+  if(err != GRIB_SUCCESS){
+    metbuild_throw_exception("Could not delete the codes_handle object");
+  } 
 }
 
 void Grib::initialize() {
