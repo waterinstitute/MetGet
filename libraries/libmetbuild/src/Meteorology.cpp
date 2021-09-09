@@ -1,4 +1,28 @@
-
+// MIT License
+//
+// Copyright (c) 2020 ADCIRC Development Group
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+// Author: Zach Cobell
+// Contact: zcobell@thewaterinstitute.org
+//
 #include "Meteorology.h"
 
 #include <algorithm>
@@ -69,31 +93,30 @@ int Meteorology::process_data() {
   m_grib2 = std::make_unique<Grib>(m_file2);
 
   if (m_grib1->latitude1d() == m_grib2->latitude1d() &&
-    m_grib1->longitude1d() == m_grib2->longitude1d()) {
-    m_interpolation_2 = std::make_shared<InterpolationWeights>(*m_interpolation_1);
+      m_grib1->longitude1d() == m_grib2->longitude1d()) {
+    m_interpolation_2 =
+        std::make_shared<InterpolationWeights>(*m_interpolation_1);
   } else {
     m_interpolation_2 = std::make_shared<InterpolationWeights>(
-      Meteorology::generate_interpolation_weight(m_grib2.get(), m_windGrid));
+        Meteorology::generate_interpolation_weight(m_grib2.get(), m_windGrid));
   }
 
   return MB_NOERROR;
 }
 
 MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
-
   WindData w(m_windGrid->ni(), m_windGrid->nj());
-  
-  if(time_weight < 0.0){
-    if(this->m_useBackgroundFlag){
-       w.fill(WindData::flag_value());
+
+  if (time_weight < 0.0) {
+    if (this->m_useBackgroundFlag) {
+      w.fill(WindData::flag_value());
     } else {
-       w.fill(0.0,0.0,WindData::background_pressure());
+      w.fill(0.0, 0.0, WindData::background_pressure());
     }
     return w;
   }
 
   this->process_data();
-  
 
   const auto u1 = m_grib1->getGribArray1d("10u");
   const auto v1 = m_grib1->getGribArray1d("10v");
@@ -105,20 +128,19 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
 
   for (auto j = 0; j < m_windGrid->nj(); ++j) {
     for (auto i = 0; i < m_windGrid->ni(); ++i) {
-
       if (m_interpolation_1->index[j][i][0] == 0 ||
           m_interpolation_2->index[j][i][0] == 0 ||
           m_interpolation_1->weight[j][i][0] == 0.0 ||
           m_interpolation_2->weight[j][i][0] == 0.0) {
-        if ( this->m_useBackgroundFlag ) {
-            w.setU(i, j, WindData::flag_value());
-            w.setV(i, j, WindData::flag_value());
-            w.setP(i, j, WindData::flag_value());
+        if (this->m_useBackgroundFlag) {
+          w.setU(i, j, WindData::flag_value());
+          w.setV(i, j, WindData::flag_value());
+          w.setP(i, j, WindData::flag_value());
         } else {
-            w.setU(i, j, 0.0);
-            w.setV(i, j, 0.0);
-            w.setP(i, j, WindData::background_pressure());
-	}
+          w.setU(i, j, 0.0);
+          w.setV(i, j, 0.0);
+          w.setP(i, j, WindData::background_pressure());
+        }
       } else {
         double u_star = 0.0;
         double v_star = 0.0;
@@ -146,22 +168,24 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
           w2_sum += w2;
         }
 
-        if(w1_sum == 0.0 && w2_sum == 0.0){
+        if (w1_sum == 0.0 && w2_sum == 0.0) {
           w.setU(i, j, 0.0);
           w.setV(i, j, 0.0);
-          w.setP(i, j, WindData::background_pressure()); 
-        } else if (w1_sum == 0.0 && w2_sum != 0.0){
-          w.setU(i, j, u_star2 * ( 1.0 / w2_sum ));
-          w.setV(i, j, v_star2 * ( 1.0 / w2_sum ));
-          w.setP(i, j, p_star2 * ( 1.0 / w2_sum ) / 100.0);  // .. Convert to mb
-        } else if (w1_sum != 0.0 && w2_sum == 0.0){
-          w.setU(i, j, u_star1 * ( 1.0 / w1_sum ) );
-          w.setV(i, j, v_star1 * ( 1.0 / w1_sum ));
-          w.setP(i, j, p_star1 * ( 1.0 / w2_sum ) / 100.0);  // .. Convert to mb
+          w.setP(i, j, WindData::background_pressure());
+        } else if (w1_sum == 0.0 && w2_sum != 0.0) {
+          w.setU(i, j, u_star2 * (1.0 / w2_sum));
+          w.setV(i, j, v_star2 * (1.0 / w2_sum));
+          w.setP(i, j, p_star2 * (1.0 / w2_sum) / 100.0);  // .. Convert to mb
+        } else if (w1_sum != 0.0 && w2_sum == 0.0) {
+          w.setU(i, j, u_star1 * (1.0 / w1_sum));
+          w.setV(i, j, v_star1 * (1.0 / w1_sum));
+          w.setP(i, j, p_star1 * (1.0 / w2_sum) / 100.0);  // .. Convert to mb
         } else {
-          w.setU(i, j, (1.0 - time_weight) * u_star1 + time_weight * u_star2 );
-          w.setV(i, j, (1.0 - time_weight) * v_star1 + time_weight * v_star2 );
-          w.setP(i, j, ((1.0 - time_weight) * p_star1 + time_weight * p_star2) / 100.0); // .. Convert to mb
+          w.setU(i, j, (1.0 - time_weight) * u_star1 + time_weight * u_star2);
+          w.setV(i, j, (1.0 - time_weight) * v_star1 + time_weight * v_star2);
+          w.setP(i, j,
+                 ((1.0 - time_weight) * p_star1 + time_weight * p_star2) /
+                     100.0);  // .. Convert to mb
         }
       }
     }

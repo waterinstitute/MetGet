@@ -1,7 +1,28 @@
+// MIT License
 //
-// Created by Zach Cobell on 1/23/21.
+// Copyright (c) 2020 ADCIRC Development Group
 //
-
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+// Author: Zach Cobell
+// Contact: zcobell@thewaterinstitute.org
+//
 #include "OwiAsciiDomain.h"
 
 #include <cassert>
@@ -60,7 +81,7 @@ void OwiAsciiDomain::close() {
   m_isOpen = false;
 }
 
-int OwiAsciiDomain::write(const Date &date, 
+int OwiAsciiDomain::write(const Date &date,
                           const std::vector<std::vector<double>> &pressure,
                           const std::vector<std::vector<double>> &wind_u,
                           const std::vector<std::vector<double>> &wind_v) {
@@ -102,14 +123,14 @@ std::string OwiAsciiDomain::generateHeaderLine(const Date &date1,
 }
 
 std::string OwiAsciiDomain::formatHeaderCoordinates(const double value) {
-    if(value <= -100.0){
-        return boost::str(boost::format("%8.3f")%value);
-    } else if(value < 0.0 || value >= 100.0){
-        return boost::str(boost::format("%8.4f")%value);
-    } else {
-        return boost::str(boost::format("%8.5f")%value);
-    }
-}    
+  if (value <= -100.0) {
+    return boost::str(boost::format("%8.3f") % value);
+  } else if (value < 0.0 || value >= 100.0) {
+    return boost::str(boost::format("%8.4f") % value);
+  } else {
+    return boost::str(boost::format("%8.5f") % value);
+  }
+}
 
 std::string OwiAsciiDomain::generateRecordHeader(const Date &date,
                                                  const WindGrid *grid) {
@@ -118,17 +139,18 @@ std::string OwiAsciiDomain::generateRecordHeader(const Date &date,
   return boost::str(
       boost::format("iLat=%4diLong=%4dDX=%6.4fDY=%6.4fSWLat=%8sSWLon=%8sDT="
                     "%4.4i%02i%02i%02i%02i\n") %
-      grid->nj() % grid->ni() % grid->dy() % grid->dx() %
-      latstring % lonstring % date.year() % date.month() % 
-      date.day() % date.hour() % date.minute());
+      grid->nj() % grid->ni() % grid->dy() % grid->dx() % latstring %
+      lonstring % date.year() % date.month() % date.day() % date.hour() %
+      date.minute());
 }
 
-void OwiAsciiDomain::write_record(std::ofstream *stream,
-                                  const std::vector<std::vector<double>> &value) const {
+void OwiAsciiDomain::write_record(
+    std::ofstream *stream,
+    const std::vector<std::vector<double>> &value) const {
   constexpr size_t num_records_per_line = 8;
   size_t n = 0;
-  for (size_t j=0; j< m_windGrid->nj(); ++j) {
-    for(size_t i=0; i< m_windGrid->ni(); ++i){	  
+  for (size_t j = 0; j < m_windGrid->nj(); ++j) {
+    for (size_t i = 0; i < m_windGrid->ni(); ++i) {
       *(stream) << boost::str(boost::format("%10.4f") % value[j][i]);
       n++;
       if (n == num_records_per_line) {
@@ -137,5 +159,5 @@ void OwiAsciiDomain::write_record(std::ofstream *stream,
       }
     }
   }
-  if(n!=num_records_per_line) *(stream) << "\n";
+  if (n != num_records_per_line) *(stream) << "\n";
 }

@@ -1,3 +1,28 @@
+// MIT License
+//
+// Copyright (c) 2020 ADCIRC Development Group
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+// Author: Zach Cobell
+// Contact: zcobell@thewaterinstitute.org
+//
 #define CATCH_CONFIG_MAIN
 
 #include "MetBuild.h"
@@ -52,9 +77,10 @@ TEST_CASE("Simple read", "[Simple read]") {
 
   owi.write(date_start, 0, v.p(), v.u(), v.v());
 
-  auto weight = MetBuild::Meteorology::generate_time_weight(date_start, date_end, date_start+time_step);
+  auto weight = MetBuild::Meteorology::generate_time_weight(
+      date_start, date_end, date_start + time_step);
   v = m.to_wind_grid(weight);
-  owi.write(date_start+time_step,0, v.p(), v.u(), v.v()); 
+  owi.write(date_start + time_step, 0, v.p(), v.u(), v.v());
 
   REQUIRE(0 == 0);
 }

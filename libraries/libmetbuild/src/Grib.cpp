@@ -1,10 +1,35 @@
+// MIT License
+//
+// Copyright (c) 2020 ADCIRC Development Group
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+// Author: Zach Cobell
+// Contact: zcobell@thewaterinstitute.org
+//
 #include "Grib.h"
 
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <utility>
-#include <fstream>
 
 #include "Geometry.h"
 #include "Logging.h"
@@ -56,9 +81,9 @@ codes_handle *Grib::make_handle(const std::string &filename,
 
 void Grib::close_handle(codes_handle *handle) {
   auto err = codes_handle_delete(handle);
-  if(err != GRIB_SUCCESS){
+  if (err != GRIB_SUCCESS) {
     metbuild_throw_exception("Could not delete the codes_handle object");
-  } 
+  }
 }
 
 void Grib::initialize() {
@@ -168,12 +193,12 @@ void Grib::findCorners() {
   m_geometry = std::make_unique<Geometry>(m_corners);
 }
 
-
-void Grib::write_to_ascii(const std::string &filename, const std::string &varname){
-  auto values = this->getGribArray1d(varname);  
+void Grib::write_to_ascii(const std::string &filename,
+                          const std::string &varname) {
+  auto values = this->getGribArray1d(varname);
   std::ofstream f(filename);
-  for(auto i=0; i < this->size(); ++i){
+  for (auto i = 0; i < this->size(); ++i) {
     f << m_longitude[i] << ", " << m_latitude[i] << ", " << values[i] << "\n";
   }
   f.close();
-}	
+}
