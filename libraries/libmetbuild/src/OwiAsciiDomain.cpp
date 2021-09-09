@@ -38,15 +38,15 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::WindGrid *grid,
                                const unsigned int time_step,
                                std::string pressureFile, std::string windFile)
     : m_isOpen(false),
-      m_windGrid(grid),
       m_startDate(startDate),
       m_endDate(endDate),
       m_previousDate(startDate - time_step),
       m_timestep(time_step),
-      m_pressureFile(std::move(pressureFile)),
-      m_windFile(std::move(windFile)),
       m_ofstream_pressure(std::make_unique<std::ofstream>(pressureFile)),
-      m_ofstream_wind(std::make_unique<std::ofstream>(windFile)) {
+      m_ofstream_wind(std::make_unique<std::ofstream>(windFile)),
+      m_windGrid(grid),
+      m_pressureFile(std::move(pressureFile)),
+      m_windFile(std::move(windFile)) {
   assert(startDate < endDate);
   this->open();
 }

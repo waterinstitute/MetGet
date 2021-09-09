@@ -36,16 +36,15 @@
 #include "Grib.h"
 #include "Logging.h"
 #include "MetBuild_Status.h"
-#include "mettypes.h"
 
 using namespace MetBuild;
 
 Meteorology::Meteorology(const WindGrid *windGrid)
     : m_windGrid(windGrid),
-      m_file1(std::string()),
-      m_file2(std::string()),
       m_grib1(nullptr),
       m_grib2(nullptr),
+      m_file1(std::string()),
+      m_file2(std::string()),
       m_interpolation_1(nullptr),
       m_interpolation_2(nullptr),
       m_useBackgroundFlag(true) {}
@@ -126,8 +125,8 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
   const auto v2 = m_grib2->getGribArray1d("10v");
   const auto p2 = m_grib2->getGribArray1d("prmsl");
 
-  for (auto j = 0; j < m_windGrid->nj(); ++j) {
-    for (auto i = 0; i < m_windGrid->ni(); ++i) {
+  for (size_t j = 0; j < m_windGrid->nj(); ++j) {
+    for (size_t i = 0; i < m_windGrid->ni(); ++i) {
       if (m_interpolation_1->index[j][i][0] == 0 ||
           m_interpolation_2->index[j][i][0] == 0 ||
           m_interpolation_1->weight[j][i][0] == 0.0 ||
@@ -142,9 +141,6 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
           w.setP(i, j, WindData::background_pressure());
         }
       } else {
-        double u_star = 0.0;
-        double v_star = 0.0;
-        double p_star = 0.0;
         double u_star1 = 0.0;
         double v_star1 = 0.0;
         double p_star1 = 0.0;
@@ -153,7 +149,7 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
         double p_star2 = 0.0;
         double w1_sum = 0.0;
         double w2_sum = 0.0;
-        for (auto k = 0; k < c_idw_depth; ++k) {
+        for (size_t k = 0; k < c_idw_depth; ++k) {
           auto idx1 = m_interpolation_1->index[j][i][k];
           auto idx2 = m_interpolation_2->index[j][i][k];
           auto w1 = m_interpolation_1->weight[j][i][k];
@@ -195,13 +191,12 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
 
 Meteorology::InterpolationWeights Meteorology::generate_interpolation_weight(
     const MetBuild::Grib *grib, const MetBuild::WindGrid *wind_grid) {
-  const auto &g = wind_grid->grid_positions();
 
   InterpolationWeights weights;
   weights.resize(wind_grid->ni(), wind_grid->nj());
 
-  for (auto j = 0; j < wind_grid->nj(); ++j) {
-    for (auto i = 0; i < wind_grid->ni(); ++i) {
+  for (size_t j = 0; j < wind_grid->nj(); ++j) {
+    for (size_t i = 0; i < wind_grid->ni(); ++i) {
       const auto p = wind_grid->corner(i, j);
 
       if (!grib->point_inside(p)) {
@@ -220,7 +215,7 @@ Meteorology::InterpolationWeights Meteorology::generate_interpolation_weight(
           weights.weight[j][i][0] = 1.0;
         } else {
           double w_total = 0.0;
-          for (auto k = 0; k < c_idw_depth; ++k) {
+          for (size_t k = 0; k < c_idw_depth; ++k) {
             weights.weight[j][i][k] = 1.0 / result[k].second;
             w_total += 1.0 / result[k].second;
             weights.index[j][i][k] = result[k].first;

@@ -67,6 +67,8 @@ class Date {
 
   Date(const Date &d);
 
+  ~Date() = default;
+
   //...operator overloads
   bool operator<(const Date &d) const;
   bool operator>(const Date &d) const;

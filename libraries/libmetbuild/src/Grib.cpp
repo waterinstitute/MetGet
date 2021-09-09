@@ -41,10 +41,10 @@ using namespace MetBuild;
 
 Grib::Grib(std::string filename)
     : m_filename(std::move(filename)),
-      m_tree(nullptr),
+      m_size(0),
       m_ni(0),
       m_nj(0),
-      m_size(0),
+      m_tree(nullptr),
       m_convention(0) {
   initialize();
 }
@@ -197,7 +197,7 @@ void Grib::write_to_ascii(const std::string &filename,
                           const std::string &varname) {
   auto values = this->getGribArray1d(varname);
   std::ofstream f(filename);
-  for (auto i = 0; i < this->size(); ++i) {
+  for (size_t i = 0; i < this->size(); ++i) {
     f << m_longitude[i] << ", " << m_latitude[i] << ", " << values[i] << "\n";
   }
   f.close();
