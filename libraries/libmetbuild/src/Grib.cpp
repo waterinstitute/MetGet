@@ -72,6 +72,8 @@ codes_handle *Grib::make_handle(const std::string &filename,
     if (pname == name) {
       fclose(f);
       return h;
+    } else {
+      Grib::close_handle(h);
     }
   }
   fclose(f);
