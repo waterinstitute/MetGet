@@ -119,13 +119,13 @@ def process_message(json_message, queue, json_file=None):
                     t1 = domain_data[i][index]["time"]
                     met.set_next_file(domain_data[i][index]["filepath"])
                     met.process_data()
-            print(i,index,len(domain_data[i]),t,t0,t1,end="",flush=True)
+            #print(i,index,len(domain_data[i]),t,t0,t1,end="",flush=True)
             if t < t0 or t > t1:
                 weight = -1.0
             else:
                 weight = met.generate_time_weight(Input.date_to_pmb(t0),
                     Input.date_to_pmb(t1),Input.date_to_pmb(t))
-            print(" -->  ",weight,flush=True)
+            #print(" -->  ",weight,flush=True)
             values = met.to_wind_grid(weight)
             owi_field.write(Input.date_to_pmb(t),i,values)
 
