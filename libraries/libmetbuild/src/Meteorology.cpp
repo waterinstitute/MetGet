@@ -39,7 +39,7 @@
 
 using namespace MetBuild;
 
-Meteorology::Meteorology(const WindGrid *windGrid)
+Meteorology::Meteorology(const WindGrid *windGrid, bool backfill)
     : m_windGrid(windGrid),
       m_grib1(nullptr),
       m_grib2(nullptr),
@@ -47,7 +47,7 @@ Meteorology::Meteorology(const WindGrid *windGrid)
       m_file2(std::string()),
       m_interpolation_1(nullptr),
       m_interpolation_2(nullptr),
-      m_useBackgroundFlag(true) {}
+      m_useBackgroundFlag(backfill) {}
 
 void Meteorology::set_next_file(const std::string &filename) {
   m_file1 = std::move(m_file2);

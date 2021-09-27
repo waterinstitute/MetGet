@@ -10,6 +10,7 @@ class Input:
         self.__format = None
         self.__time_step = None
         self.__nowcast = False
+        self.__backfill = False
         self.__multiple_forecasts = True
         self.__domains = []
         self.__parse()
@@ -69,6 +70,9 @@ class Input:
     def multiple_forecasts(self):
         return self.__multiple_forecasts
 
+    def backfill(self):
+        return self.__backfill
+
     def __parse(self):
         import sys
         import dateutil.parser
@@ -84,6 +88,9 @@ class Input:
             self.__time_step = self.__json["time_step"]
             self.__filename = self.__json["filename"]
             self.__format = self.__json["format"]
+
+            if "backfill" in self.__json.keys():
+                self.__backfill = self.__json["backfill"]
 
             if "nowcast" in self.__json.keys():
                 self.__nowcast = self.__json["nowcast"]

@@ -99,7 +99,7 @@ def process_message(json_message, queue, json_file=None):
     output_file_list=[]
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
-        met = pymetbuild.Meteorology(d.grid().grid_object())
+        met = pymetbuild.Meteorology(d.grid().grid_object(),inputData.backfill())
         fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
         fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
         output_file_list.append(fn1)

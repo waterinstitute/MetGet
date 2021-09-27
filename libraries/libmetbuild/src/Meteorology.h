@@ -39,7 +39,7 @@ namespace MetBuild {
 
 class Meteorology {
  public:
-  METBUILD_EXPORT explicit Meteorology(const MetBuild::WindGrid *grid);
+  METBUILD_EXPORT explicit Meteorology(const MetBuild::WindGrid *grid, bool backfill = false);
 
   METBUILD_EXPORT void set_next_file(const std::string &filename);
   METBUILD_EXPORT void set_next_file(const char *filename);
