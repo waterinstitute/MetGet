@@ -94,9 +94,15 @@ def process_message(json_message, queue, json_file=None):
         for item in f:
             local_file = db.get_file(item[1],d.service(),item[0])
             domain_data[i].append({"time":item[0],"filepath":local_file})
-        
+
+    def get_next_file_index(time, domain_data):
+        for i in range(len(domain_data)):
+            if time <= domain_data[i]["time"]:
+                return i
+        return len(domain_data)-1
 
     output_file_list=[]
+    files_used_list={}
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
         met = pymetbuild.Meteorology(d.grid().grid_object(),inputData.backfill())
@@ -105,20 +111,28 @@ def process_message(json_message, queue, json_file=None):
         output_file_list.append(fn1)
         output_file_list.append(fn2)
         t0 = domain_data[i][0]["time"]
-        t1 = domain_data[i][1]["time"]
+
+        domain_files_used = []
+        next_time = start_date + datetime.timedelta(seconds=time_step)
+        index = get_next_file_index(next_time, domain_data[i])
+
+        t1 = domain_data[i][index]["time"]
         t0_pmb = Input.date_to_pmb(t0)
         t1_pmb = Input.date_to_pmb(t1)
-        index = 1
         met.set_next_file(domain_data[i][0]["filepath"])
-        met.set_next_file(domain_data[i][1]["filepath"])
+        domain_files_used.append(os.path.basename(domain_data[i][0]["filepath"]))
+
+        met.set_next_file(domain_data[i][index]["filepath"])
+        domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
+
         for t in datespan(start_date,end_date,datetime.timedelta(seconds=time_step)): 
             if t > t1:
-                if index+1 <= len(domain_data[i]):
-                    index += 1
-                    t0 = t1
-                    t1 = domain_data[i][index]["time"]
-                    met.set_next_file(domain_data[i][index]["filepath"])
-                    met.process_data()
+                index = get_next_file_index(t, domain_data[i])
+                t0 = t1
+                t1 = domain_data[i][index]["time"]
+                met.set_next_file(domain_data[i][index]["filepath"])
+                domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
+                met.process_data()
             #print(i,index,len(domain_data[i]),t,t0,t1,end="",flush=True)
             if t < t0 or t > t1:
                 weight = -1.0
@@ -135,13 +149,16 @@ def process_message(json_message, queue, json_file=None):
             s3.upload_file(fn1,path1)
             s3.upload_file(fn2,path2)
 
+        files_used_list[inputData.domain(i).name()] =  domain_files_used
+        
+    output_file_dict = {"input_files":files_used_list, "output_files":output_file_list}
+    with open(filelist_name,'w') as of:
+        of.write(json.dumps(output_file_dict,indent=2))
+
     if json_file:
         logger.info("Finished processing file: "+json_file)
     else:
-        output_file_dict = {"files":output_file_list}
         filelist_path = messageId+"/"+filelist_name
-        with open(filelist_name,'w') as of:
-            of.write(json.dumps(output_file_dict))
         s3.upload_file(filelist_name,filelist_path)
         logger.info("Finished processing message with id: "+json_message["MessageId"])
 

@@ -40,9 +40,17 @@ class Instance:
     
     def __termination_protection(self,value):
         import boto3
-        ec2 = boto3.resource('ec2',region_name=self.__region)
-        ec2.Instance(self.__instance_name).modify_attribute(DisableApiTermination={'Value': value})
+        if not self.__is_spot_instance():
+            ec2 = boto3.resource('ec2',region_name=self.__region)
+            ec2.Instance(self.__instance_name).modify_attribute(DisableApiTermination={'Value': value})
 
+    def __is_spot_instance(self):
+        import boto3
+        ec2 = boto3.resource('ec2',region_name=self.__region)
+        if ec2.Instance(self.__instance_name).spot_instance_request_id is None:
+            return False
+        else:
+            return True
 
     @staticmethod
     def __get_instance_data(key):
