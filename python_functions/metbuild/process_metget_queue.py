@@ -151,7 +151,7 @@ def process_message(json_message, queue, json_file=None):
 
         files_used_list[inputData.domain(i).name()] =  domain_files_used
         
-    output_file_dict = {"input_files":files_used_list, "output_files":output_file_list}
+    output_file_dict = {"input": inputData.json(), "input_files":files_used_list, "output_files":output_file_list}
     with open(filelist_name,'w') as of:
         of.write(json.dumps(output_file_dict,indent=2))
 
