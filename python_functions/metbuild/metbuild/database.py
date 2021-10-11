@@ -46,31 +46,62 @@ class Database:
     def generate_generic_file_list(self, table, start, end, nowcast, multiple_forecasts):
         from datetime import timedelta
         if nowcast:
-            sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
-                  " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
-                  "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecastcycle >= '" + start.strftime(
-                  "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle <= '" + end.strftime(
-                  "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle = t1.forecasttime';"
+            return self.generate_generic_file_list_nowcast(table, start, end)
         else:
             if multiple_forecasts:
-                sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
-                      " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
-                      "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
-                      "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
-                      "%Y-%m-%d %H:%M:%S") + "';"
+                return self.generate_generic_file_list_multiple_forecasts(table, start, end)
             else:
-                sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
-                      " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
-                      "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
-                      "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
-                      "%Y-%m-%d %H:%M:%S") + "';"
+                return self.generate_generic_file_list_single_forecast(table, start, end)
 
+    def generate_generic_file_list_nowcast(self, table, start, end):
+        sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
+             " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
+             "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecastcycle >= '" + start.strftime(
+             "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle <= '" + end.strftime(
+             "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle = t1.forecasttime;"
         self.cursor().execute(sql)
         rows = self.cursor().fetchall()
         return_list = []
         for f in rows:
             return_list.append([f[2], f[3]])
         return return_list
+
+    def generate_generic_file_list_multiple_forecasts(self, table, start, end):
+        sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
+              " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
+              "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
+              "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
+              "%Y-%m-%d %H:%M:%S") + "';"
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+        for f in rows:
+            return_list.append([f[2], f[3]])
+        return return_list
+
+
+    def generate_generic_file_list_single_forecast(self, table, start, end):
+        sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
+              " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
+              "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
+              "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
+              "%Y-%m-%d %H:%M:%S") + "';"
+        self.cursor().execute(sql)
+        row = self.cursor().fetchone()
+
+        first_time = row[1]
+
+        sql = "select id,forecastcycle,forecasttime,filepath from " + table + \
+                " where forecastcycle = '"+first_time.strftime("%Y-%m-%d %H:%M:%S")+"' AND forecasttime >= '"+ \
+                start.strftime("%Y-%m-%d %H:%M:%S") + "' AND forecasttime <= '" + end.strftime("%Y-%m-%d %H:%M:%S")+ \
+                "' order by forecasttime;"
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+        for f in rows:
+            return_list.append([f[2], f[3]])
+        return return_list
+
 
     def generate_hwrf_file_list(self, start, end, storm):
 
