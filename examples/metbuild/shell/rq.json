@@ -1,0 +1,36 @@
+{
+  "background_pressure": 1013.0,
+  "creator": "zcobell",
+  "domains": [
+    {
+      "di": 0.25,
+      "dj": 0.25,
+      "level": 0,
+      "name": "gfs-watl",
+      "service": "gfs-ncep",
+      "x_end": -40,
+      "x_init": -100,
+      "y_end": 50,
+      "y_init": 3
+    },
+    {
+      "di": 0.1,
+      "dj": 0.1,
+      "level": 1,
+      "name": "nam-watl",
+      "service": "nam-ncep",
+      "x_end": -70,
+      "x_init": -95,
+      "y_end": 35,
+      "y_init": 10
+    }
+  ],
+  "end_date": "2021-09-29 00:00:00",
+  "filename": "test_data",
+  "format": "ascii",
+  "multiple_forecasts": false,
+  "nowcast": false,
+  "start_date": "2021-09-27 00:00:00",
+  "time_step": 900,
+  "version": "0.0.1"
+}
