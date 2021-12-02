@@ -50,6 +50,8 @@ def process_message(json_message, queue, json_file=None):
     instance = Instance()
 
     instance.enable_termination_protection()
+    
+    db = Database()
 
     if json_file:
         logger.info("Processing message from file: "+json_file)
@@ -61,7 +63,7 @@ def process_message(json_message, queue, json_file=None):
         messageId = json_message["MessageId"]
         logger.info(json_message['Body'])
         inputData = Input(json.loads(json_message['Body']), logger, queue, json_message["ReceiptHandle"])
-
+        
     start_date = inputData.start_date()
     start_date_pmb = inputData.start_date_pmb()
     end_date = inputData.end_date()
@@ -70,7 +72,6 @@ def process_message(json_message, queue, json_file=None):
 
     s3 = S3file(os.environ["OUTPUT_BUCKET"])
 
-    db = Database()
     owi_field = pymetbuild.OwiAscii(start_date_pmb,end_date_pmb,time_step)
 
     nowcast = inputData.nowcast()
@@ -208,6 +209,7 @@ def initialize_environment_variables():
 # otherwise, we're outta here
 def main():
     from metbuild.queue import Queue
+    from metbuild.database import Database
     import sys
     import os
 
@@ -228,9 +230,24 @@ def main():
         has_message,message = queue.get_next_message()
         if has_message:
             logger.debug("Found message in queue. Beginning to process")
-            process_message(message, queue)
-            logger.debug("Deleting message "+message["MessageId"]+" from the queue")
-            queue.delete_message(message["ReceiptHandle"])
+            try: 
+                db = Database()
+                request_status = db.query_request_status(message["MessageId"])
+                if request_status["try"] > 4 or request_status["status"] == "error":
+                    db.update_request_status(message["MessageId"], "error", "Removed due to multiple failures", message["Body"])
+                    logger.debug("Message "+message["MessageId"]+" has had multiple failures. It has been deleted from the queue")
+                else:
+                    db.update_request_status(message["MessageId"], "running", "Job has begun running", message["Body"])
+
+                process_message(message, queue)
+                logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+                queue.delete_message(message["ReceiptHandle"])
+                db.update_request_status(message["MessageId"], "complete", "Job has completed successfully", message["Body"])
+            except:
+                logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+                queue.delete_message(message["ReceiptHandle"])  
+                db.update_request_status(message["MessageId"], "error", "Job exited with error", message["Body"])
+
         else:
             logger.info("No message available in queue. Shutting down.")
 

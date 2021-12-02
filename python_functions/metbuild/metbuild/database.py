@@ -134,3 +134,30 @@ class Database:
                 self.s3client().download_file(self.bucket(), db_path,
                                               local_path)
         return local_path
+
+    def generate_request_table(self):
+        sql = "create table if not exists requests(id INTEGER PRIMARY KEY AUTO_INCREMENT, request_id VARCHAR(36) not null, try INTEGER default 0, status enum('running', 'error', 'completed') not null, message VARCHAR(1024), input_data VARCHAR(8096));"
+        self.cursor().execute(sql)
+
+    def query_request_status(self,request_id):
+        self.generate_request_table()
+        sql = "select try, status, message from requests where request_id = '"+request_id+"';" 
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+
+        if len(rows) == 0:
+            return {"request": request_id, "try": 0, "status": "unknown", "message": "request_not_found"}
+        else:
+            return {"request": request_id, "try": rows[0][0], "status": rows[0][1], "message": rows[0][2]}
+
+    def update_request_status(self, request_id, status, message, json):
+        self.generate_request_table()
+        response = self.query_request_status(request_id)
+        if response["try"] == 0:
+            sql = "INSERT INTO requests (request_id, try, status, message, input_data) values('"+request_id+"',1,'"+status+"','"+message+"','"+json+"');"
+        else:
+            sql = "UPDATE requests SET try = "+str(response["try"]+1)+", status = '"+status+"', message = '"+message+"' where request_id = '"+request_id+"';"
+        self.cursor().execute(sql)
+        self.__db.commit()
+
+
