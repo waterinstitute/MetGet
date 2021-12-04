@@ -70,8 +70,17 @@ class NoaaDownloader:
             "name": "press"
         }]
 
+    def s3file(self):
+        return self.__s3file
+
+    def use_aws(self):
+        return self.__use_aws
+
     def add_download_variable(self, long_name, name):
         self.__variables.append({"long_name": long_name, "name": name})
+
+    def variables(self):
+        return self.__variables
 
     def mettype(self):
         return self.__mettype

@@ -29,81 +29,110 @@ class NcepGfsdownloader(NoaaDownloader):
         address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/"
         NoaaDownloader.__init__(self, "gfs_ncep", "GFS-NCEP", address,
                                 begin, end)
-        self.__lastdate = self.begindate()
         self.add_download_variable("ICEC:surface", "ice")
         self.add_download_variable("PRATE", "precip_rate")
         self.add_download_variable("RH:30-0 mb above ground", "humidity")
         self.add_download_variable("TMP:30-0 mb above ground", "temperature")
 
+    def __generate_prefix(self, date, hour):
+        return "gfs."+date.strftime("%Y%m%d")+"/{:02d}/atmos/gfs.t{:02d}z.pgrb2.0p25.f".format(hour,hour)
+
     def download(self):
-        from .spyder import Spyder
-        from datetime import datetime
+        import boto3
         from .metdb import Metdb
-        import hashlib
+        from datetime import datetime
+        from datetime import timedelta
+        bucket_name = "noaa-gfs-bdp-pds"
+        s3 = boto3.resource("s3")
+        client = boto3.client("s3")
+        bucket = s3.Bucket(bucket_name)
+        begin = datetime(self.begindate().year, self.begindate().month, self.begindate().day,0,0,0)
+        end = datetime(self.enddate().year, self.enddate().month, self.enddate().day,0,0,0)
+        date_range = [begin + timedelta(days=x) for x in range (0,(end-begin).days)]
 
-        num_download = 0
-        s = Spyder(self.address())
-        db = Metdb()
-        lastdate = self.begindate()
+        gfs_cycles = [ 0, 6, 12, 18]
+        pairs = []
+        for d in date_range:
+            for h in gfs_cycles:
+                prefix = self.__generate_prefix(d,h)
+                objects = bucket.objects.filter(Prefix=prefix)
+                cycle_date = d + timedelta(hours=h)
+                for o in objects:
+                    if ".idx" in str(o):
+                        continue
+                    f = int(o.key[-3:])
+                    forecast_date = cycle_date + timedelta(hours=f)
+                    pairs.append({
+                        "grb": o.key,
+                        "inv": o.key + ".idx",
+                        "cycledate": cycle_date,
+                        "forecastdate": forecast_date
+                    })
 
-        links = []
-        day_links = s.filelist()
-        for l in day_links:
-            if "gfs." in l:
-                dstr = l[0:-1].rsplit('/', 1)[-1].rsplit('.', 1)[-1]
-                yr = int(dstr[0:4])
-                mo = int(dstr[4:6])
-                dy = int(dstr[6:8])
-                t = datetime(yr, mo, dy, 0, 0, 0)
-                if (self.enddate() >= t >= self.begindate()) and t >= self.__lastdate:
-                    s2 = Spyder(l)
-                    hr_links = s2.filelist()
-                    lastdate = t
-                    for ll in hr_links:
-                        s3 = Spyder(ll + "atmos/")
-                        files = s3.filelist()
-                        for lll in files:
-                            if ".pgrb2.0p25.f" in lll:
-                                if "idx" not in lll:
-                                    links.append(lll)
-
-        pairs = self.generateGrbInvPairs(links)
         nerror = 0
+        num_download = 0
+        db = Metdb()
+
         for p in pairs:
-            fpath, n, err = self.getgrib(p, p["cycledate"])
+            fpath, n, err = self.getgrib(p, client, bucket_name)
             nerror += err
             if fpath:
                 db.add(p, self.mettype(), fpath)
                 num_download += n
 
-        if nerror == 0:
-            self.__lastdate = lastdate
-
         return num_download
 
-    @staticmethod
-    def generateGrbInvPairs(glist):
-        from datetime import datetime
-        from datetime import timedelta
-        pairs = []
-        for i in range(0, len(glist)):
-            lst = glist[i].rsplit("/")
-            v1 = lst[-1]
-            v2 = lst[-3]
-            v3 = lst[-4].rsplit(".", 1)[-1]
 
-            yr = int(v3[0:4])
-            mo = int(v3[4:6])
-            dy = int(v3[6:8])
-            cycle = int(v2)
-            fcst = int(v1[-3:])
+    def getgrib(self, info, client, bucket_name):
+        import tempfile
+        import os
+        inv_key = info["inv"]
+        grb_key = info["grb"]
+        inv_obj = client.get_object(Bucket=bucket_name, Key=inv_key)
+        inv_data = str(inv_obj["Body"].read().decode('utf-8')).split("\n")
+        retlist=[]
+        for v in self.variables():
+            for i in range(len(inv_data)):
+                if v["long_name"] in inv_data[i]:
+                    startbits = inv_data[i].split(":")[1]
+                    endbits = inv_data[i+1].split(":")[1]
+                    retlist.append({"name": v["name"], "start": startbits, "end": endbits})
+                    break
+        if not len(retlist) == len(self.variables()):
+            print("[ERROR]: Could not gather the inventory or missing variables detected. Trying again later.")
+            return None, 0, 1
 
-            cdate = datetime(yr, mo, dy, cycle, 0, 0)
-            fdate = cdate + timedelta(hours=fcst)
-            pairs.append({
-                "grb": glist[i],
-                "inv": glist[i] + ".idx",
-                "cycledate": cdate,
-                "forecastdate": fdate
-            })
-        return pairs
+        time = info["cycledate"]
+        fn = info['grb'].rsplit("/")[-1]
+        year = "{0:04d}".format(time.year)
+        month = "{0:02d}".format(time.month)
+        day = "{0:02d}".format(time.day)
+
+        dfolder = self.mettype() + "/" + year + "/" + month + "/" + day
+        floc = tempfile.gettempdir() + "/" + fn
+
+        if self.use_aws():
+            pathfound = self.s3file().exists(dfolder+"/"+fn)
+        else:
+            pathfound = os.path.exists(fn)
+
+        if not pathfound:
+            n = 1
+            print("     Downloading File: " + fn + " (F: " + info["cycledate"].strftime("%Y-%m-%d %H:%M:%S") +
+                ", T: " + info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S") + ")", flush=True)
+            with open(floc,'wb') as fid:
+                for r in retlist:
+                    retrange = "bytes="+r["start"]+"-"+r["end"]
+                    grb_obj = client.get_object(Bucket=bucket_name,Key=grb_key,Range=retrange)
+                    fid.write(grb_obj["Body"].read())
+            if self.use_aws():
+                self.s3file().upload_file(floc, dfolder+"/"+fn)
+                os.remove(floc)
+            else:
+                os.rename(floc,fn)
+
+            return dfolder+"/"+fn, n, 0
+
+        else:
+            return None, 0, 0
+
