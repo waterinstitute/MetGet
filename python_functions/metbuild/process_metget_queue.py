@@ -149,6 +149,8 @@ def process_message(json_message, queue, json_file=None):
             path2 = messageId + "/" + fn2
             s3.upload_file(fn1,path1)
             s3.upload_file(fn2,path2)
+            os.remove(fn1)
+            os.remove(fn2)
 
         files_used_list[inputData.domain(i).name()] =  domain_files_used
         
@@ -162,6 +164,7 @@ def process_message(json_message, queue, json_file=None):
         filelist_path = messageId+"/"+filelist_name
         s3.upload_file(filelist_name,filelist_path)
         logger.info("Finished processing message with id: "+json_message["MessageId"])
+        os.remove(filelist_name)
 
     cleanup_temp_files(domain_data)
 
@@ -246,7 +249,7 @@ def main():
                     process_message(message, queue)
                     logger.debug("Deleting message "+message["MessageId"]+" from the queue")
                     queue.delete_message(message["ReceiptHandle"])
-                    db.update_request_status(message["MessageId"], "complete", "Job has completed successfully", message["Body"],False)
+                    db.update_request_status(message["MessageId"], "completed", "Job has completed successfully", message["Body"],False)
             except:
                 logger.debug("Deleting message "+message["MessageId"]+" from the queue")
                 queue.delete_message(message["ReceiptHandle"])  
