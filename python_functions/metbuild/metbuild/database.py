@@ -136,7 +136,7 @@ class Database:
         return local_path
 
     def generate_request_table(self):
-        sql = "create table if not exists requests(id INTEGER PRIMARY KEY AUTO_INCREMENT, request_id VARCHAR(36) not null, try INTEGER default 0, status enum('running', 'error', 'completed') not null, message VARCHAR(1024), input_data VARCHAR(8096));"
+        sql = "create table if not exists requests(id INTEGER PRIMARY KEY AUTO_INCREMENT, request_id VARCHAR(36) not null, try INTEGER default 0, status enum('running', 'error', 'completed') not null, message VARCHAR(1024), start_date DATETIME not null, last_date DATETIME not null, input_data VARCHAR(8096));"
         self.cursor().execute(sql)
 
     def query_request_status(self,request_id):
@@ -150,13 +150,21 @@ class Database:
         else:
             return {"request": request_id, "try": rows[0][0], "status": rows[0][1], "message": rows[0][2]}
 
-    def update_request_status(self, request_id, status, message, json):
+    def update_request_status(self, request_id, status, message, json, istry=False):
+        from datetime import datetime
         self.generate_request_table()
         response = self.query_request_status(request_id)
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         if response["try"] == 0:
-            sql = "INSERT INTO requests (request_id, try, status, message, input_data) values('"+request_id+"',1,'"+status+"','"+message+"','"+json+"');"
+            sql = "INSERT INTO requests (request_id, try, status, message, start_date, last_date, input_data) values('"+request_id+"',1,'"+status+"','"+message+"','"+now+"','"+now+"','"+json+"');"
         else:
-            sql = "UPDATE requests SET try = "+str(response["try"]+1)+", status = '"+status+"', message = '"+message+"' where request_id = '"+request_id+"';"
+            if istry:
+                sql = "UPDATE requests SET try = "+str(response["try"]+1)+", status = '"+status+"', message = '"+message+"', last_date = '"+now+"' where request_id = '"+request_id+"';"
+            else:
+                sql = "UPDATE requests SET status = '"+status+"', message = '"+message+"', last_date = '"+now+"' where request_id = '"+request_id+"';"
+
         self.cursor().execute(sql)
         self.__db.commit()
 

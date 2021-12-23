@@ -233,20 +233,24 @@ def main():
             try: 
                 db = Database()
                 request_status = db.query_request_status(message["MessageId"])
-                if request_status["try"] > 4 or request_status["status"] == "error":
-                    db.update_request_status(message["MessageId"], "error", "Removed due to multiple failures", message["Body"])
+                if request_status["try"] > 4:
+                    db.update_request_status(message["MessageId"], "error", "Removed due to multiple failures", message["Body"],False)
+                    queue.delete_message(message["ReceiptHandle"])  
                     logger.debug("Message "+message["MessageId"]+" has had multiple failures. It has been deleted from the queue")
+                elif request_status["status"] == "error":
+                    queue.delete_message(message["ReceiptHandle"])  
+                    db.update_request_status(message["MessageId"], "error", "Job exited with error", message["Body"],False)
+                    logger.debug("Message "+message["MessageId"]+" has had an error. It has been deleted from the queue")
                 else:
-                    db.update_request_status(message["MessageId"], "running", "Job has begun running", message["Body"])
-
-                process_message(message, queue)
-                logger.debug("Deleting message "+message["MessageId"]+" from the queue")
-                queue.delete_message(message["ReceiptHandle"])
-                db.update_request_status(message["MessageId"], "complete", "Job has completed successfully", message["Body"])
+                    db.update_request_status(message["MessageId"], "running", "Job has begun running", message["Body"],True)
+                    process_message(message, queue)
+                    logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+                    queue.delete_message(message["ReceiptHandle"])
+                    db.update_request_status(message["MessageId"], "complete", "Job has completed successfully", message["Body"],False)
             except:
                 logger.debug("Deleting message "+message["MessageId"]+" from the queue")
                 queue.delete_message(message["ReceiptHandle"])  
-                db.update_request_status(message["MessageId"], "error", "Job exited with error", message["Body"])
+                db.update_request_status(message["MessageId"], "error", "Job exited with error", message["Body"],False)
 
         else:
             logger.info("No message available in queue. Shutting down.")
