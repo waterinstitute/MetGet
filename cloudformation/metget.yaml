@@ -728,6 +728,46 @@ Resources:
                 httpMethod: "POST"
                 contentHandling: "CONVERT_TO_TEXT"
                 type: "AWS"
+          /check:
+            post:
+              summary: Check the status of a request
+              description: Send a json formatted request for the status
+              parameters:
+                - name: "x-api-key"
+                  in: "header"
+                  required: true
+                  schema:
+                    type: "string"
+              security:
+                - api_key: []
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/postcheckrequest'
+              responses:
+                "200":
+                  description: "OK"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/checkrequest'
+                "400":
+                  description: "Bad request"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/checkrequest'
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaCheckRequest.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "WHEN_NO_MATCH"
+                httpMethod: "POST"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "AWS"
           /build:
             post:
               summary: Request the build process to begin
@@ -825,6 +865,29 @@ Resources:
                           description: NOAA NAM-NCEP model runs
                           allOf:
                             - $ref: '#/components/schemas/wrfdata'
+            postcheckrequest:
+              type: object
+              properties:
+                request: string
+            checkrequest:
+              type: object
+              properties:
+                statusCode: integer
+                body:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    message:
+                      type: string
+                    tries:
+                      type: string
+                    start:
+                      type: string
+                    last_update:
+                      type: string
+                    destination:
+                      type: string
             buildrequest:
               type: object
               properties:
@@ -1165,6 +1228,79 @@ Resources:
       - Database
       - DatabaseSecretManager
 
+  LambdaCheckRequest:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "Function to check the status of a request"
+      Runtime: "python3.8"
+      Role: !GetAtt LambdaIAMRole.Arn
+      FunctionName: !Sub "${AWS::StackName}_check_request"
+      Handler: "lambda_function.lambda_handler"
+      MemorySize: 128
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+          - !GetAtt VPC.DefaultSecurityGroup
+        SubnetIds:
+          - !Ref InternalSubnet1
+          - !Ref InternalSubnet2
+      TracingConfig:
+        Mode: "PassThrough"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Sub "${MetGetDataBucket}"
+          DBSERVER: !GetAtt Database.Endpoint.Address
+          DBPASS: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::password}}'
+          DBUSER: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::username}}'
+          DBNAME: !Sub "${MetGetDatabaseName}"
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+            import json
+            import boto3
+            import logging
+
+            logger = logging.getLogger()
+            logger.setLevel(logging.INFO)
+
+            client = boto3.client('sqs',region_name=region())
+            queue_url = client.get_queue_url(QueueName=queue_name())['QueueUrl']
+
+            try:
+              msg = client.send_message(QueueUrl=queue_url,MessageBody=json.dumps(event))
+              status = 200
+            except:
+              logger.error("Could not send the message to the queue. Message has been rejected")
+              status = 201
+
+            if status==200:
+              return {
+              'statusCode': 200,
+              'body': {
+                "error": 0,
+                "status": "Message received and added to queue",
+                "request_id": msg["MessageId"],
+                "request_url": "n/a"
+              }
+            }
+            else:
+              return {
+              'statusCode': 200,
+              'body': {
+                "error": 1,
+                "status": "Message could not be added to queue",
+                "request_id": msg["MessageId"],
+                "request_url": "n/a"
+              }
+            }
+    DependsOn:
+      - SecurityGroup
+      - InternalSubnet1
+      - InternalSubnet2
+      - VPC
+      - Database
+      - DatabaseSecretManager
 
   LambdaReceiveRequest:
     Type: "AWS::Lambda::Function"
@@ -1285,6 +1421,16 @@ Resources:
       Principal: apigateway.amazonaws.com
     DependsOn:
       - LambdaReceiveRequest
+      - ApiGateway
+  
+  LambdaCheckRequestAPIPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaCheckRequest.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+    DependsOn:
+      - LambdaCheckRequest
       - ApiGateway
 
   #..................................#
