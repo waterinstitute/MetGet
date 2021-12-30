@@ -1277,59 +1277,30 @@ Resources:
       Timeout: 60
       TracingConfig:
         Mode: "PassThrough"
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+          - !GetAtt VPC.DefaultSecurityGroup
+        SubnetIds:
+          - !Ref InternalSubnet1
+          - !Ref InternalSubnet2
       Environment:
         Variables:
           QUEUE_NAME: !GetAtt SQSQueue.QueueName
+          BUCKET_NAME: !Sub "${MetGetDataBucket}"
+          DBSERVER: !GetAtt Database.Endpoint.Address
+          DBPASS: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::password}}'
+          DBUSER: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::username}}'
+          DBNAME: !Sub "${MetGetDatabaseName}"
       Code:
-        ZipFile: |
-          def queue_name():
-            import os
-            return os.environ["QUEUE_NAME"]
-
-          def region():
-            import os
-            return os.environ["AWS_REGION"]
-
-          def lambda_handler(event, context):
-            import json
-            import boto3
-            import logging
-
-            logger = logging.getLogger()
-            logger.setLevel(logging.INFO)
-
-            client = boto3.client('sqs',region_name=region())
-            queue_url = client.get_queue_url(QueueName=queue_name())['QueueUrl']
-
-            try:
-              msg = client.send_message(QueueUrl=queue_url,MessageBody=json.dumps(event))
-              status = 200
-            except:
-              logger.error("Could not send the message to the queue. Message has been rejected")
-              status = 201
-
-            if status==200:
-              return {
-              'statusCode': 200,
-              'body': {
-                "error": 0,
-                "status": "Message received and added to queue",
-                "request_id": msg["MessageId"],
-                "request_url": "n/a"
-              }
-            }
-            else:
-              return {
-              'statusCode': 200,
-              'body': {
-                "error": 1,
-                "status": "Message could not be added to queue",
-                "request_id": msg["MessageId"],
-                "request_url": "n/a"
-              }
-            }
+        S3Bucket: metget-scripts
+        S3Key: metreceiverequest/metget-receiverequest.zip
     DependsOn:
       - SQSQueue
+      - Database
+      - VPC
+      - SecurityGroup
+      - DatabaseSecretManager
 
   LambdaGetData:
     Type: "AWS::Lambda::Function"
