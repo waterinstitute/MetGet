@@ -250,8 +250,9 @@ def main():
                     logger.debug("Deleting message "+message["MessageId"]+" from the queue")
                     queue.delete_message(message["ReceiptHandle"])
                     db.update_request_status(message["MessageId"], "completed", "Job has completed successfully", message["Body"],False)
-            except:
+            except Exception as e:
                 logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+                logger.debug("ERROR: "+str(e))
                 queue.delete_message(message["ReceiptHandle"])  
                 db.update_request_status(message["MessageId"], "error", "Job exited with error", message["Body"],False)
 
