@@ -118,6 +118,7 @@ def lambda_handler(event, context):
     import json
     import boto3
     import logging
+    from metbuild.database import Database
     from metbuild.input import Input
 
     logger = logging.getLogger()
@@ -143,9 +144,12 @@ def lambda_handler(event, context):
             else:
                 client = boto3.client('sqs', region_name=region())
                 queue_url = client.get_queue_url(QueueName=queue_name())['QueueUrl']
+                db = Database()
                 msg = client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(json_request))
+                db.add_request_to_queue(msg["MessageId"], json_request)
                 status = 200
-        except:
+        except Exception as e:
+            error_message = str(e)
             logger.error("Could not send the message to the queue. Message has been rejected")
             status = 500
 
@@ -153,28 +157,34 @@ def lambda_handler(event, context):
             return {
                 'statusCode': 200,
                 'body': {
-                    "status": "Message received and added to queue",
+                    "status": "success",
+                    "message": "Message received and added to queue",
                     "request_id": msg["MessageId"],
-                    "request_url": "https://metget-output.s3.amazonaws.com/" + msg["MessageId"]
+                    "request_url": "https://metget-output.s3.amazonaws.com/" + msg["MessageId"],
+                    "error_text": "n/a"
                 }
             }
         else:
             return {
                 'statusCode': 500,
                 'body': {
-                    "status": "Message could not be added to queue",
+                    "status": "error",
+                    "message": "Message could not be added to the queue, system error",
                     "request_id": "n/a",
-                    "request_url": "n/a"
+                    "request_url": "n/a",
+                    "error_text": error_message
                 }
             }
     else:
         return {
             'statusCode': 400,
             'body': {
-                "status": "Input data contained an error",
+                "status": "error",
+                "message": "Input data contained an error",
                 "request_id": "n/a",
                 "request_url": "n/a",
                 "error_text": error
             }
         }
+
 
