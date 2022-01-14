@@ -23,33 +23,30 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#include "NcFile.h"
+#ifndef METGET_LIBRARY_OWIASCII_H_
+#define METGET_LIBRARY_OWIASCII_H_
 
-#include <stdexcept>
-#include <utility>
+#include <string>
 
-#include "netcdf.h"
+#include "Grid.h"
+#include "MeteorologicalData.h"
+#include "OutputFile.h"
+#include "OwiAsciiDomain.h"
 
-NcFile::NcFile(std::string filename)
-    : m_filename(std::move(filename)), m_ncid(0) {}
+namespace MetBuild {
 
-NcFile::~NcFile() {
-  if (m_ncid != 0) {
-    nc_close(m_ncid);
-  }
-}
+class OwiAscii : public OutputFile {
+ public:
+  OwiAscii(const MetBuild::Date &date_start, const MetBuild::Date &date_end,
+           unsigned time_step);
 
-void NcFile::ncCheck(const int err) {
-  if (err != NC_NOERR) {
-    throw std::runtime_error("Error from netCDF: " +
-                             std::string(nc_strerror(err)));
-  }
-}
+  void addDomain(const MetBuild::Grid &w,
+                 const std::vector<std::string> &filenames) override;
 
-int NcFile::ncid() const { return m_ncid; }
-
-std::vector<NcFile::NcGroup>* NcFile::groups() { return &m_groups; }
-
-void NcFile::initialize() {
-  ncCheck(nc_create(m_filename.c_str(), NC_NETCDF4, &m_ncid));
-}
+  int write(
+      const MetBuild::Date &date, size_t domain_index,
+      const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
+          &data) override;
+};
+}  // namespace MetBuild
+#endif  // METGET_LIBRARY_OWIASCII_H_

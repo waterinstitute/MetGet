@@ -23,38 +23,56 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#ifndef METGET_LIBRARY_OWIASCII_H_
-#define METGET_LIBRARY_OWIASCII_H_
+#ifndef METGET_SRC_OUTPUT_RASNETCDFDOMAIN_H_
+#define METGET_SRC_OUTPUT_RASNETCDFDOMAIN_H_
 
-#include <string>
-
-#include "OwiAsciiDomain.h"
-#include "WindData.h"
-#include "WindGrid.h"
+#include "MeteorologicalData.h"
+#include "OutputDomain.h"
 
 namespace MetBuild {
 
-class OwiAscii {
+class RasNetcdfDomain : public OutputDomain {
  public:
-  OwiAscii(const MetBuild::Date &date_start, const MetBuild::Date &date_end,
-           unsigned time_step);
+  RasNetcdfDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
+                  const MetBuild::Date &endDate, unsigned time_step,
+                  const int &ncid, std::vector<std::string> variables);
 
-  int addDomain(const MetBuild::WindGrid &w, const std::string &pressureFile,
-                const std::string &windFile);
+  ~RasNetcdfDomain() override = default;
 
-  int write(const MetBuild::Date &date, const size_t domain_index,
-            const WindData &data);
+  void open() override {}
 
-  int write(const MetBuild::Date &date, const size_t domain_index,
-            const std::vector<std::vector<double>> &pressure,
-            const std::vector<std::vector<double>> &wind_u,
-            const std::vector<std::vector<double>> &wind_v);
+  void close() override {}
+
+  int write(
+      const MetBuild::Date &date,
+      const MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
+          &data) override;
+
+  int write(
+      const MetBuild::Date &date,
+      const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
+          &data) override;
 
  private:
-  const Date m_startdate;
-  const Date m_enddate;
-  const unsigned m_timestep;
-  std::vector<std::unique_ptr<OwiAsciiDomain>> m_domains;
+
+  void initialize();
+
+  size_t m_counter;
+  const int m_ncid;
+
+  int m_dimid_x;
+  int m_dimid_y;
+  int m_dimid_time;
+  int m_varid_x;
+  int m_varid_y;
+  int m_varid_z;
+  int m_varid_time;
+  int m_varid_crs;
+
+  const std::vector<std::string> m_variables;
+  std::vector<int> m_varids;
+  std::vector<int> m_dimids;
 };
+
 }  // namespace MetBuild
-#endif  // METGET_LIBRARY_OWIASCII_H_
+#endif  // METGET_SRC_OUTPUT_RASNETCDFDOMAIN_H_

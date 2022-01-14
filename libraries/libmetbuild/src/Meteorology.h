@@ -31,15 +31,21 @@
 
 #include "Date.h"
 #include "Grib.h"
+#include "Grid.h"
 #include "MetBuild_Global.h"
-#include "WindData.h"
-#include "WindGrid.h"
+#include "MeteorologicalData.h"
 
 namespace MetBuild {
 
 class Meteorology {
  public:
-  METBUILD_EXPORT explicit Meteorology(const MetBuild::WindGrid *grid, bool backfill = false);
+  enum TYPE { WIND_PRESSURE, TEMPERATURE, HUMIDITY, RAINFALL, ICE };
+
+  METBUILD_EXPORT explicit Meteorology(const MetBuild::Grid *grid,
+                                       Meteorology::TYPE type,
+                                       bool backfill = false);
+
+  void findScalarVariableName(const std::string &filename);
 
   METBUILD_EXPORT void set_next_file(const std::string &filename);
   METBUILD_EXPORT void set_next_file(const char *filename);
@@ -48,7 +54,11 @@ class Meteorology {
 
   int METBUILD_EXPORT write_debug_file(int index) const;
 
-  MetBuild::WindData METBUILD_EXPORT to_wind_grid(double time_weight = 1.0);
+  MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
+      METBUILD_EXPORT to_wind_grid(double time_weight = 1.0);
+
+  MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
+      METBUILD_EXPORT to_grid(double time_weight = 1.0);
 
   static double METBUILD_EXPORT
   generate_time_weight(const MetBuild::Date &t1, const MetBuild::Date &t2,
@@ -74,13 +84,32 @@ class Meteorology {
   };
 
   static InterpolationWeights generate_interpolation_weight(
-      const MetBuild::Grib *grib, const MetBuild::WindGrid *wind_grid);
+      const MetBuild::Grib *grib, const MetBuild::Grid *wind_grid);
 
-  const WindGrid *m_windGrid;
+  MetBuild::MeteorologicalData<1> scalar_value_interpolation(
+      double time_weight);
+
+  static constexpr unsigned typeLengthMap(Meteorology::TYPE type) {
+    switch (type) {
+      case RAINFALL:
+      case TEMPERATURE:
+      case HUMIDITY:
+      case ICE:
+        return 1;
+      case WIND_PRESSURE:
+        return 3;
+      default:
+        return 1;
+    }
+  }
+
+  const TYPE m_type;
+  const Grid *m_windGrid;
   std::unique_ptr<Grib> m_grib1;
   std::unique_ptr<Grib> m_grib2;
   std::string m_file1;
   std::string m_file2;
+  std::string m_scalarVariableName;
   std::shared_ptr<InterpolationWeights> m_interpolation_1;
   std::shared_ptr<InterpolationWeights> m_interpolation_2;
   bool m_useBackgroundFlag;

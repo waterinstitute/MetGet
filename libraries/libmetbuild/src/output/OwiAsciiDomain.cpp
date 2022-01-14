@@ -26,29 +26,24 @@
 #include "OwiAsciiDomain.h"
 
 #include <cassert>
-#include <utility>
 
 #include "Logging.h"
 #include "boost/format.hpp"
 
 using namespace MetBuild;
 
-OwiAsciiDomain::OwiAsciiDomain(const MetBuild::WindGrid *grid,
+OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
                                const Date &startDate, const Date &endDate,
                                const unsigned int time_step,
-                               std::string pressureFile, std::string windFile)
-    : m_isOpen(false),
-      m_startDate(startDate),
-      m_endDate(endDate),
+                               const std::string &pressureFile,
+                               const std::string &windFile)
+    : OutputDomain(grid, startDate, endDate, time_step),
       m_previousDate(startDate - time_step),
-      m_timestep(time_step),
       m_ofstream_pressure(std::make_unique<std::ofstream>(pressureFile)),
       m_ofstream_wind(std::make_unique<std::ofstream>(windFile)),
-      m_windGrid(grid),
-      m_pressureFile(std::move(pressureFile)),
-      m_windFile(std::move(windFile)) {
+      m_pressureFile(pressureFile),
+      m_windFile(windFile) {
   assert(startDate < endDate);
-  this->open();
 }
 
 OwiAsciiDomain::~OwiAsciiDomain() {
@@ -68,7 +63,7 @@ void OwiAsciiDomain::open() {
     m_ofstream_wind->open(m_windFile);
   }
   this->write_header();
-  m_isOpen = true;
+  this->set_open(true);
 }
 
 void OwiAsciiDomain::close() {
@@ -78,29 +73,29 @@ void OwiAsciiDomain::close() {
   if (!m_ofstream_wind->is_open()) {
     m_ofstream_wind->is_open();
   }
-  m_isOpen = false;
+  this->set_open(false);
 }
 
-int OwiAsciiDomain::write(const Date &date,
-                          const std::vector<std::vector<double>> &pressure,
-                          const std::vector<std::vector<double>> &wind_u,
-                          const std::vector<std::vector<double>> &wind_v) {
-  if (!m_isOpen) {
+int OwiAsciiDomain::write(
+    const Date &date,
+    const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
+        &data) {
+  if (!this->is_open()) {
     metbuild_throw_exception("OWI Domain not open");
   }
-  if (date != m_previousDate + m_timestep) {
+  if (date != m_previousDate + this->timestep()) {
     metbuild_throw_exception("Non-constant time spacing detected");
   }
-  if (date > m_endDate) {
+  if (date > this->endDate()) {
     metbuild_throw_exception("Attempt to write past file end date");
   }
 
-  *(m_ofstream_pressure) << generateRecordHeader(date, m_windGrid);
-  *(m_ofstream_wind) << generateRecordHeader(date, m_windGrid);
+  *(m_ofstream_pressure) << generateRecordHeader(date, this->grid());
+  *(m_ofstream_wind) << generateRecordHeader(date, this->grid());
 
-  OwiAsciiDomain::write_record(m_ofstream_pressure.get(), pressure);
-  OwiAsciiDomain::write_record(m_ofstream_wind.get(), wind_u);
-  OwiAsciiDomain::write_record(m_ofstream_wind.get(), wind_v);
+  OwiAsciiDomain::write_record(m_ofstream_pressure.get(), data[2]);
+  OwiAsciiDomain::write_record(m_ofstream_wind.get(), data[0]);
+  OwiAsciiDomain::write_record(m_ofstream_wind.get(), data[1]);
 
   m_previousDate = date;
 
@@ -108,7 +103,7 @@ int OwiAsciiDomain::write(const Date &date,
 }
 
 void OwiAsciiDomain::write_header() {
-  auto header = generateHeaderLine(m_startDate, m_endDate);
+  auto header = generateHeaderLine(this->startDate(), this->endDate());
   *(m_ofstream_pressure) << header;
   *(m_ofstream_wind) << header;
 }
@@ -122,7 +117,7 @@ std::string OwiAsciiDomain::generateHeaderLine(const Date &date1,
       date2.month() % date2.day() % date2.hour());
 }
 
-std::string OwiAsciiDomain::formatHeaderCoordinates(const double value) {
+std::string OwiAsciiDomain::formatHeaderCoordinates(const float value) {
   if (value <= -100.0) {
     return boost::str(boost::format("%8.3f") % value);
   } else if (value < 0.0 || value >= 100.0) {
@@ -133,24 +128,25 @@ std::string OwiAsciiDomain::formatHeaderCoordinates(const double value) {
 }
 
 std::string OwiAsciiDomain::generateRecordHeader(const Date &date,
-                                                 const WindGrid *grid) {
-  auto lonstring = formatHeaderCoordinates(grid->bottom_left().x());
-  auto latstring = formatHeaderCoordinates(grid->bottom_left().y());
+                                                 const Grid *grid) {
+  auto lon_string = formatHeaderCoordinates(grid->bottom_left().x());
+  auto lat_string = formatHeaderCoordinates(grid->bottom_left().y());
   return boost::str(
       boost::format("iLat=%4diLong=%4dDX=%6.4fDY=%6.4fSWLat=%8sSWLon=%8sDT="
                     "%4.4i%02i%02i%02i%02i\n") %
-      grid->nj() % grid->ni() % grid->dy() % grid->dx() % latstring %
-      lonstring % date.year() % date.month() % date.day() % date.hour() %
+      grid->nj() % grid->ni() % grid->dy() % grid->dx() % lat_string %
+      lon_string % date.year() % date.month() % date.day() % date.hour() %
       date.minute());
 }
 
 void OwiAsciiDomain::write_record(
     std::ofstream *stream,
-    const std::vector<std::vector<double>> &value) const {
+    const std::vector<std::vector<MetBuild::MeteorologicalDataType>> &value)
+    const {
   constexpr size_t num_records_per_line = 8;
   size_t n = 0;
-  for (size_t j = 0; j < m_windGrid->nj(); ++j) {
-    for (size_t i = 0; i < m_windGrid->ni(); ++i) {
+  for (size_t j = 0; j < this->grid()->nj(); ++j) {
+    for (size_t i = 0; i < this->grid()->ni(); ++i) {
       *(stream) << boost::str(boost::format("%10.4f") % value[j][i]);
       n++;
       if (n == num_records_per_line) {

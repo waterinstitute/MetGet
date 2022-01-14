@@ -23,8 +23,8 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#ifndef METGET_WINDGRID_H
-#define METGET_WINDGRID_H
+#ifndef METGET_GRID_H
+#define METGET_GRID_H
 
 #include <array>
 #include <cassert>
@@ -39,18 +39,18 @@ namespace MetBuild {
 
 class Geometry;
 
-class WindGrid {
+class Grid {
  public:
   using grid = std::vector<std::vector<MetBuild::Point>>;
 
-  WindGrid(double llx, double lly, double urx, double ury, double dx,
+  Grid(double llx, double lly, double urx, double ury, double dx,
            double dy);
-  WindGrid(double xinit, double yinit, size_t ni, size_t nj, double dx,
+  Grid(double xinit, double yinit, size_t ni, size_t nj, double dx,
            double dy, double rotation = 0.0);
 
-  ~WindGrid();
+  ~Grid();
 
-  WindGrid(const WindGrid &w);
+  Grid(const Grid &w);
 
   constexpr size_t ni() const { return m_ni; }
   constexpr size_t nj() const { return m_nj; }
@@ -86,6 +86,9 @@ class WindGrid {
 
   const grid &grid_positions() const { return m_grid; };
 
+  std::vector<double> x() const;
+  std::vector<double> y() const;
+
  private:
   const double m_di;
   const double m_dj;
@@ -113,4 +116,4 @@ class WindGrid {
 
 }  // namespace MetBuild
 
-#endif  // METGET_WINDGRID_H
+#endif  // METGET_Grid_H

@@ -12,8 +12,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -23,8 +23,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# Author: Zach Cobell
-# Contact: zcobell@thewaterinstitute.org
+# Author: Zach Cobell Contact: zcobell@thewaterinstitute.org
 #
 # ##############################################################################
 # libmetbuild
@@ -36,13 +35,15 @@ set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Kdtree.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/KdtreePrivate.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Meteorology.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/WindGrid.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/NcFile.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Grid.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Logging.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/WindData.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/OwiAscii.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/OwiNetcdf.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/OwiAsciiDomain.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/OwiNcFile.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/OwiAscii.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/OwiNetcdf.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/OwiAsciiDomain.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/OwiNetcdfDomain.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/RasNetcdf.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/RasNetcdfDomain.cpp ../src/Utilities.cpp)
 
 add_library(metbuild_interface INTERFACE)
 add_library(metbuild_objectlib OBJECT ${METBUILD_SOURCES})
@@ -53,7 +54,7 @@ set_property(TARGET metbuild_objectlib PROPERTY POSITION_INDEPENDENT_CODE 1)
 target_link_libraries(metbuild_static metbuild_interface)
 target_link_libraries(metbuild metbuild_interface)
 
-target_compile_features(metbuild_objectlib PRIVATE cxx_std_14)
+target_compile_features(metbuild_objectlib PRIVATE cxx_std_17)
 set_target_properties(metbuild_objectlib PROPERTIES CMAKE_CXX_VISIBILITY_PRESET
                                                     hidden)
 set_target_properties(metbuild_objectlib PROPERTIES CMAKE_CXX_INLINES_HIDDEN
@@ -92,7 +93,8 @@ install(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/metbuildConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
 install(
-  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.18.0/definitions
+  DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.18.0/definitions
   DESTINATION ${CMAKE_INSTALL_PREFIX}/share/eccodes)
 
 # ##############################################################################

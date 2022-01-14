@@ -87,14 +87,18 @@ class Grib {
 
   void write_to_ascii(const std::string &filename, const std::string &varname);
 
+  static bool containsVariable(const std::string &filename,
+                               const std::string &variableName);
+
  private:
   void initialize();
   void readCoordinates(codes_handle *handle);
   void findCorners();
   static std::vector<std::vector<double>> mapTo2d(const std::vector<double> &v,
                                                   size_t ni, size_t nj);
+
   static codes_handle *make_handle(const std::string &filename,
-                                   const std::string &name);
+                                   const std::string &name, bool quiet = false);
   static void close_handle(codes_handle *handle);
 
   std::string m_filename;
