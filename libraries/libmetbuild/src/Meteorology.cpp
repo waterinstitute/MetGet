@@ -25,10 +25,8 @@
 //
 #include "Meteorology.h"
 
-#include <algorithm>
 #include <array>
 #include <cmath>
-#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <utility>
@@ -36,11 +34,14 @@
 #include "Grib.h"
 #include "Logging.h"
 #include "MetBuild_Status.h"
+#include "Utilities.h"
 
 using namespace MetBuild;
 
-Meteorology::Meteorology(const WindGrid *windGrid, bool backfill)
-    : m_windGrid(windGrid),
+Meteorology::Meteorology(const MetBuild::Grid *windGrid, Meteorology::TYPE type,
+                         bool backfill)
+    : m_type(type),
+      m_windGrid(windGrid),
       m_grib1(nullptr),
       m_grib2(nullptr),
       m_file1(std::string()),
@@ -65,6 +66,7 @@ int Meteorology::process_data() {
   if (m_file1.empty() || m_file2.empty()) {
     metbuild_throw_exception(
         "Files not specified before attempting to process.");
+    return MB_ERROR;
   }
 
   if (m_grib1 && m_grib2) {
@@ -103,14 +105,107 @@ int Meteorology::process_data() {
   return MB_NOERROR;
 }
 
-MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
-  WindData w(m_windGrid->ni(), m_windGrid->nj());
+MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
+    const double time_weight) {
+  using namespace MetBuild::Utilities;
+
+  MeteorologicalData<1> r(m_windGrid->ni(), m_windGrid->nj());
 
   if (time_weight < 0.0) {
     if (this->m_useBackgroundFlag) {
-      w.fill(WindData::flag_value());
+      r.fill(MeteorologicalData<1>::flag_value());
     } else {
-      w.fill(0.0, 0.0, WindData::background_pressure());
+      r.fill(0.0);
+    }
+    return r;
+  }
+
+  if (m_scalarVariableName.empty()) {
+    this->findScalarVariableName(m_grib1->filename());
+  }
+
+  this->process_data();
+
+  const auto r1 = m_grib1->getGribArray1d(m_scalarVariableName);
+  const auto r2 = m_grib2->getGribArray1d(m_scalarVariableName);
+
+  for (size_t j = 0; j < m_windGrid->nj(); ++j) {
+    for (size_t i = 0; i < m_windGrid->ni(); ++i) {
+      if (m_interpolation_1->index[j][i][0] == 0 ||
+          m_interpolation_2->index[j][i][0] == 0 ||
+          m_interpolation_1->weight[j][i][0] == 0.0 ||
+          m_interpolation_2->weight[j][i][0] == 0.0) {
+        if (this->m_useBackgroundFlag) {
+          r.set(0, i, j, MeteorologicalData<1, float>::flag_value());
+        } else {
+          r.set(0, i, j, 0.0);
+        }
+      } else {
+        double r_star1 = 0.0;
+        double r_star2 = 0.0;
+        double w1_sum = 0.0;
+        double w2_sum = 0.0;
+        for (size_t k = 0; k < c_idw_depth; ++k) {
+          auto idx1 = m_interpolation_1->index[j][i][k];
+          auto idx2 = m_interpolation_2->index[j][i][k];
+          auto w1 = m_interpolation_1->weight[j][i][k];
+          auto w2 = m_interpolation_2->weight[j][i][k];
+          r_star1 += w1 * r1[idx1];
+          r_star2 += w2 * r2[idx2];
+          w1_sum += w1;
+          w2_sum += w2;
+        }
+
+        if (equal_zero(w1_sum) && equal_zero(w2_sum)) {
+          r.set(0, i, j, 0.0);
+        } else if (equal_zero(w1_sum) && not_equal_zero(w2_sum)) {
+          r.set(0, i, j, r_star2 * (1.0 / w2_sum));
+        } else if (not_equal_zero(w1_sum) && equal_zero(w2_sum)) {
+          r.set(0, i, j, r_star1 * (1.0 / w1_sum));
+        } else {
+          r.set(0, i, j, (1.0 - time_weight) * r_star1 + time_weight * r_star2);
+        }
+      }
+    }
+  }
+
+  return r;
+}
+
+MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
+Meteorology::to_grid(const double time_weight) {
+  if (Meteorology::typeLengthMap(this->m_type) == 1) {
+    return {this->scalar_value_interpolation(time_weight)};
+  } else {
+    metbuild_throw_exception(
+        "Invalid field type passed to scalar interpolation");
+    return {MetBuild::MeteorologicalData<1, MeteorologicalDataType>()};
+  }
+}
+
+MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
+Meteorology::to_wind_grid(double time_weight) {
+  using namespace MetBuild::Utilities;
+
+  if (this->m_type != Meteorology::WIND_PRESSURE) {
+    metbuild_throw_exception(
+        "Data type must be wind and pressure to interpolate to a wind grid "
+        "object");
+  }
+  MeteorologicalData<3, MetBuild::MeteorologicalDataType> w(m_windGrid->ni(),
+                                                            m_windGrid->nj());
+
+  if (time_weight < 0.0) {
+    if (this->m_useBackgroundFlag) {
+      w.fill(
+          MeteorologicalData<3,
+                             MetBuild::MeteorologicalDataType>::flag_value());
+    } else {
+      w.fill_parameter(0, 0.0);
+      w.fill_parameter(1, 0.0);
+      w.fill_parameter(
+          2, MeteorologicalData<
+                 3, MetBuild::MeteorologicalDataType>::background_pressure());
     }
     return w;
   }
@@ -132,13 +227,17 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
           m_interpolation_1->weight[j][i][0] == 0.0 ||
           m_interpolation_2->weight[j][i][0] == 0.0) {
         if (this->m_useBackgroundFlag) {
-          w.setU(i, j, WindData::flag_value());
-          w.setV(i, j, WindData::flag_value());
-          w.setP(i, j, WindData::flag_value());
+          w.set(0, i, j,
+                MeteorologicalData<3, MeteorologicalDataType>::flag_value());
+          w.set(1, i, j,
+                MeteorologicalData<3, MeteorologicalDataType>::flag_value());
+          w.set(2, i, j,
+                MeteorologicalData<3, MeteorologicalDataType>::flag_value());
         } else {
-          w.setU(i, j, 0.0);
-          w.setV(i, j, 0.0);
-          w.setP(i, j, WindData::background_pressure());
+          w.set(0, i, j, 0.0);
+          w.set(1, i, j, 0.0);
+          w.set(2, i, j,
+                MeteorologicalData<3, MeteorologicalDataType>::flag_value());
         }
       } else {
         double u_star1 = 0.0;
@@ -164,24 +263,39 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
           w2_sum += w2;
         }
 
-        if (w1_sum == 0.0 && w2_sum == 0.0) {
-          w.setU(i, j, 0.0);
-          w.setV(i, j, 0.0);
-          w.setP(i, j, WindData::background_pressure());
-        } else if (w1_sum == 0.0 && w2_sum != 0.0) {
-          w.setU(i, j, u_star2 * (1.0 / w2_sum));
-          w.setV(i, j, v_star2 * (1.0 / w2_sum));
-          w.setP(i, j, p_star2 * (1.0 / w2_sum) / 100.0);  // .. Convert to mb
-        } else if (w1_sum != 0.0 && w2_sum == 0.0) {
-          w.setU(i, j, u_star1 * (1.0 / w1_sum));
-          w.setV(i, j, v_star1 * (1.0 / w1_sum));
-          w.setP(i, j, p_star1 * (1.0 / w2_sum) / 100.0);  // .. Convert to mb
+        if (equal_zero(w1_sum) && equal_zero(w2_sum)) {
+          w.set(0, i, j, 0.0);
+          w.set(1, i, j, 0.0);
+          w.set(2, i, j,
+                MeteorologicalData<
+                    3, MeteorologicalDataType>::background_pressure());
+        } else if (equal_zero(w1_sum) && not_equal_zero(w2_sum)) {
+          w.set(0, i, j,
+                static_cast<MeteorologicalDataType>(u_star2 * (1.0 / w2_sum)));
+          w.set(1, i, j,
+                static_cast<MeteorologicalDataType>(v_star2 * (1.0 / w2_sum)));
+          w.set(2, i, j,
+                static_cast<MeteorologicalDataType>(
+                    p_star2 * (1.0 / w2_sum) / 100.0));  // .. Convert to mb
+        } else if (not_equal_zero(w1_sum) && equal_zero(w2_sum)) {
+          w.set(0, i, j,
+                static_cast<MeteorologicalDataType>(u_star1 * (1.0 / w1_sum)));
+          w.set(1, i, j,
+                static_cast<MeteorologicalDataType>(v_star1 * (1.0 / w1_sum)));
+          w.set(2, i, j,
+                static_cast<MeteorologicalDataType>(
+                    p_star1 * (1.0 / w2_sum) / 100.0));  // .. Convert to mb
         } else {
-          w.setU(i, j, (1.0 - time_weight) * u_star1 + time_weight * u_star2);
-          w.setV(i, j, (1.0 - time_weight) * v_star1 + time_weight * v_star2);
-          w.setP(i, j,
-                 ((1.0 - time_weight) * p_star1 + time_weight * p_star2) /
-                     100.0);  // .. Convert to mb
+          w.set(0, i, j,
+                static_cast<MeteorologicalDataType>(
+                    (1.0 - time_weight) * u_star1 + time_weight * u_star2));
+          w.set(1, i, j,
+                static_cast<MeteorologicalDataType>(
+                    (1.0 - time_weight) * v_star1 + time_weight * v_star2));
+          w.set(2, i, j,
+                static_cast<MeteorologicalDataType>(
+                    ((1.0 - time_weight) * p_star1 + time_weight * p_star2) /
+                    100.0));  // .. Convert to mb
         }
       }
     }
@@ -190,8 +304,7 @@ MetBuild::WindData Meteorology::to_wind_grid(double time_weight) {
 }
 
 Meteorology::InterpolationWeights Meteorology::generate_interpolation_weight(
-    const MetBuild::Grib *grib, const MetBuild::WindGrid *wind_grid) {
-
+    const MetBuild::Grib *grib, const MetBuild::Grid *wind_grid) {
   InterpolationWeights weights;
   weights.resize(wind_grid->ni(), wind_grid->nj());
 
@@ -262,8 +375,40 @@ int Meteorology::write_debug_file(int index) const {
 double Meteorology::generate_time_weight(const MetBuild::Date &t1,
                                          const MetBuild::Date &t2,
                                          const MetBuild::Date &t_output) {
-  double s1 = static_cast<double>(t1.toSeconds());
-  double s2 = static_cast<double>(t2.toSeconds());
-  double s3 = static_cast<double>(t_output.toSeconds());
+  auto s1 = static_cast<double>(t1.toSeconds());
+  auto s2 = static_cast<double>(t2.toSeconds());
+  auto s3 = static_cast<double>(t_output.toSeconds());
   return (s3 - s1) / (s2 - s1);
+}
+
+void Meteorology::findScalarVariableName(const std::string &filename) {
+  const auto candidates = [&]() {  // IILE
+    switch (m_type) {
+      case RAINFALL:
+        return std::vector<std::string>{"APCP", "PRATE"};
+      case TEMPERATURE:
+        return std::vector<std::string>{"TMP:30-0 mb above ground",
+                                        "TMP:2 m above ground"};
+      case HUMIDITY:
+        return std::vector<std::string>{"RH:30-0 mb above ground",
+                                        "RH:2 m above ground"};
+      case ICE:
+        return std::vector<std::string>{"ICEC:surface"};
+      case WIND_PRESSURE:
+        metbuild_throw_exception(
+            "Invalid to select WIND_PRESSURE for scalar field");
+        return std::vector<std::string>();
+      default:
+        metbuild_throw_exception("Invalid scalar variable type specified.");
+        return std::vector<std::string>();
+    }
+  }();
+
+  for (const auto &s : candidates) {
+    if (Grib::containsVariable(filename, s)) {
+      m_scalarVariableName = s;
+      return;
+    }
+  }
+  metbuild_throw_exception("Variable could not be found in the specified file");
 }

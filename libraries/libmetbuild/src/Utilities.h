@@ -26,11 +26,14 @@
 #ifndef METGET_SRC_UTILITIES_H_
 #define METGET_SRC_UTILITIES_H_
 
+#include <limits>
 #include <vector>
 
 #include "boost/filesystem.hpp"
 
-namespace MetGetUtility {
+namespace MetBuild {
+
+namespace Utilities {
 template <typename T>
 std::vector<T> vector_generate(size_t n, T init = 0, T increment = 1) {
   std::vector<T> v;
@@ -55,6 +58,32 @@ inline bool exists(const std::string &file) {
   return boost::filesystem::exists(file);
 }
 
-}  // namespace MetGetUtility
+template <typename T, typename std::enable_if<
+                          std::is_floating_point<T>::value>::type * = nullptr>
+constexpr bool equal(const T v1, const T v2) {
+  return std::abs(v1 - v2) < std::numeric_limits<T>::epsilon();
+}
 
+template <typename T, typename std::enable_if<
+                          std::is_floating_point<T>::value>::type * = nullptr>
+constexpr bool not_equal(const T v1, const T v2) {
+  return !equal(v1, v2);
+}
+
+template <typename T, typename std::enable_if<
+                          std::is_floating_point<T>::value>::type * = nullptr>
+constexpr bool equal_zero(const T v1) {
+  return equal(v1, 0.0);
+}
+
+template <typename T, typename std::enable_if<
+                          std::is_floating_point<T>::value>::type * = nullptr>
+constexpr bool not_equal_zero(const T v1) {
+  return not_equal(v1, 0.0);
+}
+
+void ncCheck(int err);
+
+}  // namespace Utilities
+}  // namespace MetBuild
 #endif  // METGET_SRC_UTILITIES_H_

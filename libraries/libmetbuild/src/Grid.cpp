@@ -23,7 +23,7 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#include "WindGrid.h"
+#include "Grid.h"
 
 #include <fstream>
 #include <iostream>
@@ -36,8 +36,7 @@ namespace bg = boost::geometry;
 typedef bg::model::point<double, 2, bg::cs::cartesian> point_t;
 typedef bg::model::polygon<point_t> polygon_t;
 
-WindGrid::WindGrid(double llx, double lly, double urx, double ury, double dx,
-                   double dy)
+Grid::Grid(double llx, double lly, double urx, double ury, double dx, double dy)
     : m_di(dx),
       m_dj(dy),
       m_rotation(0.0),
@@ -63,8 +62,8 @@ WindGrid::WindGrid(double llx, double lly, double urx, double ury, double dx,
   this->generateGrid();
 }
 
-WindGrid::WindGrid(double xinit, double yinit, size_t ni, size_t nj, double di,
-                   double dj, double rotation)
+Grid::Grid(double xinit, double yinit, size_t ni, size_t nj, double di,
+           double dj, double rotation)
     : m_di(di),
       m_dj(dj),
       m_rotation(rotation * M_PI / 180.0),
@@ -87,9 +86,9 @@ WindGrid::WindGrid(double xinit, double yinit, size_t ni, size_t nj, double di,
   this->generateGrid();
 }
 
-WindGrid::~WindGrid() = default;
+Grid::~Grid() = default;
 
-WindGrid::WindGrid(const WindGrid &w)
+Grid::Grid(const Grid &w)
     : m_di(w.di()),
       m_dj(w.dj()),
       m_rotation(w.rotation() * M_PI / 180.0),
@@ -106,7 +105,7 @@ WindGrid::WindGrid(const WindGrid &w)
       m_corners(generateCorners(m_center.x(), m_center.y(), m_width, m_height)),
       m_geometry(std::make_unique<Geometry>(m_corners)) {}
 
-void WindGrid::generateGrid() {
+void Grid::generateGrid() {
   m_grid = std::vector<std::vector<Point>>(nj(), std::vector<Point>(ni()));
   for (size_t j = 0; j < nj(); ++j) {
     for (size_t i = 0; i < ni(); ++i) {
@@ -116,7 +115,7 @@ void WindGrid::generateGrid() {
   }
 }
 
-void WindGrid::write(const std::string &filename) const {
+void Grid::write(const std::string &filename) const {
   std::ofstream fout;
   fout.open(filename);
   size_t count = 0;
@@ -134,13 +133,15 @@ void WindGrid::write(const std::string &filename) const {
   fout.close();
 }
 
-bool WindGrid::point_inside(const MetBuild::Point &p) const {
+bool Grid::point_inside(const MetBuild::Point &p) const {
   return this->m_geometry->is_inside(p);
 }
 
-std::array<MetBuild::Point, 4> WindGrid::generateCorners(
-    const double cx, const double cy, const double w, const double h,
-    const double rotation) {
+std::array<MetBuild::Point, 4> Grid::generateCorners(const double cx,
+                                                     const double cy,
+                                                     const double w,
+                                                     const double h,
+                                                     const double rotation) {
   Point top_right(
       cx + ((w / 2.0) * std::cos(rotation)) - ((h / 2.0) * std::sin(rotation)),
       cy + ((w / 2.0) * std::sin(rotation)) + ((h / 2.0) * std::cos(rotation)));
@@ -158,4 +159,25 @@ std::array<MetBuild::Point, 4> WindGrid::generateCorners(
       cy + ((w / 2.0) * std::sin(rotation)) - ((h / 2.0) * std::cos(rotation)));
 
   return {bottom_left, bottom_right, top_right, top_left};
+}
+std::vector<double> Grid::x() const {
+  std::vector<double> x;
+  x.reserve(ni() * nj());
+  for (const auto &r : m_grid) {
+    for (const auto &c : r) {
+      x.push_back(c.x());
+    }
+  }
+  return x;
+}
+
+std::vector<double> Grid::y() const {
+  std::vector<double> y;
+  y.reserve(ni() * nj());
+  for (const auto &r : m_grid) {
+    for (const auto &c : r) {
+      y.push_back(c.y());
+    }
+  }
+  return y;
 }

@@ -32,46 +32,44 @@
 #include <vector>
 
 #include "Date.h"
-#include "WindGrid.h"
+#include "Grid.h"
+#include "MeteorologicalData.h"
+#include "OutputDomain.h"
 
 namespace MetBuild {
 
-class OwiAsciiDomain {
+class OwiAsciiDomain : public OutputDomain {
  public:
-  OwiAsciiDomain(const MetBuild::WindGrid *grid,
-                 const MetBuild::Date &startDate, const MetBuild::Date &endDate,
-                 unsigned time_step, std::string pressureFile,
-                 std::string windFile);
+  OwiAsciiDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
+                 const MetBuild::Date &endDate, unsigned time_step,
+                 const std::string &pressureFile, const std::string &windFile);
 
-  ~OwiAsciiDomain();
+  ~OwiAsciiDomain() override;
 
-  int write(const MetBuild::Date &date,
-            const std::vector<std::vector<double>> &pressure,
-            const std::vector<std::vector<double>> &wind_u,
-            const std::vector<std::vector<double>> &wind_v);
+  int write(
+      const MetBuild::Date &date,
+      const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
+          &data) override;
 
-  void open();
+  void open() override;
 
-  void close();
+  void close() override;
 
  private:
   void write_header();
 
-  static std::string formatHeaderCoordinates(double value);
+  static std::string formatHeaderCoordinates(float value);
   static std::string generateHeaderLine(const Date &date1, const Date &date2);
-  static std::string generateRecordHeader(const Date &date,
-                                          const WindGrid *grid);
-  void write_record(std::ofstream *stream,
-                    const std::vector<std::vector<double>> &value) const;
+  static std::string generateRecordHeader(const Date &date, const Grid *grid);
 
-  bool m_isOpen;
-  const Date m_startDate;
-  const Date m_endDate;
+  void write_record(
+      std::ofstream *stream,
+      const std::vector<std::vector<MetBuild::MeteorologicalDataType>> &value)
+      const;
+
   Date m_previousDate;
-  const unsigned m_timestep;
   std::unique_ptr<std::ofstream> m_ofstream_pressure;
   std::unique_ptr<std::ofstream> m_ofstream_wind;
-  const WindGrid *m_windGrid;
   const std::string m_pressureFile;
   const std::string m_windFile;
 };

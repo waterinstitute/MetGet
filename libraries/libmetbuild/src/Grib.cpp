@@ -56,7 +56,7 @@ std::string Grib::filename() const { return m_filename; }
 bool isnotalpha(char c) { return !isalpha(c) && !isalnum(c); }
 
 codes_handle *Grib::make_handle(const std::string &filename,
-                                const std::string &name) {
+                                const std::string &name, bool quiet) {
   FILE *f = fopen(filename.c_str(), "r");
   int ierr = 0;
 
@@ -77,7 +77,7 @@ codes_handle *Grib::make_handle(const std::string &filename,
     }
   }
   fclose(f);
-  metbuild_throw_exception("Could not generate the eccodes handle");
+  if (!quiet) metbuild_throw_exception("Could not generate the eccodes handle");
   return nullptr;
 }
 
@@ -101,6 +101,16 @@ void Grib::initialize() {
 
   m_tree = std::make_unique<Kdtree>(m_longitude, m_latitude);
   this->findCorners();
+}
+
+bool Grib::containsVariable(const std::string &filename,
+                            const std::string &name) {
+  auto handle = Grib::make_handle(filename, name, true);
+  if (handle) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 std::vector<double> Grib::getGribArray1d(const std::string &name) {

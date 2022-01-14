@@ -23,28 +23,38 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#ifndef METGET_SRC_OWI_H_
-#define METGET_SRC_OWI_H_
+#ifndef METGET_SRC_OUTPUT_OWINETCDFDOMAIN_H_
+#define METGET_SRC_OUTPUT_OWINETCDFDOMAIN_H_
 
-#include <string>
-#include <vector>
+#include "Date.h"
+#include "Grid.h"
+#include "MeteorologicalData.h"
+#include "OutputDomain.h"
+#include "OwiNcFile.h"
 
-#include "NcFile.h"
+namespace MetBuild {
 
-class OwiNetcdf {
+class OwiNetcdfDomain : public OutputDomain {
  public:
-  explicit OwiNetcdf(std::string filename);
+  OwiNetcdfDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
+                  const MetBuild::Date &endDate, unsigned time_step,
+                  std::string groupName, MetBuild::OwiNcFile *netcdf);
 
-  int initialize();
+  ~OwiNetcdfDomain() override = default;
 
-  void addGroup(const std::string &name, unsigned ni, unsigned nj, unsigned nt,
-                bool movingGrid = false);
+  void open() override { this->m_ncFile->addGroup(m_groupName, this->grid()); }
+  void close() override {}
 
-  void writeToFile(const std::string &filename);
+  int write(
+      const MetBuild::Date &date,
+      const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
+          &data) override;
 
  private:
-  std::string m_filename;
-  NcFile m_file;
+  MetBuild::OwiNcFile *m_ncFile;
+  unsigned m_group;
+  size_t m_counter;
+  const std::string m_groupName;
 };
-
-#endif  // METGET_SRC_OWI_H_
+}  // namespace MetBuild
+#endif  // METGET_SRC_OUTPUT_OWINETCDFDOMAIN_H_

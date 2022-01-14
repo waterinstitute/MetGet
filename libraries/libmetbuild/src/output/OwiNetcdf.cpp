@@ -23,11 +23,34 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#include "Date.h"
-#include "Grid.h"
-#include "Kdtree.h"
-#include "MetBuild_Global.h"
-#include "Meteorology.h"
-#include "OwiAscii.h"
-#include "Point.h"
-#include "WindData.h"
+#include "OwiNetcdf.h"
+
+using namespace MetBuild;
+
+OwiNetcdf::OwiNetcdf(const MetBuild::Date &date_start,
+                     const MetBuild::Date &date_end, unsigned time_step,
+                     std::string filename)
+    : OutputFile(date_start, date_end, time_step),
+      m_ncfile(std::move(filename)) {
+  this->m_ncfile.initialize();
+}
+
+void OwiNetcdf::addDomain(const MetBuild::Grid &w,
+                          const std::vector<std::string> &groupNames) {
+  constexpr bool isMovingGrid = false;
+
+  if (groupNames.empty()) {
+    metbuild_throw_exception(
+        "Must provide the name of the group for OwiNetcdf");
+  }
+
+  this->m_domains.push_back(std::make_unique<MetBuild::OwiNetcdfDomain>(
+      &w, this->startDate(), this->endDate(), this->timeStep(), groupNames[0],
+      &m_ncfile));
+}
+
+int OwiNetcdf::write(
+    const Date &date, size_t domain_index,
+    const MeteorologicalData<3, MetBuild::MeteorologicalDataType> &data) {
+  return this->m_domains[domain_index]->write(date, data);
+}

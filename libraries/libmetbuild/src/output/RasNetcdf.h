@@ -23,43 +23,34 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#ifndef METGET_LIBRARY_WINDDATA_H_
-#define METGET_LIBRARY_WINDDATA_H_
+#ifndef METGET_SRC_OUTPUT_RASNETCDF_H_
+#define METGET_SRC_OUTPUT_RASNETCDF_H_
 
-#include <array>
-#include <vector>
+#include "OutputFile.h"
 
 namespace MetBuild {
 
-class WindData {
+class RasNetcdf : public OutputFile {
  public:
-  explicit WindData(size_t ni, size_t nj);
+  RasNetcdf(const MetBuild::Date &date_start, const MetBuild::Date &date_end,
+            unsigned time_step, std::string filename);
 
-  static constexpr double background_pressure() { return 1013.0; }
-  static constexpr double flag_value() { return -999.0; }
+  ~RasNetcdf();
 
-  const std::vector<std::vector<double>> &u() const;
-  const std::vector<std::vector<double>> &v() const;
-  const std::vector<std::vector<double>> &p() const;
+  void addDomain(const MetBuild::Grid &w,
+                 const std::vector<std::string> &variables) override;
 
-  constexpr size_t ni() const { return m_ni; }
-  constexpr size_t nj() const { return m_nj; }
-
-  void fill(double u, double v, double p);
-  void fill(double value);
-
-  void setU(size_t i, size_t j, double value);
-  void setV(size_t i, size_t j, double value);
-  void setP(size_t i, size_t j, double value);
+  int write(
+      const MetBuild::Date &date, size_t domain_index,
+      const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
+          &data) override;
 
  private:
-  size_t m_ni;
-  size_t m_nj;
-  std::vector<std::vector<double>> m_u;
-  std::vector<std::vector<double>> m_v;
-  std::vector<std::vector<double>> m_p;
+  void initialize();
+
+  int m_ncid;
+  std::string m_filename;
 };
 
 }  // namespace MetBuild
-
-#endif  // METGET_LIBRARY_WINDDATA_H_
+#endif  // METGET_SRC_OUTPUT_RASNETCDF_H_

@@ -29,27 +29,21 @@
 MetBuild::OwiAscii::OwiAscii(const MetBuild::Date& startDate,
                              const MetBuild::Date& endDate,
                              const unsigned time_step)
-    : m_startdate(startDate), m_enddate(endDate), m_timestep(time_step) {}
+    : OutputFile(startDate, endDate, time_step) {}
 
-int MetBuild::OwiAscii::addDomain(const MetBuild::WindGrid& w,
-                                  const std::string& pressureFile,
-                                  const std::string& windFile) {
-  m_domains.push_back(std::make_unique<OwiAsciiDomain>(
-      &w, m_startdate, m_enddate, m_timestep, pressureFile, windFile));
-  return 0;
+void MetBuild::OwiAscii::addDomain(const MetBuild::Grid& w,
+                                   const std::vector<std::string>& filenames) {
+  if (filenames.size() < 2) {
+    metbuild_throw_exception("Must provide two filenames for OwiAscii format");
+  }
+  m_domains.push_back(std::make_unique<MetBuild::OwiAsciiDomain>(
+      &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0],
+      filenames[1]));
 }
 
-int MetBuild::OwiAscii::write(const MetBuild::Date& date,
-                              const size_t domain_index,
-                              const std::vector<std::vector<double>>& pressure,
-                              const std::vector<std::vector<double>>& wind_u,
-                              const std::vector<std::vector<double>>& wind_v) {
+int MetBuild::OwiAscii::write(
+    const MetBuild::Date& date, const size_t domain_index,
+    const MetBuild::MeteorologicalData<3, MeteorologicalDataType>& data) {
   assert(domain_index < m_domains.size());
-  return m_domains[domain_index]->write(date, pressure, wind_u, wind_v);
-}
-
-int MetBuild::OwiAscii::write(const MetBuild::Date& date,
-                              const size_t domain_index,
-                              const MetBuild::WindData& data) {
-  return this->write(date, domain_index, data.p(), data.u(), data.v());
+  return m_domains[domain_index]->write(date, data);
 }
