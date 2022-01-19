@@ -47,27 +47,14 @@ class MeteorologicalData {
     this->resize(m_ni, m_nj);
   }
 
+  ~MeteorologicalData() = default; 
+
   static constexpr T background_pressure() { return 1013.0; }
 
   size_t ni() const { return m_ni; }
 
   size_t nj() const { return m_nj; };
 
-  template <unsigned size, typename T_in, typename T_out>
-  static auto recast(const MeteorologicalData<size, T_in> &value) {
-    MeteorologicalData<size, T_out> v(value.ni(), value.nj());
-    for (auto i = 0; i < value.ni(); ++i) {
-      for (auto j = 0; j < value.nj(); ++j) {
-        auto f = value.getPack(i, j);
-        std::array<T_out, size> ff;
-        for (auto k = 0; k < size; ++k) {
-          ff[k] = static_cast<T_out>(f[k]);
-        }
-        v.setPack(i, j, ff);
-      }
-    }
-    return v;
-  }
 
   void resize(const size_t ni, const size_t nj) {
     m_ni = ni;
@@ -164,11 +151,38 @@ class MeteorologicalData {
   static constexpr T flag_value() { return -999.0; }
 
   constexpr size_t nParameters() const { return parameters; }
+ 
+ protected:
+
+#ifndef SWIG
+  template <unsigned size, typename T_in, typename T_out>
+  static auto recast(const MeteorologicalData<size, T_in> &value) {
+    MeteorologicalData<size, T_out> v(value.ni(), value.nj());
+    for (auto i = 0; i < value.ni(); ++i) {
+      for (auto j = 0; j < value.nj(); ++j) {
+        auto f = value.getPack(i, j);
+        std::array<T_out, size> ff;
+        for (auto k = 0; k < size; ++k) {
+          ff[k] = static_cast<T_out>(f[k]);
+        }
+        v.setPack(i, j, ff);
+      }
+    }
+    return v;
+  }
+#endif
 
  private:
   size_t m_ni;
   size_t m_nj;
   std::array<std::vector<std::vector<T>>, parameters> m_data;
 };
+
+
 }  // namespace MetBuild
+
+//template class MetBuild::MeteorologicalData<1,MetBuild::MeteorologicalDataType>;
+//template class MetBuild::MeteorologicalData<2,MetBuild::MeteorologicalDataType>;
+//template class MetBuild::MeteorologicalData<3,MetBuild::MeteorologicalDataType>;
+
 #endif  // METGET_SRC_METEOROLOGICALDATA_H_

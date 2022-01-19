@@ -50,10 +50,12 @@ std::vector<OwiNcFile::NcGroup>* OwiNcFile::groups() { return &m_groups; }
 
 void OwiNcFile::initialize() {
   ncCheck(nc_create(m_filename.c_str(), NC_NETCDF4, &m_ncid));
+  ncCheck(nc_enddef(m_ncid));
 }
 
 int OwiNcFile::addGroup(const std::string& groupName,
                         const MetBuild::Grid* grid, const bool isMovingGrid) {
+
   ncCheck(nc_redef(this->ncid()));
 
   OwiNcFile::NcGroup grp;
@@ -138,10 +140,10 @@ int OwiNcFile::addGroup(const std::string& groupName,
   if (!isMovingGrid) {
     const auto x = grid->x();
     const auto y = grid->y();
-    const size_t ni = grid->ni();
-    const size_t nj = grid->nj();
-    ncCheck(nc_put_vara_double(this->ncid(), grp.varid_lat, 0, &nj, y.data()));
-    ncCheck(nc_put_vara_double(this->ncid(), grp.varid_lon, 0, &ni, x.data()));
+    const size_t start[] = {0,0};
+    const size_t count[] = {grid->nj(), grid->ni()};
+    ncCheck(nc_put_vara_double(grp.grpid, grp.varid_lat, start, count, y.data()));
+    ncCheck(nc_put_vara_double(grp.grpid, grp.varid_lon, start, count, x.data()));
   }
 
   return 0;
@@ -151,18 +153,18 @@ int OwiNcFile::write(unsigned group_index, size_t time_index, size_t time,
                      const std::vector<float>& u, const std::vector<float>& v,
                      const std::vector<float>& p) {
   const size_t start[] = {time_index, 0, 0};
-  const size_t count[] = {1, m_groups[group_index].ni,
-                          m_groups[group_index].nj};
+  const size_t count[] = {1, m_groups[group_index].nj,
+                          m_groups[group_index].ni};
   constexpr size_t one = 1;
   const auto time_long = static_cast<long long>(time);
 
-  ncCheck(nc_put_vara_longlong(this->ncid(), m_groups[group_index].varid_time,
+  ncCheck(nc_put_vara_longlong(m_groups[group_index].grpid, m_groups[group_index].varid_time,
                                &time_index, &one, &time_long));
-  ncCheck(nc_put_vara_float(this->ncid(), m_groups[group_index].varid_u, start,
+  ncCheck(nc_put_vara_float(m_groups[group_index].grpid, m_groups[group_index].varid_u, start,
                             count, u.data()));
-  ncCheck(nc_put_vara_float(this->ncid(), m_groups[group_index].varid_v, start,
+  ncCheck(nc_put_vara_float(m_groups[group_index].grpid, m_groups[group_index].varid_v, start,
                             count, v.data()));
-  ncCheck(nc_put_vara_float(this->ncid(), m_groups[group_index].varid_press,
+  ncCheck(nc_put_vara_float(m_groups[group_index].grpid, m_groups[group_index].varid_press,
                             start, count, p.data()));
 
   return 0;

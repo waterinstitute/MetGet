@@ -98,9 +98,9 @@ class WindGrid:
             raise RuntimeError("Must specify dx/dy")
 
         if xinit is not None and yinit is not None and xend is not None and yend is not None:
-            self.__wg = pymetbuild.WindGrid(xinit,yinit,xend,yend,dx,dy)
+            self.__wg = pymetbuild.Grid(xinit,yinit,xend,yend,dx,dy)
         elif xinit is not None and yinit is not None  and nx is not None and ny is not None:
             if rotation is not None:
                 rotation = 0.0
-            self.__wg = pymetbuild.WindGrid(xinit,yinit,nx,ny,dx,dy,rotation)
+            self.__wg = pymetbuild.Grid(xinit,yinit,nx,ny,dx,dy,rotation)
 

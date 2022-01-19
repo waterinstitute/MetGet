@@ -32,6 +32,68 @@ def datespan(startDate, endDate, delta):
         yield currentDate
         currentDate += delta
 
+def generate_datatype_key(data_type):
+    import pymetbuild
+    if data_type == "wind_pressure":
+        return pymetbuild.Meteorology.WIND_PRESSURE
+    elif data_type == "pressure":
+        return pymetbuild.Meteorology.PRESSURE
+    elif data_type == "wind":
+        return pymetbuild.Meteorology.WIND
+    elif data_type == "rain":
+        return pymetbuild.Meteorology.RAINFALL
+    elif data_type == "humidity":
+        return pymetbuild.Meteorology.HUMIDITY
+    elif data_type == "temperature":
+        return pymetbuild.Meteorology.TEMPERATURE
+    elif data_type == "ice":
+        return pymetbuild.Meteorology.ICE
+    else:
+        raise RuntimeError("Invalid data type requested")
+
+
+def generate_met_field(output_format, start, end, time_step, filename):
+    import pymetbuild
+    if output_format == "ascii" or output_format == "owi-ascii":
+        return pymetbuild.OwiAscii(start,end,time_step)
+    elif output_format == "owi-netcdf":
+        return pymetbuild.OwiNetcdf(start,end,time_step, filename)
+    elif output_format == "hec-netcdf":
+        return pymetbuild.RasNetcdf(start,end,time_step, filename)
+    else:
+        raise RuntimeError("Invalid output format selected")
+
+
+def generate_met_domain(inputData, met_object, index):
+    import pymetbuild
+    d = inputData.domain(index)
+    output_format = inputData.format()
+    if output_format == "ascii" or output_format == "owi-ascii":
+        fn1 = inputData.filename()+"_"+"{:02d}".format(index)+".pre"
+        fn2 = inputData.filename()+"_"+"{:02d}".format(index)+".wnd"
+        fns = [fn1, fn2]
+        met_object.addDomain(d.grid().grid_object(), fns)
+    elif output_format == "owi-netcdf":
+        group = d.service() 
+        met_object.addDomain(d.grid().grid_object(), [group])
+    elif output_format == "hec-netcdf":
+        if inputData.data_type() == "wind_pressure":
+            variables = [ "wind_u", "wind_v", "mslp" ]
+        elif inputData.data_type() == "wind":
+            variables = [ "wind_u", "wind_v" ]
+        elif inputData.data_type() == "rain":
+            variables = [ "rain" ]
+        elif inputData.data_type() == "humidity":
+            variables = [ "humidity" ]
+        elif inputData.data_type() == "ice":
+            variables = [ "ice" ]
+        else:
+            raise RuntimeError("Invalid variable requested")
+        met_object.addDomain(d.grid().grid_object(), variables)
+    else:
+        raise RuntimeError("Invalid output format selected")
+
+
 # Main function to process the message and create the output files and post to S3
 def process_message(json_message, queue, json_file=None):
     import time
@@ -72,17 +134,17 @@ def process_message(json_message, queue, json_file=None):
 
     s3 = S3file(os.environ["OUTPUT_BUCKET"])
 
-    owi_field = pymetbuild.OwiAscii(start_date_pmb,end_date_pmb,time_step)
+    met_field = generate_met_field(inputData.format(), start_date_pmb, end_date_pmb, time_step, inputData.filename())
 
     nowcast = inputData.nowcast()
     multiple_forecasts = inputData.multiple_forecasts()
 
+    data_type_key = generate_datatype_key(inputData.data_type())
+
     domain_data = []
     for i in range(inputData.num_domains()):
+        generate_met_domain(inputData, met_field, i) 
         d = inputData.domain(i)
-        fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
-        fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
-        owi_field.addDomain(d.grid().grid_object(),fn1,fn2)
         f = db.generate_file_list(d.service(),start_date,end_date,d.storm(),nowcast,multiple_forecasts) 
         if len(f) < 2:
             logger.error("No data found for domain "+str(i)+". Giving up.")
@@ -103,14 +165,20 @@ def process_message(json_message, queue, json_file=None):
         return len(domain_data)-1
 
     output_file_list=[]
+    if inputData.format() == "owi-netcdf" or inputData.format == "ras-netcdf":
+        output_file_list.append(inputData.filename())
+
     files_used_list={}
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
-        met = pymetbuild.Meteorology(d.grid().grid_object(),inputData.backfill())
-        fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
-        fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
-        output_file_list.append(fn1)
-        output_file_list.append(fn2)
+        met = pymetbuild.Meteorology(d.grid().grid_object(),data_type_key,inputData.backfill())
+
+        if inputData.format() == "ascii" or inputData.format() == "owi-ascii":
+            fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
+            fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
+            output_file_list.append(fn1)
+            output_file_list.append(fn2)
+
         t0 = domain_data[i][0]["time"]
 
         domain_files_used = []
@@ -142,7 +210,7 @@ def process_message(json_message, queue, json_file=None):
                     Input.date_to_pmb(t1),Input.date_to_pmb(t))
             #print(" -->  ",weight,flush=True)
             values = met.to_wind_grid(weight)
-            owi_field.write(Input.date_to_pmb(t),i,values)
+            met_field.write(Input.date_to_pmb(t),i,values)
 
         if not json_file:
             path1 = messageId + "/" + fn1

@@ -71,7 +71,9 @@ namespace std {
     %template(DoubleVector) vector<double>;
     %template(DoubleDoubleVector) vector<vector<double>>;
     %template(SizetSizetVector) vector<vector<size_t>>;
+    %template(StringVector) vector<string>;
 }
+
 
 %include "MetBuild_Global.h"
 %include "Point.h"
@@ -79,6 +81,7 @@ namespace std {
 %include "Grid.h"
 %include "Kdtree.h"
 %include "Date.h"
+%include "MeteorologicalData.h"
 %include "output/OutputFile.h"
 %include "output/OutputDomain.h"
 %include "output/OwiAscii.h"
@@ -87,3 +90,9 @@ namespace std {
 %include "output/OwiNetcdfDomain.h"
 %include "output/RasNetcdf.h"
 %include "output/RasNetcdfDomain.h"
+
+namespace MetBuild {
+    %template(OneMetVector) MeteorologicalData<1,MeteorologicalDataType>;
+    %template(TwoMetVector) MeteorologicalData<2,MeteorologicalDataType>;
+    %template(ThreeMetVector) MeteorologicalData<3,MeteorologicalDataType>;
+}
