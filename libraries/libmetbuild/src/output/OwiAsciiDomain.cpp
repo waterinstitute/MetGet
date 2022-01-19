@@ -44,6 +44,7 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
       m_pressureFile(pressureFile),
       m_windFile(windFile) {
   assert(startDate < endDate);
+  this->open();
 }
 
 OwiAsciiDomain::~OwiAsciiDomain() {

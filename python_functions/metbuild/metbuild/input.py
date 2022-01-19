@@ -1,7 +1,10 @@
+VALID_DATA_TYPES = ["wind_pressure", "rain", "ice", "humidity", "temperature" ]
+
 class Input:
     def __init__(self, json_data, log, queue, messageid):
         import uuid
         self.__json = json_data
+        self.__data_type = "wind_pressure"
         self.__start_date = None
         self.__end_date = None
         self.__operator = None
@@ -21,6 +24,9 @@ class Input:
 
     def uuid(self):
         return self.__uuid
+
+    def data_type(self):
+        return self.__data_type
 
     def format(self):
         return self.__format
@@ -88,6 +94,15 @@ class Input:
             self.__time_step = self.__json["time_step"]
             self.__filename = self.__json["filename"]
             self.__format = self.__json["format"]
+
+            if self.__format == "owi-netcdf" or self.__format == "ras-netcdf":
+                if not self.__filename[-3:-1] == "nc":
+                    self.__filename = self.__filename + ".nc"
+
+            if "type" in self.__json.keys():
+                self.__data_type = self.__json["data_type"]
+                if self.__data_type not in VALID_DATA_TYPES:
+                    raise RuntimeError("Invalid data type specified")
 
             if "backfill" in self.__json.keys():
                 self.__backfill = self.__json["backfill"]
