@@ -29,6 +29,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "Date.h"
 #include "Utilities.h"
 #include "netcdf.h"
 
@@ -40,6 +41,16 @@ OwiNcFile::OwiNcFile(std::string filename)
 
 OwiNcFile::~OwiNcFile() {
   if (m_ncid != 0) {
+    std::string group_order;
+    for(auto i=0;i<m_groups.size();++i){
+      if(i+1 < m_groups.size()){
+        group_order += m_groups[i].name + " ";
+      } else {
+        group_order += m_groups[i].name;
+      }
+    }
+    const size_t len = group_order.size();
+    ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "group_order", NC_CHAR, len, &group_order[0]));
     nc_close(m_ncid);
   }
 }
@@ -50,6 +61,12 @@ std::vector<OwiNcFile::NcGroup>* OwiNcFile::groups() { return &m_groups; }
 
 void OwiNcFile::initialize() {
   ncCheck(nc_create(m_filename.c_str(), NC_NETCDF4, &m_ncid));
+  constexpr std::string_view metget = "metget";
+  constexpr std::string_view conventions = "CF-1.6 OWI-NWS13";
+  const auto now = Date::now().toString();
+  ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "institution", NC_CHAR, metget.size(), &metget[0]));
+  ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "conventions", NC_CHAR, conventions.size(), &conventions[0]));
+  ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "creation_date", NC_CHAR, now.size(), &now[0]));
   ncCheck(nc_enddef(m_ncid));
 }
 
@@ -59,6 +76,7 @@ int OwiNcFile::addGroup(const std::string& groupName,
   ncCheck(nc_redef(this->ncid()));
 
   OwiNcFile::NcGroup grp;
+  grp.name = groupName;
   ncCheck(nc_def_grp(this->ncid(), groupName.c_str(), &grp.grpid));
   ncCheck(nc_def_dim(grp.grpid, "time", 0, &grp.dimid_time));
   ncCheck(nc_def_dim(grp.grpid, "xi", grid->ni(), &grp.dimid_xi));
@@ -133,8 +151,7 @@ int OwiNcFile::addGroup(const std::string& groupName,
 
   this->groups()->push_back(grp);
   int rank = static_cast<int>(this->groups()->size());
-  ncCheck(nc_put_att_int(this->ncid(), NC_GLOBAL, "rank", NC_INT, 1, &rank));
-
+  ncCheck(nc_put_att_int(grp.grpid, NC_GLOBAL, "rank", NC_INT, 1, &rank));
   ncCheck(nc_enddef(this->ncid()));
 
   if (!isMovingGrid) {

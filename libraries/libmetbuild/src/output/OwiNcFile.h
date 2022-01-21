@@ -60,6 +60,7 @@ class OwiNcFile {
     int varid_v;
     size_t ni;
     size_t nj;
+    std::string name;
   };
 
   explicit OwiNcFile(std::string filename);
