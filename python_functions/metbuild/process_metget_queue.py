@@ -145,7 +145,7 @@ def process_message(json_message, queue, json_file=None):
     for i in range(inputData.num_domains()):
         generate_met_domain(inputData, met_field, i) 
         d = inputData.domain(i)
-        f = db.generate_file_list(d.service(),start_date,end_date,d.storm(),nowcast,multiple_forecasts) 
+        f = db.generate_file_list(d.service(),inputData.data_type(),start_date,end_date,d.storm(),nowcast,multiple_forecasts) 
         if len(f) < 2:
             logger.error("No data found for domain "+str(i)+". Giving up.")
             if not json_file:
