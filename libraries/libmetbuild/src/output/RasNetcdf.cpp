@@ -59,6 +59,12 @@ void RasNetcdf::addDomain(const Grid& w,
 
 int RasNetcdf::write(
     const Date& date, size_t domain_index,
+    const MeteorologicalData<1, MetBuild::MeteorologicalDataType>& data) {
+  return this->m_domains[0]->write(date, data); // Always 0, only 1 domain allowed for RAS
+}
+
+int RasNetcdf::write(
+    const Date& date, size_t domain_index,
     const MeteorologicalData<3, MetBuild::MeteorologicalDataType>& data) {
   return this->m_domains[0]->write(date, data); // Always 0, only 1 domain allowed for RAS
 }

@@ -209,7 +209,10 @@ def process_message(json_message, queue, json_file=None):
                 weight = met.generate_time_weight(Input.date_to_pmb(t0),
                     Input.date_to_pmb(t1),Input.date_to_pmb(t))
             #print(" -->  ",weight,flush=True)
-            values = met.to_wind_grid(weight)
+            if inputData.data_type() == "wind_pressure":
+                values = met.to_wind_grid(weight)
+            else:
+                values = met.to_grid(weight)
             met_field.write(Input.date_to_pmb(t),i,values)
 
         if not json_file:

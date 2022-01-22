@@ -42,6 +42,11 @@ class RasNetcdf : public OutputFile {
 
   int write(
       const MetBuild::Date &date, size_t domain_index,
+      const MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
+          &data) override;
+
+  int write(
+      const MetBuild::Date &date, size_t domain_index,
       const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
           &data) override;
 
