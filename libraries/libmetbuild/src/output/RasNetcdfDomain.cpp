@@ -62,7 +62,8 @@ void RasNetcdfDomain::initialize() {
 
   const int one[] = {1};
   const int twod[] = {m_dimid_y, m_dimid_x};
-  const double float_fill = NC_FILL_FLOAT;
+  const int threed[] = {m_dimid_time, m_dimid_y, m_dimid_x};
+  const float float_fill = NC_FILL_FLOAT;
   const double double_fill = NC_FILL_DOUBLE;
 
   // X
@@ -147,7 +148,7 @@ void RasNetcdfDomain::initialize() {
       standard_name = "northward_wind";
       long_name = "n/s wind velocity";
       units = "m/s";
-    } else if (v == "pressure") {
+    } else if (v == "mslp") {
       standard_name = "air_pressure_at_sea_level";
       long_name = "air pressure at sea level";
       units = "mb";
@@ -167,16 +168,17 @@ void RasNetcdfDomain::initialize() {
 
     int varid = 0;
 #ifdef METBUILD_USE_FLOAT
-    ncCheck(nc_def_var(m_ncid, &v[0], NC_FLOAT, 2, twod, &varid));
+    ncCheck(nc_def_var(m_ncid, &v[0], NC_FLOAT, 3, threed, &varid));
+    ncCheck(nc_def_var_fill(m_ncid, varid, NC_FILL, &float_fill));
 #else
-    ncCheck(nc_def_var(m_ncid, &v[0], NC_DOUBLE, 2, twod, &varid));
+    ncCheck(nc_def_var(m_ncid, &v[0], NC_DOUBLE, 3, threed, &varid));
+    ncCheck(nc_def_var_fill(m_ncid, varid, NC_FILL, &double_fill));
 #endif
     ncCheck(nc_put_att_text(m_ncid, varid, "standard_name",
                             standard_name.size(), &standard_name[0]));
     ncCheck(nc_put_att_text(m_ncid, varid, "long_name", long_name.size(),
                             &long_name[0]));
     ncCheck(nc_put_att_text(m_ncid, varid, "units", units.size(), &units[0]));
-    ncCheck(nc_def_var_fill(m_ncid, varid, NC_FILL, &float_fill));
     ncCheck(nc_def_var_deflate(m_ncid, varid, 1, 1, 2));
     this->m_varids.push_back(varid);
   }
@@ -190,14 +192,14 @@ int RasNetcdfDomain::write(const MetBuild::Date &date,
       (static_cast<double>(date.toSeconds() - this->startDate().toSeconds())) /
       60.0};  // time offset in minutes
   const size_t start_array[] = {m_counter, 0, 0};
-  const size_t count_array[] = {1, this->grid()->ni(), this->grid()->nj()};
+  const size_t count_array[] = {1, this->grid()->nj(), this->grid()->ni()};
   const size_t start_scalar[] = {m_counter};
   const size_t count_scalar[] = {1};
 
   ncCheck(nc_put_vara_double(m_ncid, m_varid_time, start_scalar, count_scalar,
                              minutes));
 
-  const auto array = data.getVector(0);
+  const auto array = data.toVector(0);
 #ifdef METBUILD_USE_FLOAT
   ncCheck(nc_put_vara_float(m_ncid, m_varids[0], start_array, count_array,
                             array.data()));
@@ -216,7 +218,7 @@ int RasNetcdfDomain::write(const MetBuild::Date &date,
       (static_cast<double>(date.toSeconds() - this->startDate().toSeconds())) /
       60.0};  // time offset in minutes
   const size_t start_array[] = {m_counter, 0, 0};
-  const size_t count_array[] = {1, this->grid()->ni(), this->grid()->nj()};
+  const size_t count_array[] = {1, this->grid()->nj(), this->grid()->ni()};
   const size_t start_scalar[] = {m_counter};
   const size_t count_scalar[] = {1};
 
@@ -224,7 +226,7 @@ int RasNetcdfDomain::write(const MetBuild::Date &date,
                              minutes));
 
   for (size_t i = 0; i < m_varids.size(); ++i) {
-    const auto array = data.getVector(i);
+    const auto array = data.toVector(i);
 #ifdef METBUILD_USE_FLOAT
     ncCheck(nc_put_vara_float(m_ncid, m_varids[i], start_array, count_array,
                               array.data()));
