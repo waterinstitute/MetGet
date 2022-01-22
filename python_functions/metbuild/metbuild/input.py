@@ -95,7 +95,7 @@ class Input:
             self.__filename = self.__json["filename"]
             self.__format = self.__json["format"]
 
-            if self.__format == "owi-netcdf" or self.__format == "ras-netcdf":
+            if self.__format == "owi-netcdf" or self.__format == "hec-netcdf":
                 if not self.__filename[-3:-1] == "nc":
                     self.__filename = self.__filename + ".nc"
 

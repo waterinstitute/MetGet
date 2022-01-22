@@ -123,11 +123,6 @@ class MeteorologicalData {
     return m_data[parameter][i][j];
   }
 
-  std::vector<T> getVector(const size_t parameter) const {
-    assert(parameter < parameters);
-    return std::vector<T>();
-  }
-
   std::array<T, parameters> getPack(const size_t i, const size_t j) const {
     std::array<T, parameters> out;
     assert(i < m_ni);
