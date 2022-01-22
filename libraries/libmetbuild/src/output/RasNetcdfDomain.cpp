@@ -108,7 +108,7 @@ void RasNetcdfDomain::initialize() {
   ncCheck(nc_def_var_deflate(m_ncid, m_varid_time, 1, 1, 2));
 
   // CRS
-  ncCheck(nc_def_var(m_ncid, "crs", NC_INT, 1, one, &m_varid_crs));
+  ncCheck(nc_def_var(m_ncid, "crs", NC_INT, 0, one, &m_varid_crs));
   ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "long_name", 27,
                           "coordinate reference system"));
   ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "grid_mapping_name", 18,
@@ -152,10 +152,10 @@ void RasNetcdfDomain::initialize() {
       standard_name = "air_pressure_at_sea_level";
       long_name = "air pressure at sea level";
       units = "mb";
-    } else if (v == "rainfall") {
+    } else if (v == "rain") {
       standard_name = "rainfall_rate";
       long_name = "rate of rainfall";
-      units = "m s-1";
+      units = "mm s-1";
     } else if (v == "humidity") {
       standard_name = "relative_humidity";
       long_name = "relative humidity in air at ground level";
@@ -184,6 +184,14 @@ void RasNetcdfDomain::initialize() {
   }
 
   ncCheck(nc_enddef(m_ncid));
+
+  const auto x = this->grid()->xcolumn();
+  const auto y = this->grid()->ycolumn();
+  const size_t start[] = {0};
+
+  ncCheck(nc_put_vara(m_ncid, m_varid_x, start, &nx, x.data()));
+  ncCheck(nc_put_vara(m_ncid, m_varid_y, start, &ny, y.data()));
+
 }
 
 int RasNetcdfDomain::write(const MetBuild::Date &date,
