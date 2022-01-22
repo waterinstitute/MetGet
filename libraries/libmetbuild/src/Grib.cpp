@@ -105,8 +105,10 @@ void Grib::initialize() {
 
 bool Grib::containsVariable(const std::string &filename,
                             const std::string &name) {
+  codes_grib_multi_support_on(grib_context_get_default());
   auto handle = Grib::make_handle(filename, name, true);
   if (handle) {
+    Grib::close_handle(handle);  
     return true;
   } else {
     return false;

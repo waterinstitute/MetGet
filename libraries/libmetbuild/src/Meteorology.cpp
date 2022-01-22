@@ -121,7 +121,7 @@ MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
   }
 
   if (m_scalarVariableName.empty()) {
-    this->findScalarVariableName(m_grib1->filename());
+    this->findScalarVariableName(m_file1);
   }
 
   this->process_data();
@@ -385,13 +385,13 @@ void Meteorology::findScalarVariableName(const std::string &filename) {
   const auto candidates = [&]() {  // IILE
     switch (m_type) {
       case RAINFALL:
-        return std::vector<std::string>{"APCP", "PRATE"};
+        return std::vector<std::string>{"apcp", "prate"};
       case TEMPERATURE:
-        return std::vector<std::string>{"TMP:30-0 mb above ground",
-                                        "TMP:2 m above ground"};
+        return std::vector<std::string>{"tmp:30-0 mb above ground",
+                                        "tmp:2 m above ground"};
       case HUMIDITY:
-        return std::vector<std::string>{"RH:30-0 mb above ground",
-                                        "RH:2 m above ground"};
+        return std::vector<std::string>{"rh:30-0 mb above ground",
+                                        "rh:2 m above ground"};
       case ICE:
         return std::vector<std::string>{"ICEC:surface"};
       case WIND_PRESSURE:

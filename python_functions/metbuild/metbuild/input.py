@@ -99,7 +99,7 @@ class Input:
                 if not self.__filename[-3:-1] == "nc":
                     self.__filename = self.__filename + ".nc"
 
-            if "type" in self.__json.keys():
+            if "data_type" in self.__json.keys():
                 self.__data_type = self.__json["data_type"]
                 if self.__data_type not in VALID_DATA_TYPES:
                     raise RuntimeError("Invalid data type specified")
