@@ -31,27 +31,50 @@ class Database:
     def bucket(self):
         return self.__bucket
 
-    def generate_file_list(self, service, start, end, storm, nowcast, multiple_forecasts):
+    def generate_file_list(self, service, param, start, end, storm, nowcast, multiple_forecasts):
         import sys
         if service == "gfs-ncep":
-            return self.generate_generic_file_list("gfs_ncep", start, end, nowcast, multiple_forecasts)
+            return self.generate_generic_file_list("gfs_ncep", param, start, end, nowcast, multiple_forecasts)
         elif service == "nam-ncep":
-            return self.generate_generic_file_list("nam_ncep", start, end, nowcast, multiple_forecasts)
+            return self.generate_generic_file_list("nam_ncep", param, start, end, nowcast, multiple_forecasts)
         elif service == "hwrf":
             return self.generate_hwrf_file_list(start, end, storm)
         else:
             print("ERROR: Invalid data type")
             sys.exit(1)
 
-    def generate_generic_file_list(self, table, start, end, nowcast, multiple_forecasts):
+    def generate_generic_file_list(self, table, param_type, start, end, nowcast, multiple_forecasts):
         from datetime import timedelta
-        if nowcast:
-            return self.generate_generic_file_list_nowcast(table, start, end)
+        if table == "nam_ncep" and param_type == "rain":
+            return self.generate_generic_file_list_ignore_zero_hour(table, start, end)
         else:
-            if multiple_forecasts:
-                return self.generate_generic_file_list_multiple_forecasts(table, start, end)
+            if nowcast:
+                return self.generate_generic_file_list_nowcast(table, start, end)
             else:
-                return self.generate_generic_file_list_single_forecast(table, start, end)
+                if multiple_forecasts:
+                    return self.generate_generic_file_list_multiple_forecasts(table, start, end)
+                else:
+                    return self.generate_generic_file_list_single_forecast(table, start, end)
+
+    def generate_generic_file_list_ignore_zero_hour(self, table, start, end):
+        """ 
+        This is a very specific use case. The NAM model doesn't report precip rate in the operational setting
+        so we need to use accumulated precip, however, at the zero hour, no precip has accumulated. Rather than
+        constantly interpolating to/from zero, we will just ignore zero hour forecasts when the rainfall is requested
+        from the NAM model
+        """
+        sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \
+              " t1 JOIN(select forecasttime, max(id) id FROM "+table+" group by forecasttime order by forecasttime) t2 " \
+              "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
+              "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
+              "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle != t1.forecasttime;"
+        print(sql)
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+        for f in rows:
+            return_list.append([f[2], f[3]])
+        return return_list
 
     def generate_generic_file_list_nowcast(self, table, start, end):
         sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from " + table + \

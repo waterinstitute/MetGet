@@ -33,9 +33,11 @@
 
 #include "Geometry.h"
 #include "Logging.h"
+#include "boost/algorithm/string/split.hpp"
 #include "boost/algorithm/string/trim.hpp"
 #include "boost/format.hpp"
 #include "eccodes.h"
+#include "Utilities.h"
 
 using namespace MetBuild;
 
@@ -55,6 +57,51 @@ std::string Grib::filename() const { return m_filename; }
 
 bool isnotalpha(char c) { return !isalpha(c) && !isalnum(c); }
 
+int Grib::getStepLength(const std::string &filename, const std::string &name){
+  FILE *f = fopen(filename.c_str(), "r");
+  int ierr = 0;
+
+  while (auto h = codes_handle_new_from_file(codes_context_get_default(), f,
+                                             PRODUCT_GRIB, &ierr)) {
+    CODES_CHECK(ierr, nullptr);
+    std::string pname;
+    size_t plen = 0;
+    CODES_CHECK(codes_get_length(h, "shortName", &plen), nullptr);
+    pname.resize(plen, ' ');
+    CODES_CHECK(codes_get_string(h, "shortName", &pname[0], &plen), nullptr);
+    boost::trim_if(pname, isnotalpha);
+    if (pname == name) {
+      std::string p2name;
+      size_t p2len = 0;
+      CODES_CHECK(codes_get_length(h, "stepRange", &p2len), nullptr);
+      p2name.resize(p2len, ' ');
+      CODES_CHECK(codes_get_string(h, "stepRange", &p2name[0], &p2len), nullptr);
+      boost::trim_if(p2name, isnotalpha);
+      Grib::close_handle(h);
+      fclose(f);
+      boost::trim_if(p2name, boost::is_any_of(" "));
+      std::vector<std::string> result;
+      boost::algorithm::split(result, p2name, boost::is_any_of("-"),
+                              boost::token_compress_off);
+      for (auto &s : result) {
+        boost::trim_left(s);
+      }
+
+      if(result.size() == 1){
+        return 1;
+      } else {
+	return std::stoi(result[1]) - std::stoi(result[0]);
+      }
+
+    } else {
+      Grib::close_handle(h);
+    }
+  }
+  fclose(f);
+  metbuild_throw_exception("Could not generate the step range");
+  return 0;
+}
+
 codes_handle *Grib::make_handle(const std::string &filename,
                                 const std::string &name, bool quiet) {
   FILE *f = fopen(filename.c_str(), "r");
@@ -64,6 +111,7 @@ codes_handle *Grib::make_handle(const std::string &filename,
                                              PRODUCT_GRIB, &ierr)) {
     CODES_CHECK(ierr, nullptr);
     std::string pname;
+    std::string p2name;
     size_t plen = 0;
     CODES_CHECK(codes_get_length(h, "shortName", &plen), nullptr);
     pname.resize(plen, ' ');

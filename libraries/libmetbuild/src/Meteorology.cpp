@@ -42,6 +42,8 @@ Meteorology::Meteorology(const MetBuild::Grid *windGrid, Meteorology::TYPE type,
                          bool backfill)
     : m_type(type),
       m_windGrid(windGrid),
+      m_rate_scaling_1(1.0),
+      m_rate_scaling_2(1.0),
       m_grib1(nullptr),
       m_grib2(nullptr),
       m_file1(std::string()),
@@ -120,14 +122,20 @@ MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
     return r;
   }
 
-  if (m_scalarVariableName.empty()) {
-    this->findScalarVariableName(m_file1);
+  m_scalarVariableName_1 = this->findScalarVariableName(m_file1);
+  if(m_scalarVariableName_1 == "apcp" || m_scalarVariableName_1 == "tp"){
+    m_rate_scaling_1 = 1.0 / static_cast<double>(Grib::getStepLength(m_file1, m_scalarVariableName_1));
+  }
+  
+  m_scalarVariableName_2 = this->findScalarVariableName(m_file2);
+  if(m_scalarVariableName_2 == "apcp" || m_scalarVariableName_2 == "tp"){
+    m_rate_scaling_2 = 1.0 / static_cast<double>(Grib::getStepLength(m_file2, m_scalarVariableName_2));  
   }
 
   this->process_data();
 
-  const auto r1 = m_grib1->getGribArray1d(m_scalarVariableName);
-  const auto r2 = m_grib2->getGribArray1d(m_scalarVariableName);
+  const auto r1 = m_grib1->getGribArray1d(m_scalarVariableName_1);
+  const auto r2 = m_grib2->getGribArray1d(m_scalarVariableName_2);
 
   for (size_t j = 0; j < m_windGrid->nj(); ++j) {
     for (size_t i = 0; i < m_windGrid->ni(); ++i) {
@@ -159,11 +167,11 @@ MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
         if (equal_zero(w1_sum) && equal_zero(w2_sum)) {
           r.set(0, i, j, 0.0);
         } else if (equal_zero(w1_sum) && not_equal_zero(w2_sum)) {
-          r.set(0, i, j, r_star2 * (1.0 / w2_sum));
+          r.set(0, i, j, r_star2 * (1.0 / w2_sum) * m_rate_scaling_2);
         } else if (not_equal_zero(w1_sum) && equal_zero(w2_sum)) {
-          r.set(0, i, j, r_star1 * (1.0 / w1_sum));
+          r.set(0, i, j, r_star1 * (1.0 / w1_sum) * m_rate_scaling_1);
         } else {
-          r.set(0, i, j, (1.0 - time_weight) * r_star1 + time_weight * r_star2);
+          r.set(0, i, j, ((1.0 - time_weight) * (r_star1*m_rate_scaling_1) + time_weight * (r_star2 * m_rate_scaling_2)));
         }
       }
     }
@@ -381,11 +389,11 @@ double Meteorology::generate_time_weight(const MetBuild::Date &t1,
   return (s3 - s1) / (s2 - s1);
 }
 
-void Meteorology::findScalarVariableName(const std::string &filename) {
+std::string Meteorology::findScalarVariableName(const std::string &filename) {
   const auto candidates = [&]() {  // IILE
     switch (m_type) {
       case RAINFALL:
-        return std::vector<std::string>{"apcp", "prate"};
+        return std::vector<std::string>{"apcp", "prate", "tp"};
       case TEMPERATURE:
         return std::vector<std::string>{"tmp:30-0 mb above ground",
                                         "tmp:2 m above ground"};
@@ -406,9 +414,9 @@ void Meteorology::findScalarVariableName(const std::string &filename) {
 
   for (const auto &s : candidates) {
     if (Grib::containsVariable(filename, s)) {
-      m_scalarVariableName = s;
-      return;
+      return s;
     }
   }
   metbuild_throw_exception("Variable could not be found in the specified file");
+  return std::string();
 }

@@ -45,7 +45,7 @@ class Meteorology {
                                        Meteorology::TYPE type,
                                        bool backfill = false);
 
-  void findScalarVariableName(const std::string &filename);
+  std::string findScalarVariableName(const std::string &filename);
 
   METBUILD_EXPORT void set_next_file(const std::string &filename);
   METBUILD_EXPORT void set_next_file(const char *filename);
@@ -107,9 +107,12 @@ class Meteorology {
   const Grid *m_windGrid;
   std::unique_ptr<Grib> m_grib1;
   std::unique_ptr<Grib> m_grib2;
+  double m_rate_scaling_1;
+  double m_rate_scaling_2;
   std::string m_file1;
   std::string m_file2;
-  std::string m_scalarVariableName;
+  std::string m_scalarVariableName_1;
+  std::string m_scalarVariableName_2;
   std::shared_ptr<InterpolationWeights> m_interpolation_1;
   std::shared_ptr<InterpolationWeights> m_interpolation_2;
   bool m_useBackgroundFlag;
