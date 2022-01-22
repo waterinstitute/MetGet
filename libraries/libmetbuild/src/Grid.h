@@ -88,6 +88,9 @@ class Grid {
 
   std::vector<double> x() const;
   std::vector<double> y() const;
+  
+  std::vector<double> xcolumn() const;
+  std::vector<double> ycolumn() const;
 
  private:
   const double m_di;

@@ -160,6 +160,7 @@ std::array<MetBuild::Point, 4> Grid::generateCorners(const double cx,
 
   return {bottom_left, bottom_right, top_right, top_left};
 }
+
 std::vector<double> Grid::x() const {
   std::vector<double> x;
   x.reserve(ni() * nj());
@@ -178,6 +179,26 @@ std::vector<double> Grid::y() const {
     for (const auto &c : r) {
       y.push_back(c.y());
     }
+  }
+  return y;
+}
+
+std::vector<double> Grid::xcolumn() const {
+  assert(m_rotation == 0.0);
+  std::vector<double> x;
+  x.reserve(ni());
+  for(size_t i=0;i<ni();++i){
+    x.push_back(m_grid[0][i].x());
+  }
+  return x;
+}
+
+std::vector<double> Grid::ycolumn() const {
+  assert(m_rotation == 0.0);
+  std::vector<double> y;
+  y.reserve(nj());
+  for(size_t i=0;i<nj();++i){
+    y.push_back(m_grid[i][0].y());
   }
   return y;
 }
