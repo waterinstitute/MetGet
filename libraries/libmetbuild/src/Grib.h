@@ -90,8 +90,8 @@ class Grib {
   static bool containsVariable(const std::string &filename,
                                const std::string &variableName);
 
-
-  static int getStepLength(const std::string &filename, const std::string &name);
+  static int getStepLength(const std::string &filename,
+                           const std::string &name);
 
  private:
   void initialize();

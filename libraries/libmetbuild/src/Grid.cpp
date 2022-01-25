@@ -187,7 +187,7 @@ std::vector<double> Grid::xcolumn() const {
   assert(m_rotation == 0.0);
   std::vector<double> x;
   x.reserve(ni());
-  for(size_t i=0;i<ni();++i){
+  for (size_t i = 0; i < ni(); ++i) {
     x.push_back(m_grid[0][i].x());
   }
   return x;
@@ -197,7 +197,7 @@ std::vector<double> Grid::ycolumn() const {
   assert(m_rotation == 0.0);
   std::vector<double> y;
   y.reserve(nj());
-  for(size_t i=0;i<nj();++i){
+  for (size_t i = 0; i < nj(); ++i) {
     y.push_back(m_grid[i][0].y());
   }
   return y;

@@ -40,13 +40,10 @@
 #include "Kdtree.h"
 #include "Date.h"
 #include "output/OutputFile.h"
-#include "output/OutputDomain.h"
 #include "output/OwiAscii.h"
-#include "output/OwiAsciiDomain.h"
 #include "output/OwiNetcdf.h"
-#include "output/OwiNetcdfDomain.h"
 #include "output/RasNetcdf.h"
-#include "output/RasNetcdfDomain.h"
+#include "output/DelftOutput.h"
 %}
 
 
@@ -83,13 +80,10 @@ namespace std {
 %include "Date.h"
 %include "MeteorologicalData.h"
 %include "output/OutputFile.h"
-%include "output/OutputDomain.h"
 %include "output/OwiAscii.h"
-%include "output/OwiAsciiDomain.h"
 %include "output/OwiNetcdf.h"
-%include "output/OwiNetcdfDomain.h"
 %include "output/RasNetcdf.h"
-%include "output/RasNetcdfDomain.h"
+%include "output/DelftOutput.h"
 
 namespace MetBuild {
     %template(OneMetVector) MeteorologicalData<1,MeteorologicalDataType>;

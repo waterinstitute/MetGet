@@ -123,13 +123,15 @@ MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
   }
 
   m_scalarVariableName_1 = this->findScalarVariableName(m_file1);
-  if(m_scalarVariableName_1 == "apcp" || m_scalarVariableName_1 == "tp"){
-    m_rate_scaling_1 = 1.0 / static_cast<double>(Grib::getStepLength(m_file1, m_scalarVariableName_1));
+  if (m_scalarVariableName_1 == "apcp" || m_scalarVariableName_1 == "tp") {
+    m_rate_scaling_1 = 1.0 / static_cast<double>(Grib::getStepLength(
+                                 m_file1, m_scalarVariableName_1));
   }
-  
+
   m_scalarVariableName_2 = this->findScalarVariableName(m_file2);
-  if(m_scalarVariableName_2 == "apcp" || m_scalarVariableName_2 == "tp"){
-    m_rate_scaling_2 = 1.0 / static_cast<double>(Grib::getStepLength(m_file2, m_scalarVariableName_2));  
+  if (m_scalarVariableName_2 == "apcp" || m_scalarVariableName_2 == "tp") {
+    m_rate_scaling_2 = 1.0 / static_cast<double>(Grib::getStepLength(
+                                 m_file2, m_scalarVariableName_2));
   }
 
   this->process_data();
@@ -171,7 +173,9 @@ MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
         } else if (not_equal_zero(w1_sum) && equal_zero(w2_sum)) {
           r.set(0, i, j, r_star1 * (1.0 / w1_sum) * m_rate_scaling_1);
         } else {
-          r.set(0, i, j, ((1.0 - time_weight) * (r_star1*m_rate_scaling_1) + time_weight * (r_star2 * m_rate_scaling_2)));
+          r.set(0, i, j,
+                ((1.0 - time_weight) * (r_star1 * m_rate_scaling_1) +
+                 time_weight * (r_star2 * m_rate_scaling_2)));
         }
       }
     }

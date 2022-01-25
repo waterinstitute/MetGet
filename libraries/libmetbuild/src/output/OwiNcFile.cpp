@@ -42,15 +42,16 @@ OwiNcFile::OwiNcFile(std::string filename)
 OwiNcFile::~OwiNcFile() {
   if (m_ncid != 0) {
     std::string group_order;
-    for(auto i=0;i<m_groups.size();++i){
-      if(i+1 < m_groups.size()){
+    for (auto i = 0; i < m_groups.size(); ++i) {
+      if (i + 1 < m_groups.size()) {
         group_order += m_groups[i].name + " ";
       } else {
         group_order += m_groups[i].name;
       }
     }
     const size_t len = group_order.size();
-    ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "group_order", NC_CHAR, len, &group_order[0]));
+    ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "group_order", NC_CHAR, len,
+                       &group_order[0]));
     nc_close(m_ncid);
   }
 }
@@ -64,15 +65,17 @@ void OwiNcFile::initialize() {
   constexpr std::string_view metget = "metget";
   constexpr std::string_view conventions = "CF-1.6 OWI-NWS13";
   const auto now = Date::now().toString();
-  ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "institution", NC_CHAR, metget.size(), &metget[0]));
-  ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "conventions", NC_CHAR, conventions.size(), &conventions[0]));
-  ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "creation_date", NC_CHAR, now.size(), &now[0]));
+  ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "institution", NC_CHAR, metget.size(),
+                     &metget[0]));
+  ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "conventions", NC_CHAR,
+                     conventions.size(), &conventions[0]));
+  ncCheck(nc_put_att(m_ncid, NC_GLOBAL, "creation_date", NC_CHAR, now.size(),
+                     &now[0]));
   ncCheck(nc_enddef(m_ncid));
 }
 
 int OwiNcFile::addGroup(const std::string& groupName,
                         const MetBuild::Grid* grid, const bool isMovingGrid) {
-
   ncCheck(nc_redef(this->ncid()));
 
   OwiNcFile::NcGroup grp;
@@ -157,10 +160,12 @@ int OwiNcFile::addGroup(const std::string& groupName,
   if (!isMovingGrid) {
     const auto x = grid->x();
     const auto y = grid->y();
-    const size_t start[] = {0,0};
+    const size_t start[] = {0, 0};
     const size_t count[] = {grid->nj(), grid->ni()};
-    ncCheck(nc_put_vara_double(grp.grpid, grp.varid_lat, start, count, y.data()));
-    ncCheck(nc_put_vara_double(grp.grpid, grp.varid_lon, start, count, x.data()));
+    ncCheck(
+        nc_put_vara_double(grp.grpid, grp.varid_lat, start, count, y.data()));
+    ncCheck(
+        nc_put_vara_double(grp.grpid, grp.varid_lon, start, count, x.data()));
   }
 
   return 0;
@@ -175,14 +180,18 @@ int OwiNcFile::write(unsigned group_index, size_t time_index, size_t time,
   constexpr size_t one = 1;
   const auto time_long = static_cast<long long>(time);
 
-  ncCheck(nc_put_vara_longlong(m_groups[group_index].grpid, m_groups[group_index].varid_time,
-                               &time_index, &one, &time_long));
-  ncCheck(nc_put_vara_float(m_groups[group_index].grpid, m_groups[group_index].varid_u, start,
-                            count, u.data()));
-  ncCheck(nc_put_vara_float(m_groups[group_index].grpid, m_groups[group_index].varid_v, start,
-                            count, v.data()));
-  ncCheck(nc_put_vara_float(m_groups[group_index].grpid, m_groups[group_index].varid_press,
-                            start, count, p.data()));
+  ncCheck(nc_put_vara_longlong(m_groups[group_index].grpid,
+                               m_groups[group_index].varid_time, &time_index,
+                               &one, &time_long));
+  ncCheck(nc_put_vara_float(m_groups[group_index].grpid,
+                            m_groups[group_index].varid_u, start, count,
+                            u.data()));
+  ncCheck(nc_put_vara_float(m_groups[group_index].grpid,
+                            m_groups[group_index].varid_v, start, count,
+                            v.data()));
+  ncCheck(nc_put_vara_float(m_groups[group_index].grpid,
+                            m_groups[group_index].varid_press, start, count,
+                            p.data()));
 
   return 0;
 }
