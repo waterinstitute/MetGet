@@ -43,7 +43,10 @@ set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/output/OwiAsciiDomain.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/output/OwiNetcdfDomain.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/output/RasNetcdf.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/RasNetcdfDomain.cpp ../src/Utilities.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/RasNetcdfDomain.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Utilities.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/DelftOutput.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/DelftDomain.cpp)
 
 add_library(metbuild_interface INTERFACE)
 add_library(metbuild_objectlib OBJECT ${METBUILD_SOURCES})

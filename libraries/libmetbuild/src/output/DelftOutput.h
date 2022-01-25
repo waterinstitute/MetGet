@@ -23,27 +23,36 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#ifndef METGET_SRC_METTYPES_H_
-#define METGET_SRC_METTYPES_H_
+#ifndef METGET_SRC_OUTPUT_DELFTOUTPUT_H_
+#define METGET_SRC_OUTPUT_DELFTOUTPUT_H_
 
-#include <string>
+#include "OutputFile.h"
 
-#include "boost/algorithm/string/case_conv.hpp"
+namespace MetBuild {
 
-namespace MetTypes {
+class DelftOutput : public OutputFile {
+ public:
+  DelftOutput(const MetBuild::Date &date_start, const MetBuild::Date &date_end,
+              unsigned time_step, std::string filename);
 
-enum eMetType { NONE, NAMANL, NAMFCST, GFSANL, GFSFCST, GFSNCEP, HWRF };
+  ~DelftOutput() = default;
 
-static eMetType stringToMetType(const std::string &s) {
-  const std::string sup = boost::to_lower_copy(s);
-  if (sup == "nam-analysis") return NAMANL;
-  if (sup == "nam-forecast") return NAMFCST;
-  if (sup == "gfs-analysis") return GFSANL;
-  if (sup == "gfs-forecast") return GFSFCST;
-  if (sup == "gfs-ncep") return GFSNCEP;
-  if (sup == "hwrf") return HWRF;
-  return NONE;
-}
-}  // namespace MetTypes
+  void addDomain(const MetBuild::Grid &w,
+                 const std::vector<std::string> &variables) override;
 
-#endif  // METGET_SRC_METTYPES_H_
+  int write(
+      const MetBuild::Date &date, size_t domain_index,
+      const MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
+          &data) override;
+
+  int write(
+      const MetBuild::Date &date, size_t domain_index,
+      const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
+          &data) override;
+
+ private:
+  const std::string m_filename;
+};
+}  // namespace MetBuild
+
+#endif  // METGET_SRC_OUTPUT_DELFTOUTPUT_H_

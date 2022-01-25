@@ -47,14 +47,15 @@ class MeteorologicalData {
     this->resize(m_ni, m_nj);
   }
 
-  ~MeteorologicalData() = default; 
+  ~MeteorologicalData() = default;
 
-  static constexpr T background_pressure() { return 1013.0; }
+  [[nodiscard]] static constexpr T background_pressure() { return 1013.0; }
 
-  size_t ni() const { return m_ni; }
+  [[nodiscard]] static constexpr T flag_value() { return -999.0; }
 
-  size_t nj() const { return m_nj; };
+  [[nodiscard]] size_t ni() const { return m_ni; }
 
+  [[nodiscard]] size_t nj() const { return m_nj; };
 
   void resize(const size_t ni, const size_t nj) {
     m_ni = ni;
@@ -69,12 +70,13 @@ class MeteorologicalData {
     }
   }
 
-  const std::vector<std::vector<T>> &operator[](const size_t index) const {
+  [[nodiscard]] const std::vector<std::vector<T>> &operator[](
+      const size_t index) const {
     assert(index < parameters);
     return m_data[index];
   }
 
-  std::vector<T> toVector(const size_t index) const {
+  [[nodiscard]] std::vector<T> toVector(const size_t index) const {
     assert(index < parameters);
     std::vector<T> v;
     v.reserve(m_ni * m_nj);
@@ -86,7 +88,7 @@ class MeteorologicalData {
     return v;
   }
 
-  std::vector<std::vector<T>> &operator[](const size_t index) {
+  [[nodiscard]] std::vector<std::vector<T>> &operator[](const size_t index) {
     assert(index < parameters);
     return m_data[index];
   }
@@ -116,14 +118,16 @@ class MeteorologicalData {
     m_data[parameter][j][i] = value;
   }
 
-  T get(const size_t parameter, const size_t i, const size_t j) const {
+  [[nodiscard]] T get(const size_t parameter, const size_t i,
+                      const size_t j) const {
     assert(parameter < parameters);
     assert(i < m_ni);
     assert(j < m_nj);
     return m_data[parameter][i][j];
   }
 
-  std::array<T, parameters> getPack(const size_t i, const size_t j) const {
+  [[nodiscard]] std::array<T, parameters> getPack(const size_t i,
+                                                  const size_t j) const {
     std::array<T, parameters> out;
     assert(i < m_ni);
     assert(j < m_nj);
@@ -143,12 +147,9 @@ class MeteorologicalData {
     }
   }
 
-  static constexpr T flag_value() { return -999.0; }
+  [[nodiscard]] constexpr size_t nParameters() const { return parameters; }
 
-  constexpr size_t nParameters() const { return parameters; }
- 
  protected:
-
 #ifndef SWIG
   template <unsigned size, typename T_in, typename T_out>
   static auto recast(const MeteorologicalData<size, T_in> &value) {
@@ -173,11 +174,12 @@ class MeteorologicalData {
   std::array<std::vector<std::vector<T>>, parameters> m_data;
 };
 
-
 }  // namespace MetBuild
 
-//template class MetBuild::MeteorologicalData<1,MetBuild::MeteorologicalDataType>;
-//template class MetBuild::MeteorologicalData<2,MetBuild::MeteorologicalDataType>;
-//template class MetBuild::MeteorologicalData<3,MetBuild::MeteorologicalDataType>;
+// template class
+// MetBuild::MeteorologicalData<1,MetBuild::MeteorologicalDataType>; template
+// class MetBuild::MeteorologicalData<2,MetBuild::MeteorologicalDataType>;
+// template class
+// MetBuild::MeteorologicalData<3,MetBuild::MeteorologicalDataType>;
 
 #endif  // METGET_SRC_METEOROLOGICALDATA_H_

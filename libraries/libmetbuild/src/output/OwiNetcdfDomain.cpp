@@ -45,7 +45,8 @@ int MetBuild::OwiNetcdfDomain::write(
     const MetBuild::Date &date,
     const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
         &data) {
-    auto seconds = date.toSeconds() - MetBuild::Date(1990,1,1,1,0,0).toSeconds();
+  auto seconds =
+      date.toSeconds() - MetBuild::Date(1990, 1, 1, 1, 0, 0).toSeconds();
 #ifdef METBUILD_USE_FLOAT
   this->m_ncFile->write(m_group, m_counter, seconds, data.toVector(0),
                         data.toVector(1), data.toVector(2));

@@ -33,11 +33,11 @@
 
 #include "Geometry.h"
 #include "Logging.h"
+#include "Utilities.h"
 #include "boost/algorithm/string/split.hpp"
 #include "boost/algorithm/string/trim.hpp"
 #include "boost/format.hpp"
 #include "eccodes.h"
-#include "Utilities.h"
 
 using namespace MetBuild;
 
@@ -57,7 +57,7 @@ std::string Grib::filename() const { return m_filename; }
 
 bool isnotalpha(char c) { return !isalpha(c) && !isalnum(c); }
 
-int Grib::getStepLength(const std::string &filename, const std::string &name){
+int Grib::getStepLength(const std::string &filename, const std::string &name) {
   FILE *f = fopen(filename.c_str(), "r");
   int ierr = 0;
 
@@ -75,7 +75,8 @@ int Grib::getStepLength(const std::string &filename, const std::string &name){
       size_t p2len = 0;
       CODES_CHECK(codes_get_length(h, "stepRange", &p2len), nullptr);
       p2name.resize(p2len, ' ');
-      CODES_CHECK(codes_get_string(h, "stepRange", &p2name[0], &p2len), nullptr);
+      CODES_CHECK(codes_get_string(h, "stepRange", &p2name[0], &p2len),
+                  nullptr);
       boost::trim_if(p2name, isnotalpha);
       Grib::close_handle(h);
       fclose(f);
@@ -87,10 +88,10 @@ int Grib::getStepLength(const std::string &filename, const std::string &name){
         boost::trim_left(s);
       }
 
-      if(result.size() == 1){
+      if (result.size() == 1) {
         return 1;
       } else {
-	return std::stoi(result[1]) - std::stoi(result[0]);
+        return std::stoi(result[1]) - std::stoi(result[0]);
       }
 
     } else {
@@ -156,7 +157,7 @@ bool Grib::containsVariable(const std::string &filename,
   codes_grib_multi_support_on(grib_context_get_default());
   auto handle = Grib::make_handle(filename, name, true);
   if (handle) {
-    Grib::close_handle(handle);  
+    Grib::close_handle(handle);
     return true;
   } else {
     return false;

@@ -23,25 +23,28 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#ifndef METGET_SRC_OUTPUT_RASNETCDFDOMAIN_H_
-#define METGET_SRC_OUTPUT_RASNETCDFDOMAIN_H_
+#ifndef METGET_SRC_OUTPUT_DELFTDOMAIN_H_
+#define METGET_SRC_OUTPUT_DELFTDOMAIN_H_
+
+#include <fstream>
+#include <utility>
 
 #include "MeteorologicalData.h"
 #include "OutputDomain.h"
 
 namespace MetBuild {
 
-class RasNetcdfDomain : public OutputDomain {
+class DelftDomain : public OutputDomain {
  public:
-  RasNetcdfDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
-                  const MetBuild::Date &endDate, unsigned time_step,
-                  const int &ncid, std::vector<std::string> variables);
+  DelftDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
+              const MetBuild::Date &endDate, unsigned time_step,
+              std::string filename, std::vector<std::string> variables);
 
-  ~RasNetcdfDomain() override = default;
+  ~DelftDomain() override;
 
-  void open() override {}
+  void open() override;
 
-  void close() override {}
+  void close() override;
 
   int write(
       const MetBuild::Date &date,
@@ -54,24 +57,21 @@ class RasNetcdfDomain : public OutputDomain {
           &data) override;
 
  private:
-  void initialize();
+  std::tuple<std::string, std::string, std::string> variableToFields(
+      const std::string &variable);
 
-  size_t m_counter;
-  const int m_ncid;
+  void writeHeader(std::ofstream &stream, const std::string &variable,
+                   const std::string &units);
 
-  int m_dimid_x;
-  int m_dimid_y;
-  int m_dimid_time;
-  int m_varid_x;
-  int m_varid_y;
-  int m_varid_z;
-  int m_varid_time;
-  int m_varid_crs;
+  template <typename T>
+  int writeField(std::ofstream &stream, const MetBuild::Date &date,
+                 const std::vector<std::vector<T>> &data);
 
   const std::vector<std::string> m_variables;
-  std::vector<int> m_varids;
-  std::vector<int> m_dimids;
+  const std::string m_baseFilename;
+  std::vector<std::string> m_filenames;
+  std::vector<std::ofstream> m_ofstreams;
 };
 
 }  // namespace MetBuild
-#endif  // METGET_SRC_OUTPUT_RASNETCDFDOMAIN_H_
+#endif  // METGET_SRC_OUTPUT_DELFTDOMAIN_H_

@@ -39,7 +39,8 @@ RasNetcdf::RasNetcdf(const MetBuild::Date& date_start,
                      const MetBuild::Date& date_end, unsigned int time_step,
                      std::string filename)
     : OutputFile(date_start, date_end, time_step),
-      m_filename(std::move(filename)), m_ncid(0) {
+      m_filename(std::move(filename)),
+      m_ncid(0) {
   this->initialize();
 }
 
@@ -60,13 +61,15 @@ void RasNetcdf::addDomain(const Grid& w,
 int RasNetcdf::write(
     const Date& date, size_t domain_index,
     const MeteorologicalData<1, MetBuild::MeteorologicalDataType>& data) {
-  return this->m_domains[0]->write(date, data); // Always 0, only 1 domain allowed for RAS
+  return this->m_domains[0]->write(
+      date, data);  // Always 0, only 1 domain allowed for RAS
 }
 
 int RasNetcdf::write(
     const Date& date, size_t domain_index,
     const MeteorologicalData<3, MetBuild::MeteorologicalDataType>& data) {
-  return this->m_domains[0]->write(date, data); // Always 0, only 1 domain allowed for RAS
+  return this->m_domains[0]->write(
+      date, data);  // Always 0, only 1 domain allowed for RAS
 }
 
 void RasNetcdf::initialize() {

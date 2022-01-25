@@ -191,7 +191,6 @@ void RasNetcdfDomain::initialize() {
 
   ncCheck(nc_put_vara(m_ncid, m_varid_x, start, &nx, x.data()));
   ncCheck(nc_put_vara(m_ncid, m_varid_y, start, &ny, y.data()));
-
 }
 
 int RasNetcdfDomain::write(const MetBuild::Date &date,
