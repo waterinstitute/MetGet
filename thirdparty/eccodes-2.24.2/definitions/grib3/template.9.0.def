@@ -1,0 +1,6 @@
+# (C) Copyright 2005- ECMWF.
+
+# TEMPLATE 9.0, Bitmap
+
+# Bitmap
+include "grib3/template.component.9.0.def";

@@ -1,0 +1,9 @@
+# (C) Copyright 2005- ECMWF.
+#
+# TEMPLATE 7.1, Observable Property with units conversion
+
+# Observable property by discipline, category and number
+include "grib3/template.component.7.0.def";
+
+# Units conversion
+include "grib3/template.component.7.1.def";

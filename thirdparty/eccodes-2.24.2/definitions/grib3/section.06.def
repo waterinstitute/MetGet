@@ -1,0 +1,15 @@
+# (C) Copyright 2005- ECMWF.
+
+# Section 6 - Generating Process Section
+
+position offsetSection6;
+section_length[4] section6Length;
+meta section6Pointer section_pointer(offsetSection6,section6Length,6);
+unsigned[1] numberOfSection = 6: read_only;
+
+unsigned[2] section6UniqueIdentifier; # SUI
+
+codetable[2] generatingProcessTemplateNumber ('6.0.table',masterDir,localDir) =0 : dump,edition_specific;
+template generatingProcessTemplate "grib3/template.6.[generatingProcessTemplateNumber:i].def";
+
+meta md5Section6 md5(offsetSection6, section6Length);

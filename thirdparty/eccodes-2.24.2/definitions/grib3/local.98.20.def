@@ -1,0 +1,13 @@
+# (C) Copyright 2005- ECMWF.
+
+unsigned[1] iterationNumber  : dump;
+alias number=iterationNumber;
+
+unsigned[1] totalNumberOfIterations  : dump;
+alias totalNumber=totalNumberOfIterations;
+
+alias iteration = iterationNumber;
+
+alias local.iterationNumber =iterationNumber;
+alias local.totalNumberOfIterations=totalNumberOfIterations;
+

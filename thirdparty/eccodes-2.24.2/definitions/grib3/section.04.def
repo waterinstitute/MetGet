@@ -1,0 +1,26 @@
+# (C) Copyright 2005- ECMWF.
+
+# Section 4 - Horizontal Domain Section
+
+position offsetSection4;
+section_length[4] section4Length ;
+meta section4Pointer section_pointer(offsetSection4,section4Length,4);
+unsigned[1] numberOfSection = 4:read_only;
+
+unsigned[2] section4UniqueIdentifier; # SUI
+
+unsigned[4] numberOfPointsInDomain : dump;
+alias numberOfPoints=numberOfPointsInDomain;
+alias numberOfDataPoints=numberOfPointsInDomain;
+
+codetable[2] horizontalDomainTemplateNumber ('4.0.table',masterDir,localDir) =0 : dump,edition_specific;
+template horizontalDomainTemplate "grib3/template.4.[horizontalDomainTemplateNumber:i].def";
+
+
+###########################
+#if (defined(marsStream) && defined(marsType)) {
+#   template_nofail marsKeywords1 "mars/grib.[marsStream:s].[marsType:s].def";
+#}
+#template parameters "grib3/parameters.def";
+
+meta md5Section4 md5(offsetSection4,section4Length);
