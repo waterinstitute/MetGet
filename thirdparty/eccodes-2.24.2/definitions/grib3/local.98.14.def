@@ -1,0 +1,7 @@
+# (C) Copyright 2005- ECMWF.
+#
+
+# Definition 14, Brightness temperature
+
+unsigned[4] channelNumber : dump ;
+alias mars.channel = channelNumber;

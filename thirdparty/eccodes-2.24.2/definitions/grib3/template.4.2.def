@@ -1,0 +1,12 @@
+# (C) Copyright 2005- ECMWF.
+
+# TEMPLATE 4.2, Stretched latitude/longitude regular grid on ellipsoidal planet
+
+# Ellipsoid of revolution defined with axis lengths
+include "grib3/template.component.4.0.def"
+
+# Latitude/longitude regular grid
+include "grib3/template.component.4.1.def"
+
+# Stretching of latitude/longitude coordinate system
+include "grib3/template.component.4.3.def"

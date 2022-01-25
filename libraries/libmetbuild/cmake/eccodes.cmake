@@ -33,6 +33,9 @@ set(ENABLE_FORTRAN
 set(ENABLE_PYTHON
     OFF
     CACHE BOOL "Enable Python functionality in eccodes")
+set(ENABLE_NETCDF
+        OFF
+        CACHE BOOL "Enable NetCDF functionality in eccodes")
 set(ENABLE_PRODUCT_BUFR
     OFF
     CACHE BOOL "Enable BUFR")
@@ -68,6 +71,6 @@ mark_as_advanced(
   CMATH_LIBRARIES
   BUILD_SHARED_LIBS)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.18.0
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.24.2
                  ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes EXCLUDE_FROM_ALL)
 # ##############################################################################

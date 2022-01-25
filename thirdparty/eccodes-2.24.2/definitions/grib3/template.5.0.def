@@ -1,0 +1,6 @@
+# (C) Copyright 2005- ECMWF.
+#
+# TEMPLATE 5.0, Vertical level
+
+# Vertical level
+include "grib3/template.component.5.0.def";

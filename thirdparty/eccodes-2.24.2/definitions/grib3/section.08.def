@@ -1,0 +1,20 @@
+# (C) Copyright 2005- ECMWF.
+
+# Section 8 - Data Representation Section
+
+position offsetSection8;
+section_length[4] section8Length;
+meta section8Pointer section_pointer(offsetSection8,section8Length,8);
+unsigned[1] numberOfSection = 8: read_only;
+
+unsigned[2] section8UniqueIdentifier; # SUI
+
+#  Number of data points where one or more values encoded in Section 10
+unsigned[4] numberOfValues : dump;
+alias numberOfCodedValues=numberOfValues;
+alias numberOfEffectiveValues=numberOfValues;
+
+codetable[2] dataRepresentationTemplateNumber ('8.0.table',masterDir,localDir) =0 : dump,edition_specific;
+template dataRepresentationTemplate "grib3/template.8.[dataRepresentationTemplateNumber:i].def";
+
+meta md5Section8 md5(offsetSection8, section8Length);

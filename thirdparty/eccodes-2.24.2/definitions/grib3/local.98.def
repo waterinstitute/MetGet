@@ -1,0 +1,33 @@
+#local section ECMWF
+
+template mars_labeling "grib3/mars_labeling.def";
+transient productDefinitionTemplateNumberInternal=-1;
+
+meta localDefinitionNumber local_definition(grib3LocalSectionNumber,
+                                            productDefinitionTemplateNumber,
+                                            productDefinitionTemplateNumberInternal,
+                                            type,
+                                            stream,
+                                            class,
+                                            eps,
+                                            stepType,
+                                            derivedForecast);
+
+meta eps g2_eps(productDefinitionTemplateNumber,
+                type,
+                stream,
+                stepType,
+                derivedForecast);
+
+template  localSection  "grib3/local.98.[grib3LocalSectionNumber:l].def";
+position offsetAfterLocalSection;
+transient addExtraLocalSection=0;
+transient deleteExtraLocalSection=0;
+#transient extraLocalSectionPresent=section2Length - offsetAfterLocalSection + offsetSection2 ;
+meta extraLocalSectionPresent evaluate (section2Length - offsetAfterLocalSection + offsetSection2 > 0 );
+if (  ( extraLocalSectionPresent || addExtraLocalSection )  && ! deleteExtraLocalSection) {
+    # extra local section present
+    codetable[2] extraLocalSectionNumber 'grib3/grib3LocalSectionNumber.[centreForLocal:l].table' = 300 : dump;
+    template  localSection  "grib3/local.98.[extraLocalSectionNumber:l].def";
+}
+

@@ -1,0 +1,15 @@
+# (C) Copyright 2005- ECMWF.
+
+# Section 7 - Observable Property Section
+
+position offsetSection7;
+section_length[4] section7Length;
+meta section7Pointer section_pointer(offsetSection7,section7Length,7);
+unsigned[1] numberOfSection = 7: read_only;
+
+unsigned[2] section7UniqueIdentifier; # SUI
+
+codetable[2] observablePropertyTemplateNumber ('7.0.table',masterDir,localDir) =0 : dump,edition_specific;
+template observablePropertyTemplate "grib3/template.7.[observablePropertyTemplateNumber:i].def";
+
+meta md5Section7 md5(offsetSection7, section7Length);

@@ -1,0 +1,19 @@
+# (C) Copyright 2005- ECMWF.
+
+codetable[1] dataOrigin "grib1/0.table" : dump;
+alias mars.origin=dataOrigin;
+
+ascii[4] modelIdentifier : dump ;
+
+unsigned[1] consensusCount : dump ;
+
+consensus list(consensusCount)
+{
+  ascii[4] ccccIdentifiers  : dump;
+}
+
+alias local.dataOrigin=dataOrigin;
+alias local.modelIdentifier=modelIdentifier;
+alias local.consensusCount=consensusCount;
+
+
