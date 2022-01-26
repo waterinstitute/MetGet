@@ -55,12 +55,12 @@ class Database:
         now = datetime.now()
         prev_month = now - timedelta(days=31)
         prev_month = datetime(prev_month.year, prev_month.month, prev_month.day, 0, 0, 0)
-        return str(prev_month)
+        return str(prev_month), prev_month
 
     def generate_status_generic(self, table, desired_len):
         from datetime import datetime
 
-        search_period = Database.generate_record_period()
+        search_period, search_period_date = Database.generate_record_period()
 
         self.cursor().execute(
             "SELECT DISTINCT FORECASTCYCLE FROM " + table + " WHERE FORECASTCYCLE > '" + search_period + "' ORDER BY FORECASTCYCLE")
@@ -143,7 +143,7 @@ class Database:
         """
         from datetime import datetime
 
-        search_period = Database.generate_record_period()
+        search_period, search_period_date = Database.generate_record_period()
 
         # Use SQL to generate a distinct list of storms and then
         # iterate over them to determine the available forecast data
@@ -158,13 +158,13 @@ class Database:
         # For each storm, determine the availability of data
         for s in stormlist:
             sql = "SELECT FORECASTTIME FROM hwrf WHERE stormname = '" + s[
-                "storm"] + "' ORDER BY FORECASTTIME"
+                "storm"] + "' AND FORECASTCYCLE >= '"+search_period+"' ORDER BY FORECASTTIME"
             self.cursor().execute(sql)
             rows = self.cursor().fetchall()
             fcst_min = rows[0][0]
             fcst_max = rows[-1][0]
             sql = "SELECT DISTINCT FORECASTCYCLE FROM hwrf WHERE stormname = '" + s[
-                "storm"] + "' ORDER BY FORECASTCYCLE"
+                "storm"] + "' AND FORECASTCYCLE >= '"+search_period+"' ORDER BY FORECASTCYCLE"
             self.cursor().execute(sql)
             rows = self.cursor().fetchall()
             cyc_min = rows[0][0]
@@ -187,7 +187,7 @@ class Database:
                 start = r[0][0]
                 end = r[0][1]
                 avail_len = (end - start).total_seconds() / 3600
-                if avail_len >= 126:
+                if avail_len >= 126 and f[0] >= search_period_date:
                     cycle_list.append(f[0].strftime("%Y-%m-%d %H:%M:%S"), )
                     latest_start = start.strftime("%Y-%m-%d %H:%M:%S")
                     latest_end = end.strftime("%Y-%m-%d %H:%M:%S")
@@ -195,30 +195,30 @@ class Database:
                     latest_complete = f[0]
                     time_since_forecast = (datetime.now() - f[0]).total_seconds() / 86400
                     continue
-
-            # Assemble a storm object. We're only going to write data available in the last 10 days
-            if time_since_forecast < 10:
-                hwrf_stat.append({
-                    "storm":
-                        s["storm"],
-                    "min_forecast_date":
-                        date_or_null(fcst_min),
-                    "max_forecast_date":
-                        date_or_null(fcst_max),
-                    "first_available_cycle":
-                        date_or_null(cyc_min),
-                    "last_available_cycle":
-                        date_or_null(cyc_max),
-                    "latest_complete_forecast":
-                        date_or_null(latest_complete),
-                    "latest_complete_forecast_start":
-                        latest_start,
-                    "latest_complete_forecast_end":
-                        latest_end,
-                    "latest_complete_forecast_length":
-                        latest_length,
-                    "cycle_list": cycle_list
-                })
+                    
+                    
+            # Assemble a storm object
+            hwrf_stat.append({
+                "storm":
+                    s["storm"],
+                "min_forecast_date":
+                    date_or_null(fcst_min),
+                "max_forecast_date":
+                    date_or_null(fcst_max),
+                "first_available_cycle":
+                    date_or_null(cyc_min),
+                "last_available_cycle":
+                    date_or_null(cyc_max),
+                "latest_complete_forecast":
+                    date_or_null(latest_complete),
+                "latest_complete_forecast_start":
+                    latest_start,
+                "latest_complete_forecast_end":
+                    latest_end,
+                "latest_complete_forecast_length":
+                    latest_length,
+                "cycle_list": cycle_list
+            })
 
         return hwrf_stat
 
@@ -242,7 +242,7 @@ def write_to_cache(json_data):
     dbname = "lambda_cache"
 
     try:
-        db = pymysql.connect(dbhost, user=dbusername, passwd=dbpassword, db=dbname, connect_timeout=5)
+        db = pymysql.connect(host=dbhost, user=dbusername, passwd=dbpassword, db=dbname, connect_timeout=5)
         cursor = db.cursor()
     except:
         print("[ERROR]: Could not connect to MySQL database")
@@ -260,3 +260,4 @@ def lambda_handler(event, context):
     s = db.generate_status()
     write_to_cache(s)
     return {"statusCode": 200}
+
