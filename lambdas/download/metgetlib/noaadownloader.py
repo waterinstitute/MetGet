@@ -132,13 +132,15 @@ class NoaaDownloader:
         else:
             return self.__get_grib_noaa_servers(info)
 
-    @staticmethod
-    def __get_inventory_byte_list(inventory_data, variable):
-        for i in range(len(inventory_data)):
-            if variable["long_name"] in inventory_data[i]:
-                start_bits = inventory_data[i].split(":")[1]
-                end_bits = inventory_data[i + 1].split(":")[1]
-                return {"name": variable["name"], "start": start_bits, "end": end_bits}
+    def __get_inventory_byte_list(self, inventory_data):
+        byte_list = []
+        for v in self.variables():
+            for i in range(len(inventory_data)):
+                if v["long_name"] in inventory_data[i]:
+                    start_bits = inventory_data[i].split(":")[1]
+                    end_bits = inventory_data[i + 1].split(":")[1]
+                    byte_list.append({"name": v["name"], "start": start_bits, "end": end_bits})
+        return byte_list
 
     def __get_inventory_big_data(self, info, client):
         inv_obj = client.get_object(Bucket=self.__big_data_bucket, Key=info["inv"])
@@ -225,16 +227,16 @@ class NoaaDownloader:
                 if inv.status_code == 302:
                     print("RESP: ", inv.text)
                 inv_lines = str(inv.text).split("\n")
-                retlist = NoaaDownloader.__get_inventory_byte_list(inv_lines)
+                retlist = self.__get_inventory_byte_list(inv_lines)
 
                 if not len(retlist) == len(self.__variables):
                     print("[ERROR]: Could not gather the inventory or missing variables detected. Trying again later.")
                     return None, 0, 1
 
                 fn = info['grb'].rsplit("/")[-1]
-                year = "{0:04d}".format(info["forecastcycle"].year)
-                month = "{0:02d}".format(info["forecastcycle"].month)
-                day = "{0:02d}".format(info["forecastcycle"].day)
+                year = "{0:04d}".format(info["cycledate"].year)
+                month = "{0:02d}".format(info["cycledate"].month)
+                day = "{0:02d}".format(info["cycledate"].day)
 
                 dfolder = self.mettype() + "/" + year + "/" + month + "/" + day
                 floc = tempfile.gettempdir() + "/" + fn
