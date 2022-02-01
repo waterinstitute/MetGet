@@ -60,6 +60,8 @@ def generate_met_field(output_format, start, end, time_step, filename):
         return pymetbuild.OwiNetcdf(start,end,time_step, filename)
     elif output_format == "hec-netcdf":
         return pymetbuild.RasNetcdf(start,end,time_step, filename)
+    elif output_format == "delft3d":
+        return pymetbuild.DelftOutput(start,end,time_step,filename)
     else:
         raise RuntimeError("Invalid output format selected")
 
@@ -69,14 +71,37 @@ def generate_met_domain(inputData, met_object, index):
     d = inputData.domain(index)
     output_format = inputData.format()
     if output_format == "ascii" or output_format == "owi-ascii":
-        fn1 = inputData.filename()+"_"+"{:02d}".format(index)+".pre"
-        fn2 = inputData.filename()+"_"+"{:02d}".format(index)+".wnd"
-        fns = [fn1, fn2]
+        if inputData.data_type() == "wind_pressure":
+            fn1 = inputData.filename()+"_"+"{:02d}".format(index)+".pre"
+            fn2 = inputData.filename()+"_"+"{:02d}".format(index)+".wnd"
+            fns = [fn1, fn2]
+        elif inputData.data_type() == "rain":
+            fns = [ inputData.filename()+".precip" ]
+        elif inputData.data_type() == "humidity":
+            fns = [ inputData.filename()+".humid" ]
+        elif inputData.data_type() == "ice":
+            fns = [ inputData.filename()+".ice" ]
+        else:
+            raise RuntimeError("Invalid variable requested")
         met_object.addDomain(d.grid().grid_object(), fns)
     elif output_format == "owi-netcdf":
         group = d.service() 
         met_object.addDomain(d.grid().grid_object(), [group])
     elif output_format == "hec-netcdf":
+        if inputData.data_type() == "wind_pressure":
+            variables = [ "wind_u", "wind_v", "mslp" ]
+        elif inputData.data_type() == "wind":
+            variables = [ "wind_u", "wind_v" ]
+        elif inputData.data_type() == "rain":
+            variables = [ "rain" ]
+        elif inputData.data_type() == "humidity":
+            variables = [ "humidity" ]
+        elif inputData.data_type() == "ice":
+            variables = [ "ice" ]
+        else:
+            raise RuntimeError("Invalid variable requested")
+        met_object.addDomain(d.grid().grid_object(), variables)
+    elif output_format == "delft3d":
         if inputData.data_type() == "wind_pressure":
             variables = [ "wind_u", "wind_v", "mslp" ]
         elif inputData.data_type() == "wind":
@@ -165,7 +190,7 @@ def process_message(json_message, queue, json_file=None):
         return len(domain_data)-1
 
     output_file_list=[]
-    if inputData.format() == "owi-netcdf" or inputData.format == "ras-netcdf":
+    if inputData.format() == "owi-netcdf" or inputData.format() == "ras-netcdf" or inputData.format() == "delft3d":
         output_file_list.append(inputData.filename())
 
     files_used_list={}

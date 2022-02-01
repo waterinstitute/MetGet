@@ -39,7 +39,9 @@ DelftDomain::DelftDomain(const MetBuild::Grid *grid,
                          std::vector<std::string> variables)
     : m_baseFilename(std::move(filename)),
       m_variables(std::move(variables)),
-      OutputDomain(grid, startDate, endDate, time_step) {}
+      OutputDomain(grid, startDate, endDate, time_step) {
+    this->open();      
+}
 
 DelftDomain::~DelftDomain() {
   for (auto &s : m_ofstreams) {
@@ -86,11 +88,11 @@ int DelftDomain::write(
 std::tuple<std::string, std::string, std::string> DelftDomain::variableToFields(
     const std::string &variable) {
   auto v2 = boost::to_lower_copy(variable);
-  if (variable == "wind_x") {
+  if (variable == "wind_u") {
     return {this->m_baseFilename + ".amu", "x_wind", "m s-1"};
-  } else if (variable == "wind_y") {
+  } else if (variable == "wind_v") {
     return {this->m_baseFilename + ".amv", "y_wind", "m s-1"};
-  } else if (variable == "pressure") {
+  } else if (variable == "mslp") {
     return {this->m_baseFilename + ".amp", "air_pressure", "mb"};
   } else if (variable == "temperature") {
     return {this->m_baseFilename + ".amt", "temperature", "k"};
@@ -101,7 +103,7 @@ std::tuple<std::string, std::string, std::string> DelftDomain::variableToFields(
   } else if (variable == "rain") {
     return {this->m_baseFilename + ".amr", "precipitation", "mm s-1"};
   } else {
-    metbuild_throw_exception("Invalid variable specified.");
+    metbuild_throw_exception("Invalid variable "+variable+" specified.");
     return {};
   }
 }
@@ -115,12 +117,12 @@ void DelftDomain::writeHeader(std::ofstream &stream,
             "### File generated: " + Date::now().toString() + "\n" +
             "FileVersion      = 1.03\n" +
             "filetype         = meteo_on_equidistant_grid\n" +
-            "NODATA_value     = "+boost::str(boost::format("%0.1f") % -999.0) + "\n" +
+            "NODATA_value     = "+ boost::str(boost::format("%0.1f") % -999.0) + "\n" +
             "n_cols           = " + boost::str(boost::format("%d")%this->grid()->ni())+"\n"+
             "n_rows           = " + boost::str(boost::format("%d")%this->grid()->nj())+"\n"+
             "grid_unit        = deg\n" +
-            "x_llcenter       = " + boost::str(boost::format("0.6f")%this->grid()->bottom_left().x())+"\n"+
-            "y_llcenter       = " + boost::str(boost::format("0.6f")%this->grid()->bottom_left().y())+"\n"+
+            "x_llcenter       = " + boost::str(boost::format("%0.6f")%this->grid()->bottom_left().x())+"\n"+
+            "y_llcenter       = " + boost::str(boost::format("%0.6f")%this->grid()->bottom_left().y())+"\n"+
             "dx               = " + boost::str(boost::format("%0.4f")%this->grid()->dx())+"\n"+
             "dy               = " + boost::str(boost::format("%0.4f")%this->grid()->dy())+"\n"+
             "n_quantity       = 1\n"+

@@ -33,6 +33,7 @@
 %{
 #define SWIG_FILE_WITH_INIT
 #include "MetBuild_Global.h"
+#include "CppAttributes.h"
 #include "Point.h"
 #include "Meteorology.h"
 #include "Grid.h"
@@ -75,6 +76,7 @@ namespace std {
 %include "MetBuild_Global.h"
 %include "Point.h"
 %include "Meteorology.h"
+%include "CppAttributes.h"
 %include "Grid.h"
 %include "Kdtree.h"
 %include "Date.h"

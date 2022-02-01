@@ -33,6 +33,7 @@
 #include <string>
 #include <vector>
 
+#include "CppAttributes.h"
 #include "Point.h"
 
 namespace MetBuild {
@@ -51,47 +52,47 @@ class Grid {
 
   Grid(const Grid &w);
 
-  [[nodiscard]] constexpr size_t ni() const { return m_ni; }
-  [[nodiscard]] constexpr size_t nj() const { return m_nj; }
-  [[nodiscard]] constexpr double rotation() const {
+  NODISCARD constexpr size_t ni() const { return m_ni; }
+  NODISCARD constexpr size_t nj() const { return m_nj; }
+  NODISCARD constexpr double rotation() const {
     return m_rotation * 180.0 / M_PI;
   }
-  [[nodiscard]] constexpr double di() const { return m_di; }
-  [[nodiscard]] constexpr double dj() const { return m_dj; }
-  [[nodiscard]] constexpr double dxx() const { return m_dxx; }
-  [[nodiscard]] constexpr double dxy() const { return m_dxy; }
-  [[nodiscard]] constexpr double dyx() const { return m_dyx; }
-  [[nodiscard]] constexpr double dyy() const { return m_dyy; }
-  [[nodiscard]] constexpr double dx() const { return m_dxx; }
-  [[nodiscard]] constexpr double dy() const { return m_dyy; }
-  [[nodiscard]] constexpr Point bottom_left() const { return m_corners[0]; }
-  [[nodiscard]] constexpr Point bottom_right() const { return m_corners[1]; }
-  [[nodiscard]] constexpr Point top_left() const { return m_corners[3]; }
-  [[nodiscard]] constexpr Point top_right() const { return m_corners[2]; }
+  NODISCARD constexpr double di() const { return m_di; }
+  NODISCARD constexpr double dj() const { return m_dj; }
+  NODISCARD constexpr double dxx() const { return m_dxx; }
+  NODISCARD constexpr double dxy() const { return m_dxy; }
+  NODISCARD constexpr double dyx() const { return m_dyx; }
+  NODISCARD constexpr double dyy() const { return m_dyy; }
+  NODISCARD constexpr double dx() const { return m_dxx; }
+  NODISCARD constexpr double dy() const { return m_dyy; }
+  NODISCARD constexpr Point bottom_left() const { return m_corners[0]; }
+  NODISCARD constexpr Point bottom_right() const { return m_corners[1]; }
+  NODISCARD constexpr Point top_left() const { return m_corners[3]; }
+  NODISCARD constexpr Point top_right() const { return m_corners[2]; }
 
-  [[nodiscard]] Point center(const size_t i, const size_t j) const {
+  NODISCARD Point center(const size_t i, const size_t j) const {
     assert(i < ni() - 1 && j < nj() - 1);
     if (i > ni() - 1 || j > nj() + 1) return {0, 0};
     return {(m_grid[j][i].x() + m_grid[j + 1][i + 1].x()) / 2.0,
             (m_grid[j][i].y() + m_grid[j + 1][i + 1].y()) / 2.0};
   }
 
-  [[nodiscard]] Point corner(const size_t i, const size_t j) const {
+  NODISCARD Point corner(const size_t i, const size_t j) const {
     assert(i < ni() && j < nj());
     return {m_grid[j][i].x(), m_grid[j][i].y()};
   }
 
-  [[nodiscard]] bool point_inside(const MetBuild::Point &p) const;
+  NODISCARD bool point_inside(const MetBuild::Point &p) const;
 
   void write(const std::string &filename) const;
 
-  [[nodiscard]] const grid &grid_positions() const { return m_grid; };
+  NODISCARD const grid &grid_positions() const { return m_grid; };
 
-  [[nodiscard]] std::vector<double> x() const;
-  [[nodiscard]] std::vector<double> y() const;
+  NODISCARD std::vector<double> x() const;
+  NODISCARD std::vector<double> y() const;
 
-  [[nodiscard]] std::vector<double> xcolumn() const;
-  [[nodiscard]] std::vector<double> ycolumn() const;
+  NODISCARD std::vector<double> xcolumn() const;
+  NODISCARD std::vector<double> ycolumn() const;
 
  private:
   const double m_di;

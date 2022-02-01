@@ -69,7 +69,7 @@ set(metbuild_include_list
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/boost_1_75_0
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/nanoflann
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.18.0/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.24.2/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/date_hh
     ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes/src
     ${NETCDF_INCLUDE_DIRS})
@@ -97,7 +97,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/metbuildConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
 install(
   DIRECTORY
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.18.0/definitions
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.24.2/definitions
   DESTINATION ${CMAKE_INSTALL_PREFIX}/share/eccodes)
 
 # ##############################################################################

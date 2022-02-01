@@ -30,6 +30,8 @@
 #include <cassert>
 #include <vector>
 
+#include "CppAttributes.h"
+
 namespace MetBuild {
 
 #define METBUILD_USE_FLOAT
@@ -49,13 +51,13 @@ class MeteorologicalData {
 
   ~MeteorologicalData() = default;
 
-  [[nodiscard]] static constexpr T background_pressure() { return 1013.0; }
+  NODISCARD static constexpr T background_pressure() { return 1013.0; }
 
-  [[nodiscard]] static constexpr T flag_value() { return -999.0; }
+  NODISCARD static constexpr T flag_value() { return -999.0; }
 
-  [[nodiscard]] size_t ni() const { return m_ni; }
+  NODISCARD size_t ni() const { return m_ni; }
 
-  [[nodiscard]] size_t nj() const { return m_nj; };
+  NODISCARD size_t nj() const { return m_nj; };
 
   void resize(const size_t ni, const size_t nj) {
     m_ni = ni;
@@ -70,13 +72,13 @@ class MeteorologicalData {
     }
   }
 
-  [[nodiscard]] const std::vector<std::vector<T>> &operator[](
+  NODISCARD const std::vector<std::vector<T>> &operator[](
       const size_t index) const {
     assert(index < parameters);
     return m_data[index];
   }
 
-  [[nodiscard]] std::vector<T> toVector(const size_t index) const {
+  NODISCARD std::vector<T> toVector(const size_t index) const {
     assert(index < parameters);
     std::vector<T> v;
     v.reserve(m_ni * m_nj);
@@ -88,7 +90,7 @@ class MeteorologicalData {
     return v;
   }
 
-  [[nodiscard]] std::vector<std::vector<T>> &operator[](const size_t index) {
+  NODISCARD std::vector<std::vector<T>> &operator[](const size_t index) {
     assert(index < parameters);
     return m_data[index];
   }
@@ -118,7 +120,7 @@ class MeteorologicalData {
     m_data[parameter][j][i] = value;
   }
 
-  [[nodiscard]] T get(const size_t parameter, const size_t i,
+  NODISCARD T get(const size_t parameter, const size_t i,
                       const size_t j) const {
     assert(parameter < parameters);
     assert(i < m_ni);
@@ -126,7 +128,7 @@ class MeteorologicalData {
     return m_data[parameter][i][j];
   }
 
-  [[nodiscard]] std::array<T, parameters> getPack(const size_t i,
+  NODISCARD std::array<T, parameters> getPack(const size_t i,
                                                   const size_t j) const {
     std::array<T, parameters> out;
     assert(i < m_ni);
@@ -147,7 +149,7 @@ class MeteorologicalData {
     }
   }
 
-  [[nodiscard]] constexpr size_t nParameters() const { return parameters; }
+  NODISCARD constexpr size_t nParameters() const { return parameters; }
 
  protected:
 #ifndef SWIG
