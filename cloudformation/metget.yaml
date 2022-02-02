@@ -960,7 +960,7 @@ Resources:
                   type: string
                   description: output file end date
                 time_step:
-                  type: string
+                  type: integer
                   description: output file time increment in seconds
                 background_pressure:
                   type: number
@@ -973,6 +973,27 @@ Resources:
                 creator:
                   type: string
                   description: name of application/individual making the request
+                filename:
+                  type: string
+                  description: base filename used in the output of data
+                nowcast:
+                  type: boolean
+                  description: Set to true to only use nowcast data (i.e. forecast hour zero)
+                multiple_forecasts:
+                  type: boolean
+                  description: Set to true to allow the use of multiple forecasts (i.e. the latest files that reporesent a specific time) or just single forcasts
+                format:
+                  type: string
+                  description: Output format to be returned. adcirc-ascii (owi), adcirc-netcdf (owi-netcdf), ras-netcdf, and delft3d are available options
+                  default: adcirc-ascii
+                epsg:
+                  type: integer
+                  description: coordinate system of the output data using an epsg code
+                  default: 4326
+                backfill:
+                  type: boolean
+                  description: For multi-domain outputs, when the nested domain does not have data throughout the specified region, a flag value (-999) will be written to the file to signify this. If backfill is turned off, a standard value will be written (i.e. 1013 for pressure)
+                  default: false
                 domains:
                   type: array
                   description: list of output domains to generate
