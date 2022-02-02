@@ -75,7 +75,8 @@ void DelftDomain::open() {
   const auto grid_unit = this->guessGridUnits();
   for (const auto &v : m_variables) {
     std::string filename, variableName, units;
-    std::tie(filename, variableName, units) = this->variableToFields(v);
+    double multiplier;
+    std::tie(filename, variableName, units, multiplier) = this->variableToFields(v);
     this->m_filenames.push_back(filename);
     this->m_ofstreams.emplace_back(this->m_filenames.back());
     this->writeHeader(m_ofstreams.back(), variableName, units, grid_unit);
@@ -92,6 +93,9 @@ int DelftDomain::write(
     const MetBuild::Date &date,
     const MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
         &data) {
+  std::string filename, variableName, units;
+  double multiplier;
+  std::tie(filename, variableName, units, multiplier) = this->variableToFields(m_variables[0]);
   return this->writeField(m_ofstreams[0], date, data[0]);
 }
 
@@ -101,28 +105,31 @@ int DelftDomain::write(
         &data) {
   int return_val = 0;
   for (size_t i = 0; i < 3; ++i) {
-    return_val += this->writeField(m_ofstreams[i], date, data[i]);
+    std::string filename, variableName, units;
+    double multiplier;
+    std::tie(filename, variableName, units, multiplier) = this->variableToFields(m_variables[i]);
+    return_val += this->writeField(m_ofstreams[i], date, data[i], multiplier);
   }
   return return_val;
 }
 
-std::tuple<std::string, std::string, std::string> DelftDomain::variableToFields(
+std::tuple<std::string, std::string, std::string, double> DelftDomain::variableToFields(
     const std::string &variable) {
   auto v2 = boost::to_lower_copy(variable);
   if (variable == "wind_u") {
-    return {this->m_baseFilename + ".amu", "x_wind", "m s-1"};
+    return {this->m_baseFilename + ".amu", "x_wind", "m s-1", 1.0};
   } else if (variable == "wind_v") {
-    return {this->m_baseFilename + ".amv", "y_wind", "m s-1"};
+    return {this->m_baseFilename + ".amv", "y_wind", "m s-1", 1.0};
   } else if (variable == "mslp") {
-    return {this->m_baseFilename + ".amp", "air_pressure", "mb"};
+    return {this->m_baseFilename + ".amp", "air_pressure", "Pa", 100.0};
   } else if (variable == "temperature") {
-    return {this->m_baseFilename + ".amt", "temperature", "k"};
+    return {this->m_baseFilename + ".amt", "temperature", "k", 1.0};
   } else if (variable == "humidity") {
-    return {this->m_baseFilename + ".amh", "relative_humidity", "%"};
+    return {this->m_baseFilename + ".amh", "relative_humidity", "%", 1.0};
   } else if (variable == "ice") {
-    return {this->m_baseFilename + ".ami", "ice_concentration", "%"};
+    return {this->m_baseFilename + ".ami", "ice_concentration", "%", 1.0};
   } else if (variable == "rain") {
-    return {this->m_baseFilename + ".amr", "precipitation", "mm s-1"};
+    return {this->m_baseFilename + ".amr", "precipitation", "mm s-1", 1.0};
   } else {
     metbuild_throw_exception("Invalid variable "+variable+" specified.");
     return {};
@@ -157,7 +164,7 @@ void DelftDomain::writeHeader(std::ofstream &stream,
 
 template <typename T>
 int DelftDomain::writeField(std::ofstream &stream, const MetBuild::Date &date,
-                            const std::vector<std::vector<T>> &data) {
+                            const std::vector<std::vector<T>> &data, const double multiplier) {
   double hours =
       static_cast<double>(date.toSeconds() - this->startDate().toSeconds()) /
       3600.0;
@@ -165,7 +172,7 @@ int DelftDomain::writeField(std::ofstream &stream, const MetBuild::Date &date,
          << " hours since " << this->startDate().toString() + " +00:00\n";
   for (const auto &r : data) {
     for (const auto &c : r) {
-      stream << boost::str(boost::format("%0.6f ") % c);
+      stream << boost::str(boost::format("%0.6f ") % (c*multiplier));
     }
     stream << "\n";
   }

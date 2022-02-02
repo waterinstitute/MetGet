@@ -57,7 +57,7 @@ class DelftDomain : public OutputDomain {
           &data) override;
 
  private:
-  std::tuple<std::string, std::string, std::string> variableToFields(
+  std::tuple<std::string, std::string, std::string, double> variableToFields(
       const std::string &variable);
 
   std::string guessGridUnits();
@@ -67,7 +67,7 @@ class DelftDomain : public OutputDomain {
 
   template <typename T>
   int writeField(std::ofstream &stream, const MetBuild::Date &date,
-                 const std::vector<std::vector<T>> &data);
+                 const std::vector<std::vector<T>> &data, double multiplier=1.0);
 
   const std::vector<std::string> m_variables;
   const std::string m_baseFilename;
