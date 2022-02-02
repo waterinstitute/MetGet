@@ -49,26 +49,6 @@ DelftDomain::~DelftDomain() {
   }
 }
 
-std::string DelftDomain::guessGridUnits(){
-    auto ul = this->grid()->top_left();
-    auto ur = this->grid()->top_right();
-    auto bl = this->grid()->bottom_left();
-    auto br = this->grid()->bottom_right();
-    std::array<double,4> x = {ul.x(),ur.x(),bl.x(),br.x()};
-    std::array<double,4> y = {ul.y(),ur.y(),bl.y(),br.y()};
-
-    auto xmax = std::abs(*std::max_element(x.begin(),x.end()));
-    auto xmin = std::abs(*std::min_element(x.begin(),x.end()));
-    auto ymax = std::abs(*std::max_element(y.begin(),y.end()));
-    auto ymin = std::abs(*std::min_element(y.begin(),y.end()));
-
-    if(xmax > 180.0 || xmin > 180.0 || ymax > 90.0 || ymin > 90.0){
-      return "m";
-    } else {
-      return "deg";
-    }
-}
-
 void DelftDomain::open() {
   this->m_filenames.reserve(m_variables.size());
   this->m_ofstreams.reserve(m_variables.size());
