@@ -44,9 +44,10 @@ class Grid {
  public:
   using grid = std::vector<std::vector<MetBuild::Point>>;
 
-  Grid(double llx, double lly, double urx, double ury, double dx, double dy);
+  Grid(double llx, double lly, double urx, double ury, double dx, double dy,
+       int epsg = 4326);
   Grid(double xinit, double yinit, size_t ni, size_t nj, double dx, double dy,
-       double rotation = 0.0);
+       double rotation = 0.0, int epsg = 4326);
 
   ~Grid();
 
@@ -69,6 +70,7 @@ class Grid {
   NODISCARD constexpr Point bottom_right() const { return m_corners[1]; }
   NODISCARD constexpr Point top_left() const { return m_corners[3]; }
   NODISCARD constexpr Point top_right() const { return m_corners[2]; }
+  NODISCARD constexpr int epsg() const { return m_epsg; }
 
   NODISCARD Point center(const size_t i, const size_t j) const {
     assert(i < ni() - 1 && j < nj() - 1);
@@ -107,6 +109,7 @@ class Grid {
   const double m_width;
   const double m_height;
   const Point m_center;
+  const int m_epsg;
   const std::array<Point, 4> m_corners;
 
   grid m_grid;

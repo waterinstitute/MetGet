@@ -43,7 +43,8 @@ class Meteorology {
 
   METBUILD_EXPORT explicit Meteorology(const MetBuild::Grid *grid,
                                        Meteorology::TYPE type,
-                                       bool backfill = false);
+                                       bool backfill = false,
+                                       int epsg_output = 4326);
 
   std::string findScalarVariableName(const std::string &filename);
 
@@ -69,6 +70,8 @@ class Meteorology {
     return std::numeric_limits<double>::epsilon() *
            std::numeric_limits<double>::epsilon();
   }
+
+  MetBuild::Grid::grid reproject_grid(MetBuild::Grid::grid g) const;
 
   constexpr static size_t c_idw_depth = 6;
 
@@ -105,6 +108,7 @@ class Meteorology {
 
   const TYPE m_type;
   const Grid *m_windGrid;
+  Grid::grid m_grid_positions;
   std::unique_ptr<Grib> m_grib1;
   std::unique_ptr<Grib> m_grib2;
   double m_rate_scaling_1;
@@ -116,6 +120,7 @@ class Meteorology {
   std::shared_ptr<InterpolationWeights> m_interpolation_1;
   std::shared_ptr<InterpolationWeights> m_interpolation_2;
   bool m_useBackgroundFlag;
+  int m_epsg_output;
 };
 }  // namespace MetBuild
 #endif  // METBUILD_METEOROLOGY_H
