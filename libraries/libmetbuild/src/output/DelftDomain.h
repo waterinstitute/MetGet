@@ -60,8 +60,10 @@ class DelftDomain : public OutputDomain {
   std::tuple<std::string, std::string, std::string> variableToFields(
       const std::string &variable);
 
+  std::string guessGridUnits();
+
   void writeHeader(std::ofstream &stream, const std::string &variable,
-                   const std::string &units);
+                   const std::string &units, const std::string &grid_unit);
 
   template <typename T>
   int writeField(std::ofstream &stream, const MetBuild::Date &date,
