@@ -34,12 +34,13 @@
 #include "Grib.h"
 #include "Logging.h"
 #include "MetBuild_Status.h"
+#include "Projection.h"
 #include "Utilities.h"
 
 using namespace MetBuild;
 
 Meteorology::Meteorology(const MetBuild::Grid *windGrid, Meteorology::TYPE type,
-                         bool backfill)
+                         bool backfill, int epsg_output)
     : m_type(type),
       m_windGrid(windGrid),
       m_rate_scaling_1(1.0),
@@ -50,7 +51,35 @@ Meteorology::Meteorology(const MetBuild::Grid *windGrid, Meteorology::TYPE type,
       m_file2(std::string()),
       m_interpolation_1(nullptr),
       m_interpolation_2(nullptr),
-      m_useBackgroundFlag(backfill) {}
+      m_useBackgroundFlag(backfill),
+      m_epsg_output(epsg_output),
+      m_grid_positions(m_windGrid->grid_positions()) {
+  // We assume that all data in the database is in WGS84 and the user can
+  // get out other projections if they need to
+  if (m_epsg_output != 4326) {
+    m_grid_positions = Meteorology::reproject_grid(m_grid_positions);
+  }
+}
+
+MetBuild::Grid::grid Meteorology::reproject_grid(MetBuild::Grid::grid g) const {
+  std::vector<Point> pts;
+  pts.reserve(g.size() * g[0].size());
+  for (const auto &row : g) {
+    for (const auto &v : row) {
+      pts.push_back(v);
+    }
+  }
+  bool latlon = true;
+  auto pts_out = Projection::transform(m_epsg_output, 4326, pts, latlon);
+  size_t count = 0;
+  for (auto &row : g) {
+    for (auto &v : row) {
+      v = pts_out[count];
+      count++;
+    }
+  }
+  return g;
+}
 
 void Meteorology::set_next_file(const std::string &filename) {
   m_file1 = std::move(m_file2);
