@@ -33,12 +33,23 @@ MetBuild::OwiAscii::OwiAscii(const MetBuild::Date& startDate,
 
 void MetBuild::OwiAscii::addDomain(const MetBuild::Grid& w,
                                    const std::vector<std::string>& filenames) {
-  if (filenames.size() < 2) {
+  if(filenames.size() == 1) {
+    m_domains.push_back(std::make_unique<MetBuild::OwiAsciiDomain>(
+        &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0]));
+  } else if(filenames.size() == 2){
+    m_domains.push_back(std::make_unique<MetBuild::OwiAsciiDomain>(
+        &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0],
+        filenames[1]));
+  } else {
     metbuild_throw_exception("Must provide two filenames for OwiAscii format");
   }
-  m_domains.push_back(std::make_unique<MetBuild::OwiAsciiDomain>(
-      &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0],
-      filenames[1]));
+}
+
+int MetBuild::OwiAscii::write(
+    const MetBuild::Date& date, const size_t domain_index,
+    const MetBuild::MeteorologicalData<1, MeteorologicalDataType>& data) {
+  assert(domain_index < m_domains.size());
+  return m_domains[domain_index]->write(date, data);
 }
 
 int MetBuild::OwiAscii::write(

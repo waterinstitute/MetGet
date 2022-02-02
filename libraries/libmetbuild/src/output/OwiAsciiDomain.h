@@ -43,9 +43,18 @@ class OwiAsciiDomain : public OutputDomain {
   OwiAsciiDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
                  const MetBuild::Date &endDate, unsigned time_step,
                  const std::string &pressureFile, const std::string &windFile);
+  
+  OwiAsciiDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
+                 const MetBuild::Date &endDate, unsigned time_step,
+                 const std::string &pressureFile);
 
   ~OwiAsciiDomain() override;
 
+  int write(
+      const MetBuild::Date &date,
+      const MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
+          &data) override;
+  
   int write(
       const MetBuild::Date &date,
       const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>

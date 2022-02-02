@@ -47,6 +47,18 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
   this->open();
 }
 
+OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
+                               const Date &startDate, const Date &endDate,
+                               const unsigned int time_step,
+                               const std::string &outputFile)
+    : OutputDomain(grid, startDate, endDate, time_step),
+      m_previousDate(startDate - time_step),
+      m_ofstream_pressure(std::make_unique<std::ofstream>(outputFile)),
+      m_pressureFile(outputFile) {
+  assert(startDate < endDate);
+  this->open();
+}
+
 OwiAsciiDomain::~OwiAsciiDomain() {
   if (m_ofstream_pressure->is_open()) {
     m_ofstream_pressure->close();
@@ -60,8 +72,10 @@ void OwiAsciiDomain::open() {
   if (!m_ofstream_pressure->is_open()) {
     m_ofstream_pressure->open(m_pressureFile);
   }
-  if (!m_ofstream_wind->is_open()) {
-    m_ofstream_wind->open(m_windFile);
+  if ( !m_windFile.empty() ) {
+    if (!m_ofstream_wind->is_open()) {
+      m_ofstream_wind->open(m_windFile);
+    }
   }
   this->write_header();
   this->set_open(true);
@@ -76,6 +90,30 @@ void OwiAsciiDomain::close() {
   }
   this->set_open(false);
 }
+
+int OwiAsciiDomain::write(
+    const Date &date,
+    const MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
+        &data) {
+  if (!this->is_open()) {
+    metbuild_throw_exception("OWI Domain not open");
+  }
+  if (date != m_previousDate + this->timestep()) {
+    metbuild_throw_exception("Non-constant time spacing detected");
+  }
+  if (date > this->endDate()) {
+    metbuild_throw_exception("Attempt to write past file end date");
+  }
+
+  *(m_ofstream_pressure) << generateRecordHeader(date, this->grid());
+
+  OwiAsciiDomain::write_record(m_ofstream_pressure.get(), data[0]);
+
+  m_previousDate = date;
+
+  return 0;
+}
+
 
 int OwiAsciiDomain::write(
     const Date &date,
@@ -106,7 +144,9 @@ int OwiAsciiDomain::write(
 void OwiAsciiDomain::write_header() {
   auto header = generateHeaderLine(this->startDate(), this->endDate());
   *(m_ofstream_pressure) << header;
-  *(m_ofstream_wind) << header;
+  if(!m_windFile.empty()){
+    *(m_ofstream_wind) << header;
+  }
 }
 
 std::string OwiAsciiDomain::generateHeaderLine(const Date &date1,
