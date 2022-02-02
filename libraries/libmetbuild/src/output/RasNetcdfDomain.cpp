@@ -66,25 +66,49 @@ void RasNetcdfDomain::initialize() {
   const float float_fill = MeteorologicalData<1>::flag_value();
   const double double_fill = MeteorologicalData<1>::flag_value();
 
-  // X
-  ncCheck(nc_def_var(m_ncid, "x", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "longitude"));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_x, "long_name", 34,
-                          "x coordinate according to WGS 1984"));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", 3, "DEG"));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "x"));
-  ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
-  ncCheck(nc_def_var_deflate(m_ncid, m_varid_x, 1, 1, 2));
+  const auto grid_unit = this->guessGridUnits(); 
 
-  // Y
-  ncCheck(nc_def_var(m_ncid, "y", NC_DOUBLE, 1, &m_dimid_y, &m_varid_y));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "latitude"));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_y, "long_name", 34,
-                          "y coordinate according to WGS 1984"));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", 3, "DEG"));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "y"));
-  ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
-  ncCheck(nc_def_var_deflate(m_ncid, m_varid_y, 1, 1, 2));
+  if(grid_unit == "deg"){
+    // X
+    ncCheck(nc_def_var(m_ncid, "x", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "longitude"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "long_name", 34,
+                            "x coordinate according to WGS 1984"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", grid_unit.size(), &grid_unit[0]));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "x"));
+    ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
+    ncCheck(nc_def_var_deflate(m_ncid, m_varid_x, 1, 1, 2));
+
+    // Y
+    ncCheck(nc_def_var(m_ncid, "y", NC_DOUBLE, 1, &m_dimid_y, &m_varid_y));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "latitude"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "long_name", 34,
+                            "y coordinate according to WGS 1984"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", 3, "DEG"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "y"));
+    ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
+    ncCheck(nc_def_var_deflate(m_ncid, m_varid_y, 1, 1, 2));
+  } else {
+    // X
+    ncCheck(nc_def_var(m_ncid, "x", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "x"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "long_name", 34,
+                            "x coordinate"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", grid_unit.size(), &grid_unit[0]));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "x"));
+    ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
+    ncCheck(nc_def_var_deflate(m_ncid, m_varid_x, 1, 1, 2));
+
+    // Y
+    ncCheck(nc_def_var(m_ncid, "y", NC_DOUBLE, 1, &m_dimid_y, &m_varid_y));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "y"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "long_name", 34,
+                            "y coordinate"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", 3, "DEG"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "y"));
+    ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
+    ncCheck(nc_def_var_deflate(m_ncid, m_varid_y, 1, 1, 2));
+  }
 
   // Z
   ncCheck(nc_def_var(m_ncid, "z", NC_DOUBLE, 2, twod, &m_varid_z));
@@ -108,32 +132,35 @@ void RasNetcdfDomain::initialize() {
   ncCheck(nc_def_var_deflate(m_ncid, m_varid_time, 1, 1, 2));
 
   // CRS
-  ncCheck(nc_def_var(m_ncid, "crs", NC_INT, 0, one, &m_varid_crs));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "long_name", 27,
-                          "coordinate reference system"));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "grid_mapping_name", 18,
-                          "latitude_longitude"));
-  constexpr double zero = 0.0;
-  ncCheck(nc_put_att_double(m_ncid, m_varid_crs, "longitude_of_prime_meridian",
-                            NC_DOUBLE, 1, &zero));
-  constexpr double semi_major_axis = 6378137.0;
-  ncCheck(nc_put_att_double(m_ncid, m_varid_crs, "semi_major_axis", NC_DOUBLE,
-                            1, &semi_major_axis));
-  constexpr double inverse_flattening = 298.257223563;
-  ncCheck(nc_put_att_double(m_ncid, m_varid_crs, "inverse_flattening",
-                            NC_DOUBLE, 1, &inverse_flattening));
-  constexpr std::string_view wkt =
-      "GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS "
-      "84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY["
-      "\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]]"
-      ",UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],"
-      "AUTHORITY[\"EPSG\",\"4326\"]]";
-  ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "crs_wkt", wkt.size(), &wkt[0]));
-  constexpr std::string_view proj4 =
-      "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs";
-  ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "proj4_params", proj4.size(),
-                          &proj4[0]));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "epsg_code", 9, "EPSG:4326"));
+  if(grid_unit == "deg"){
+    ncCheck(nc_def_var(m_ncid, "crs", NC_INT, 0, one, &m_varid_crs));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "long_name", 27,
+                            "coordinate reference system"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "grid_mapping_name", 18,
+                            "latitude_longitude"));
+    constexpr double zero = 0.0;
+    ncCheck(nc_put_att_double(m_ncid, m_varid_crs, "longitude_of_prime_meridian",
+                              NC_DOUBLE, 1, &zero));
+    constexpr double semi_major_axis = 6378137.0;
+    ncCheck(nc_put_att_double(m_ncid, m_varid_crs, "semi_major_axis", NC_DOUBLE,
+                              1, &semi_major_axis));
+    constexpr double inverse_flattening = 298.257223563;
+    ncCheck(nc_put_att_double(m_ncid, m_varid_crs, "inverse_flattening",
+                              NC_DOUBLE, 1, &inverse_flattening));
+    constexpr std::string_view wkt =
+        "GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS "
+        "84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY["
+        "\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]]"
+        ",UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],"
+        "AUTHORITY[\"EPSG\",\"4326\"]]";
+    ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "crs_wkt", wkt.size(), &wkt[0]));
+    constexpr std::string_view proj4 =
+        "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs";
+    ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "proj4_params", proj4.size(),
+                            &proj4[0]));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "epsg_code", 9, "EPSG:4326"));
+  }
+
 
   this->m_varids.reserve(m_variables.size());
   for (const auto &v : m_variables) {

@@ -60,8 +60,6 @@ class DelftDomain : public OutputDomain {
   std::tuple<std::string, std::string, std::string, double> variableToFields(
       const std::string &variable);
 
-  std::string guessGridUnits();
-
   void writeHeader(std::ofstream &stream, const std::string &variable,
                    const std::string &units, const std::string &grid_unit);
 
