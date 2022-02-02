@@ -115,12 +115,12 @@ int Meteorology::process_data() {
       m_grib1 = std::make_unique<Grib>(m_file1);
       m_interpolation_1 = std::make_shared<InterpolationWeights>(
           Meteorology::generate_interpolation_weight(m_grib1.get(),
-                                                     m_windGrid));
+                                                     &m_grid_positions));
     }
   } else {
     m_grib1 = std::make_unique<Grib>(m_file1);
     m_interpolation_1 = std::make_shared<InterpolationWeights>(
-        Meteorology::generate_interpolation_weight(m_grib1.get(), m_windGrid));
+        Meteorology::generate_interpolation_weight(m_grib1.get(), &m_grid_positions));
   }
   m_grib2 = std::make_unique<Grib>(m_file2);
 
@@ -130,7 +130,7 @@ int Meteorology::process_data() {
         std::make_shared<InterpolationWeights>(*m_interpolation_1);
   } else {
     m_interpolation_2 = std::make_shared<InterpolationWeights>(
-        Meteorology::generate_interpolation_weight(m_grib2.get(), m_windGrid));
+        Meteorology::generate_interpolation_weight(m_grib2.get(), &m_grid_positions));
   }
 
   return MB_NOERROR;
@@ -345,13 +345,15 @@ Meteorology::to_wind_grid(double time_weight) {
 }
 
 Meteorology::InterpolationWeights Meteorology::generate_interpolation_weight(
-    const MetBuild::Grib *grib, const MetBuild::Grid *wind_grid) {
+    const MetBuild::Grib *grib, const MetBuild::Grid::grid *grid) {
   InterpolationWeights weights;
-  weights.resize(wind_grid->ni(), wind_grid->nj());
+  const auto ni = grid->at(0).size();
+  const auto nj = grid->size();
+  weights.resize(ni,nj);
 
-  for (size_t j = 0; j < wind_grid->nj(); ++j) {
-    for (size_t i = 0; i < wind_grid->ni(); ++i) {
-      const auto p = wind_grid->corner(i, j);
+  for (size_t j = 0; j < nj; ++j) {
+    for (size_t i = 0; i < ni; ++i) {
+      const auto p = grid->at(j)[i];
 
       if (!grib->point_inside(p)) {
         std::fill(weights.index[j][i].begin(), weights.index[j][i].end(), 0);

@@ -87,7 +87,7 @@ class Meteorology {
   };
 
   static InterpolationWeights generate_interpolation_weight(
-      const MetBuild::Grib *grib, const MetBuild::Grid *wind_grid);
+      const MetBuild::Grib *grib, const MetBuild::Grid::grid *grid);
 
   MetBuild::MeteorologicalData<1> scalar_value_interpolation(
       double time_weight);

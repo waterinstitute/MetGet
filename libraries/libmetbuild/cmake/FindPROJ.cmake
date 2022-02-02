@@ -37,11 +37,13 @@ IF (APPLE)
 ENDIF (APPLE)
 
 FIND_PATH(PROJ_INCLUDE_DIR proj_api.h
+	"$ENV{PROJ_PATH}"
         "$ENV{INCLUDE}"
         "$ENV{LIB_DIR}/include"
         )
 IF (NOT PROJ_INCLUDE_DIR)
     FIND_PATH(PROJ_INCLUDE_DIR proj.h
+	    "$ENV{PROJ_PATH}"
             "$ENV{INCLUDE}"
             "$ENV{LIB_DIR}/include"
             )

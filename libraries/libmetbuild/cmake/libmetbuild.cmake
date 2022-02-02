@@ -55,7 +55,7 @@ add_library(metbuild_static STATIC $<TARGET_OBJECTS:metbuild_objectlib>)
 add_library(metbuild SHARED $<TARGET_OBJECTS:metbuild_objectlib>)
 
 find_package( NetCDF REQUIRED )
-find_package( proj REQUIRED )
+find_package( PROJ REQUIRED )
 find_package( SQLite3 REQUIRED )
 
 set_property(TARGET metbuild_objectlib PROPERTY POSITION_INDEPENDENT_CODE 1)
