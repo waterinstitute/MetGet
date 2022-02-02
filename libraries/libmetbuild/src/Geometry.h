@@ -44,7 +44,7 @@ class Geometry {
   }
 
   bool is_inside(const Point &p) const {
-    return boost::geometry::within(geom_point_t(p.x(), p.y()), m_polygon);
+    return boost::geometry::covered_by(geom_point_t(p.x(), p.y()), m_polygon);
   }
 
  private:

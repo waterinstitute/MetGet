@@ -196,7 +196,7 @@ def process_message(json_message, queue, json_file=None):
     files_used_list={}
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
-        met = pymetbuild.Meteorology(d.grid().grid_object(),data_type_key,inputData.backfill())
+        met = pymetbuild.Meteorology(d.grid().grid_object(),data_type_key,inputData.backfill(),inputData.epsg())
 
         if inputData.format() == "ascii" or inputData.format() == "owi-ascii":
             fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"

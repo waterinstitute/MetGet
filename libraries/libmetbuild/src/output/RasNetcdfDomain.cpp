@@ -63,8 +63,8 @@ void RasNetcdfDomain::initialize() {
   const int one[] = {1};
   const int twod[] = {m_dimid_y, m_dimid_x};
   const int threed[] = {m_dimid_time, m_dimid_y, m_dimid_x};
-  const float float_fill = NC_FILL_FLOAT;
-  const double double_fill = NC_FILL_DOUBLE;
+  const float float_fill = MeteorologicalData<1>::flag_value();
+  const double double_fill = MeteorologicalData<1>::flag_value();
 
   // X
   ncCheck(nc_def_var(m_ncid, "x", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));

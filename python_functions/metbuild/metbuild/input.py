@@ -14,6 +14,7 @@ class Input:
         self.__time_step = None
         self.__nowcast = False
         self.__backfill = False
+        self.__epsg = 4326
         self.__multiple_forecasts = True
         self.__domains = []
         self.__parse()
@@ -79,6 +80,9 @@ class Input:
     def backfill(self):
         return self.__backfill
 
+    def epsg(self):
+        return self.__epsg
+
     def __parse(self):
         import sys
         import dateutil.parser
@@ -106,6 +110,9 @@ class Input:
 
             if "backfill" in self.__json.keys():
                 self.__backfill = self.__json["backfill"]
+
+            if "epsg" in self.__json.keys():
+                self.__epsg = self.__json["epsg"]
 
             if "nowcast" in self.__json.keys():
                 self.__nowcast = self.__json["nowcast"]
