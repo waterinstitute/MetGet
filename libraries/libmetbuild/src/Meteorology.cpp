@@ -353,7 +353,8 @@ Meteorology::InterpolationWeights Meteorology::generate_interpolation_weight(
 
   for (size_t j = 0; j < nj; ++j) {
     for (size_t i = 0; i < ni; ++i) {
-      const auto p = grid->at(j)[i];
+      auto p = grid->at(j)[i];
+      p.setX((std::fmod(p.x() + 180.0, 360.0)) - 180.0);
 
       if (!grib->point_inside(p)) {
         std::fill(weights.index[j][i].begin(), weights.index[j][i].end(), 0);

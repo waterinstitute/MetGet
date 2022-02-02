@@ -105,7 +105,7 @@ int OwiNcFile::addGroup(const std::string& groupName,
   ncCheck(nc_def_var(grp.grpid, "V10", NC_FLOAT, 3, dim3d, &grp.varid_v));
   ncCheck(nc_def_var(grp.grpid, "PSFC", NC_FLOAT, 3, dim3d, &grp.varid_press));
 
-  constexpr float nan = NAN;
+  constexpr float nan = MeteorologicalData<1>::flag_value();
   ncCheck(nc_def_var_fill(grp.grpid, grp.varid_lat, 0, &nan));
   ncCheck(nc_def_var_fill(grp.grpid, grp.varid_lon, 0, &nan));
   ncCheck(nc_def_var_fill(grp.grpid, grp.varid_u, 0, &nan));
