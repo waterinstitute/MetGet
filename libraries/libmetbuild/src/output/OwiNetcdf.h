@@ -43,6 +43,8 @@ class OwiNetcdf : public MetBuild::OutputFile {
   void addDomain(const MetBuild::Grid &w,
                  const std::vector<std::string> &groupNames) override;
 
+  std::vector<std::string> filenames() const override;
+
   int write(
       const MetBuild::Date &date, size_t domain_index,
       const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
@@ -50,6 +52,7 @@ class OwiNetcdf : public MetBuild::OutputFile {
 
  private:
   MetBuild::OwiNcFile m_ncfile;
+  std::string m_filename;
 };
 }  // namespace MetBuild
 #endif  // METGET_SRC_OWI_H_

@@ -37,6 +37,8 @@ class DelftOutput : public OutputFile {
 
   ~DelftOutput() = default;
 
+  std::vector<std::string> filenames() const override; 
+
   void addDomain(const MetBuild::Grid &w,
                  const std::vector<std::string> &variables) override;
 

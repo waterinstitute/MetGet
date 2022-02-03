@@ -69,7 +69,6 @@ class DelftDomain : public OutputDomain {
 
   const std::vector<std::string> m_variables;
   const std::string m_baseFilename;
-  std::vector<std::string> m_filenames;
   std::vector<std::ofstream> m_ofstreams;
 };
 

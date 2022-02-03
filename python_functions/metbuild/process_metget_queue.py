@@ -190,19 +190,19 @@ def process_message(json_message, queue, json_file=None):
         return len(domain_data)-1
 
     output_file_list=[]
-    if inputData.format() == "owi-netcdf" or inputData.format() == "ras-netcdf" or inputData.format() == "delft3d":
-        output_file_list.append(inputData.filename())
+    #if inputData.format() == "owi-netcdf" or inputData.format() == "ras-netcdf" or inputData.format() == "delft3d":
+    #    output_file_list.append(inputData.filename())
 
     files_used_list={}
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
         met = pymetbuild.Meteorology(d.grid().grid_object(),data_type_key,inputData.backfill(),inputData.epsg())
 
-        if inputData.format() == "ascii" or inputData.format() == "owi-ascii":
-            fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
-            fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
-            output_file_list.append(fn1)
-            output_file_list.append(fn2)
+        #if inputData.format() == "ascii" or inputData.format() == "owi-ascii":
+        #    fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
+        #    fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
+        #    output_file_list.append(fn1)
+        #    output_file_list.append(fn2)
 
         t0 = domain_data[i][0]["time"]
 
@@ -241,12 +241,12 @@ def process_message(json_message, queue, json_file=None):
             met_field.write(Input.date_to_pmb(t),i,values)
 
         if not json_file:
-            path1 = messageId + "/" + fn1
-            path2 = messageId + "/" + fn2
-            s3.upload_file(fn1,path1)
-            s3.upload_file(fn2,path2)
-            os.remove(fn1)
-            os.remove(fn2)
+            ff = met_field.filenames() 
+            for f in ff:
+                output_file_list.append(f)
+                path = messageId + "/" + f
+                s3.upload_file(f,path)
+                os.remove(f)
 
         files_used_list[inputData.domain(i).name()] =  domain_files_used
         

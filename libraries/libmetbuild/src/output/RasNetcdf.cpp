@@ -46,6 +46,10 @@ RasNetcdf::RasNetcdf(const MetBuild::Date& date_start,
 
 RasNetcdf::~RasNetcdf() { ncCheck(nc_close(this->m_ncid)); }
 
+std::vector<std::string> RasNetcdf::filenames() const {
+  return {m_filename};
+}
+
 void RasNetcdf::addDomain(const Grid& w,
                           const std::vector<std::string>& variables) {
   if (!m_domains.empty()) {

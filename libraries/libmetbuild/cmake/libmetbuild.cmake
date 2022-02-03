@@ -81,7 +81,7 @@ set(metbuild_include_list
 
 target_include_directories(metbuild_objectlib PRIVATE ${metbuild_include_list})
 
-target_link_libraries(metbuild_interface INTERFACE ${NETCDF_LIBRARIES} ${PROJ_LIBRARY} ${SQLite3_LIBRARIES} eccodes)
+target_link_libraries(metbuild_interface INTERFACE ${NETCDF_LIBRARIES} ${PROJ_LIBRARY} ${SQLite3_LIBRARIES} eccodes tiff)
 target_link_libraries(metbuild_static metbuild_interface)
 target_link_libraries(metbuild metbuild_interface)
 

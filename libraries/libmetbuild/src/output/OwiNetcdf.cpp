@@ -33,6 +33,11 @@ OwiNetcdf::OwiNetcdf(const MetBuild::Date &date_start,
     : OutputFile(date_start, date_end, time_step),
       m_ncfile(std::move(filename)) {
   this->m_ncfile.initialize();
+  this->m_filename = filename;
+}
+
+std::vector<std::string> OwiNetcdf::filenames() const {
+  return {m_filename};
 }
 
 void OwiNetcdf::addDomain(const MetBuild::Grid &w,

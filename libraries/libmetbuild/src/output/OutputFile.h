@@ -69,6 +69,18 @@ class OutputFile {
 
   MetBuild::Date endDate() const { return m_end_date; }
 
+  virtual std::vector<std::string> filenames() const {
+    std::vector<std::string> files;
+    for(const auto &d : m_domains) {
+      auto f = d->filenames();
+      for(const auto &ff : f) {
+        files.push_back(ff);
+      }
+    }
+    return files;
+  }
+      
+
  protected:
   std::vector<std::unique_ptr<MetBuild::OutputDomain>> m_domains;
 

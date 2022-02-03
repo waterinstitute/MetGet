@@ -37,6 +37,8 @@ class RasNetcdf : public OutputFile {
 
   ~RasNetcdf();
 
+  std::vector<std::string> filenames() const override;
+
   void addDomain(const MetBuild::Grid &w,
                  const std::vector<std::string> &variables) override;
 

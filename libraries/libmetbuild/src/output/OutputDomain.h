@@ -72,6 +72,10 @@ class OutputDomain {
     metbuild_throw_exception("Function not implemented");
     return 1;
   }
+  
+  std::vector<std::string> filenames() const {
+    return m_filenames;
+  }
 
  protected:
   void set_open(bool status) { m_isOpen = status; }
@@ -95,6 +99,8 @@ class OutputDomain {
       return "deg";
     }
   }
+
+  std::vector<std::string> m_filenames;
 
  private:
   bool m_isOpen;

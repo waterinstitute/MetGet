@@ -44,6 +44,8 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
       m_pressureFile(pressureFile),
       m_windFile(windFile) {
   assert(startDate < endDate);
+  this->m_filenames.push_back(pressureFile);
+  this->m_filenames.push_back(windFile);
   this->open();
 }
 
@@ -56,6 +58,7 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
       m_ofstream_pressure(std::make_unique<std::ofstream>(outputFile)),
       m_pressureFile(outputFile) {
   assert(startDate < endDate);
+  this->m_filenames.push_back(outputFile);
   this->open();
 }
 

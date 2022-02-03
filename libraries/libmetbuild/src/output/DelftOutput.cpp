@@ -38,6 +38,8 @@ DelftOutput::DelftOutput(const MetBuild::Date& date_start,
     : m_filename(std::move(filename)),
       OutputFile(date_start, date_end, time_step) {}
 
+std::vector<std::string> DelftOutput::filenames() const { return m_domains[0]->filenames(); }
+
 void DelftOutput::addDomain(const MetBuild::Grid& w,
                             const std::vector<std::string>& variables) {
   if (!m_domains.empty()) {
