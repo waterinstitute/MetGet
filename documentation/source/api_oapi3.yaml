@@ -1,0 +1,538 @@
+openapi: 3.0.0
+info:
+  description: |
+    API for generating requests from MetGet
+  version: 0.0.1
+  title: MetGet
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  contact:
+    url: http://www.adcirc.org
+paths:
+  /status:
+    get:
+      summary: Gets the list of available data from the server
+      description: |
+        Retrieve a json formatted list of available data from the archive
+      parameters:
+        - name: "x-api-key"
+          in: "header"
+          required: true
+          schema:
+            type: "string"
+      security:
+        - api_key: []
+      responses:
+        "200":
+          description: |
+            "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/goodstatusresponse'
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaStatus.Arn}/invocations
+        responses:
+          default:
+            statusCode: "200"
+        passthroughBehavior: "WHEN_NO_MATCH"
+        httpMethod: "GET"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "AWS"
+  /build:
+    post:
+      summary: Request the build process to begin
+      description: |
+        Send a json formatted request to the server for wind field creation
+      parameters:
+        - name: "x-api-key"
+          in: "header"
+          required: true
+          schema:
+            type: "string"
+      security:
+        - api_key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postbuildrequest'
+      responses:
+        "200":
+          description: |
+            "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/buildrequest'
+        "400":
+          description: |
+            "Bad request"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/buildrequest'
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaReceiveRequest.Arn}/invocations
+        responses:
+          default:
+            statusCode: "200"
+        passthroughBehavior: "WHEN_NO_MATCH"
+        httpMethod: "POST"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "AWS"
+  /check:
+    post:
+      summary: Check the status of a request
+      description: Send a json formatted request for the status
+      parameters:
+        - name: "x-api-key"
+          in: "header"
+          required: true
+          schema:
+            type: "string"
+      security:
+        - api_key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postcheckrequest'
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/checkrequest'
+        "400":
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/checkrequest'
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaCheckRequest.Arn}/invocations
+        responses:
+          default:
+            statusCode: "200"
+        passthroughBehavior: "WHEN_NO_MATCH"
+        httpMethod: "POST"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "AWS"
+components:
+  securitySchemes:
+    api_key:
+      type: "apiKey"
+      name: "x-api-key"
+      in: "header"
+  schemas:
+    goodstatusresponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        body:
+          type: object
+          properties:
+            message:
+              type: string
+            version:
+              type: string
+            request:
+              type: string
+            response_time:
+              type: number
+            accessed:
+              type: string
+            data:
+              type: object
+              properties:
+                nhc:
+                  description: |
+                    NHC track file data
+                  type: object
+                  properties:
+                    forecast:
+                      type: array
+                      description: |
+                        NHC forecast track advisories
+                      items:
+                        $ref: '#/components/schemas/nhcforecast'
+                    best_track:
+                      type: array
+                      description: |
+                        NHC best track advisories
+                      items:
+                        $ref: '#/components/schemas/nhcforecast'
+                hwrf:
+                  type: array
+                  description: |
+                    NOAA HWRF model runs
+                  items:
+                    $ref: '#/components/schemas/hwrf'
+                gfs-ncep:
+                  type: object
+                  description: |
+                    NOAA GFS-NCEP model runs
+                  allOf:
+                    - $ref: '#/components/schemas/wrfdata'
+                nam-ncep:
+                  type: object
+                  description: |
+                    NOAA NAM-NCEP model runs
+                  allOf:
+                    - $ref: '#/components/schemas/wrfdata'
+    buildrequest:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        body:
+          type: object
+          properties:
+            error:
+              type: integer
+            status:
+              type: string
+            request_id:
+              type: string
+            request_url:
+              type: string
+    postcheckrequest:
+      type: object
+      properties:
+        request:
+          type: string
+    checkrequest:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        body:
+          type: object
+          properties:
+            status:
+              type: string
+            message:
+              type: string
+            tries:
+              type: integer
+            start:
+              type: string
+            last_update:
+              type: string
+            destination:
+              type: string
+    postbuildrequest:
+      type: object
+      properties:
+        version:
+          type: string
+          description: |
+            application version
+        start_date:
+          type: string
+          description: |
+            output file start date
+        end_date:
+          type: string
+          description: |
+            output file end date
+        time_step:
+          type: integer
+          description: |
+            output file time increment in seconds
+        background_pressure:
+          type: number
+          description: |
+            output file background pressure in millibars
+          default: 1013.0
+        null_value:
+          type: number
+          description: |
+            value to be used to identify nodata
+          default: -999.0
+        creator:
+          type: string
+          description: |
+            name of application/individual making the request
+        filename:
+          type: string
+          description: |
+            base filename used in the output of data
+        nowcast:
+          type: boolean
+          description: |
+            Set to true to only use nowcast data (i.e. forecast hour zero)
+        multiple_forecasts:
+          type: boolean
+          description: |
+            Set to true to allow the use of multiple forecasts (i.e. the latest files that reporesent a specific time) or just single forcasts
+        format:
+          type: string
+          description: |
+            Output format to be returned. adcirc-ascii (owi), adcirc-netcdf (owi-netcdf), ras-netcdf, and delft3d are available options
+          default: adcirc-ascii
+        epsg:
+          type: integer
+          description: |
+            coordinate system of the output data using an epsg code
+          default: 4326
+        backfill:
+          type: boolean
+          description: |
+            For multi-domain outputs, when the nested domain does not have data throughout the specified region, a flag value (-999) will be written to the file to signify this. If backfill is turned off, a standard value will be written (i.e. 1013 for pressure)
+          default: false
+        domains:
+          type: array
+          description: |
+            list of output domains to generate. There are three options for how to define a domain
+          items:
+            - $ref: '#/components/schemas/gridwxdx'
+            - $ref: '#/components/schemas/gridwllur'
+            - $ref: '#/components/schemas/gridpredefined'
+    gridwxdx:
+      type: object
+      description: |
+        grid specified by specifying the origin, resolution, dimension, and rotation
+      properties:
+        name:
+          type: string
+          description: |
+            name of the domain
+        service:
+          type: string
+          description: |
+            name of service to use to generate this domain
+        level:
+          type: integer
+          description: |
+            stacking order for the domains
+        x_init:
+          type: number
+          description: |
+            lower left x-coordinate
+        y_init:
+          type: number
+          description: |
+            lower left y-coordinate
+        di:
+          type: number
+          description: |
+            grid resolution in the i-direction
+        dj:
+          type: number
+          description: |
+            grid resolution in the j-direction
+        ni:
+          type: integer
+          description: |
+            number of grid cells in the i-direction
+        nj:
+          type: integer
+          description: |
+            number of grid cells in the j-direction
+        rotation:
+          type: number
+          description: |
+            grid rotation in degrees counterclockwise
+        x_end:
+          type: number
+          description: |
+            upper right x-coordinate
+        y_end:
+          type: number
+          description: |
+            upper right y-coordinate
+
+    gridwllur:
+      type: object
+      description: |
+        grid generated by specifying the corners of a grid
+      properties:
+        name:
+          type: string
+          description: |
+            name of the domain
+        service:
+          type: string
+          description: |
+            name of service to use to generate this domain
+        level:
+          type: integer
+          description: |
+            stacking order for the domains
+        x_init:
+          type: number
+          description: |
+            lower left x-coordinate
+        y_init:
+          type: number
+          description: |
+            lower left y-coordinate
+        di:
+          type: number
+          description: |
+            grid resolution in the i-direction
+        dj:
+          type: number
+          description: |
+            grid resolution in the j-direction
+        x_end:
+          type: number
+          description: |
+            upper right x-coordinate
+        y_end:
+          type: number
+          description: |
+            upper right y-coordinate
+
+    gridpredefined:
+      type: object
+      description: |
+        predefined grid for shortcuts to grid definitions
+      properties:
+        name:
+          type: string
+          description: |
+            name of the domain
+        service:
+          type: string
+          description: |
+            name of service to use to generate this domain
+        predefined_name:
+          type: string
+          description: |
+            predefined grid option to use for grid parameters
+    hwrf:
+      type: object
+      description: |
+        data representing hwrf model output
+      properties:
+        storm:
+          type: string
+          description: |
+            name of hwrf storm run
+        min_forecast_date:
+          type: string
+          description: |
+            first available forecast date for this storm
+        max_forecast_date:
+          type: string
+          description: |
+            last available forecast date for this storm
+        first_available_cycle:
+          type: string
+          description: |
+            first available forecast cycle where this storm was run
+        last_available_cycle:
+          type: string
+          description: |
+            last available cycle where this storm was run
+        latest_complete_cycle:
+          type: string
+          description: |
+            latest cycle that has been verified as complete
+        latest_complete_forecast_start:
+          type: string
+          description: |
+            start time of the latest complete forecast cycle
+        latest_complete_forecast_end:
+          type: string
+          description: |
+            end time of the latest complete forecast cycle
+        latest_complete_forecast_length:
+          type: string
+          description: |
+            duration in hours of the latest complete forecast cycle
+    nhcadvisory:
+      type: object
+      description: |
+        individual nhc advisory
+      properties:
+        advisory:
+          type: string
+          description: |
+            advisory number
+        start:
+          type: string
+          description: |
+            advisory start date
+        end:
+          type: string
+          description: |
+            advisory end date
+        duration:
+          type: number
+          description: |
+            duration of the advisory in hours
+    nhcforecast:
+      type: object
+      description: |
+        data representing an available nhc forecast or best track data
+      properties:
+        year:
+          type: integer
+          description: |
+            year of the storm
+        basin_abbreviation:
+          type: string
+          description: |
+            abbreviation for the basin code used by NHC
+        basin_string:
+          type: string
+          description: |
+            full string of the basin where the storm occurs
+        available_advisories:
+          type: array
+          description: |
+            array of the available forecast advisories
+          items:
+            $ref: '#/components/schemas/nhcadvisory'
+    wrfdata:
+      type: object
+      description: |
+        model output data generated by NOAA
+      properties:
+        latest_complete_forecast:
+          type: string
+          description: |
+            latest complete forecast cycle
+        latest_complete_forecast_start:
+          type: string
+          description: |
+            start time for latest forecast
+        latest_complete_forecast_end:
+          type: string
+          description: |
+            end time for latest forecast
+        first_available_cycle:
+          type: string
+          description: |
+            first available cycle in the database
+        last_available_cycle:
+          type: string
+          description: |
+            last available cycle in the database
+        max_forecast_date:
+          type: string
+          description: |
+            maximum forecast date that is available
+        min_forecast_date:
+          type: string
+          description: |
+            minimum forecast date that is available
+        cycle_list:
+          type: array
+          description: |
+            array of available forecast cycles
+          items:
+            type: string
+servers:
+  - description: Main MetGet URL
+    url: https://api.metget.zachcobell.com/
