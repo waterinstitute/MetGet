@@ -54,9 +54,9 @@ def generate_datatype_key(data_type):
 
 def generate_met_field(output_format, start, end, time_step, filename):
     import pymetbuild
-    if output_format == "ascii" or output_format == "owi-ascii":
+    if output_format == "ascii" or output_format == "owi-ascii" or output_format == "adcirc-ascii":
         return pymetbuild.OwiAscii(start,end,time_step)
-    elif output_format == "owi-netcdf":
+    elif output_format == "owi-netcdf" or output_format == "adcirc-netcdf":
         return pymetbuild.OwiNetcdf(start,end,time_step, filename)
     elif output_format == "hec-netcdf":
         return pymetbuild.RasNetcdf(start,end,time_step, filename)
