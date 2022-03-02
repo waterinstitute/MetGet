@@ -188,7 +188,10 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
     if ongoing_restore:
         if not json_file:
-            db.update_request_status(message["MessageId"], "ongoing", "Job is in archive restore status", message["Body"],False)
+            db.update_request_status(json_message["MessageId"], "restore", "Job is in archive restore status", json_message["Body"],False)
+        ff = met_field.filenames()
+        for f in ff:
+            os.remove(f)
         return False
 
     def get_next_file_index(time, domain_data):
@@ -198,19 +201,10 @@ def process_message(json_message, queue, json_file=None) -> bool:
         return len(domain_data)-1
 
     output_file_list=[]
-    #if inputData.format() == "owi-netcdf" or inputData.format() == "ras-netcdf" or inputData.format() == "delft3d":
-    #    output_file_list.append(inputData.filename())
-
     files_used_list={}
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
         met = pymetbuild.Meteorology(d.grid().grid_object(),data_type_key,inputData.backfill(),inputData.epsg())
-
-        #if inputData.format() == "ascii" or inputData.format() == "owi-ascii":
-        #    fn1 = inputData.filename()+"_"+"{:02d}".format(i)+".pre"
-        #    fn2 = inputData.filename()+"_"+"{:02d}".format(i)+".wnd"
-        #    output_file_list.append(fn1)
-        #    output_file_list.append(fn2)
 
         t0 = domain_data[i][0]["time"]
 
@@ -354,13 +348,15 @@ def main():
                     if remove_message:
                         logger.debug("Deleting message "+message["MessageId"]+" from the queue")
                         queue.delete_message(message["ReceiptHandle"])
-                        db.update_request_status(message["MessageId"], "completed", "Job has completed successfully", message["Body"],False)
+                    else:
+                        db.update_request_status(message["MessageId"], "restore", "Job is in archive restore status", message["Body"],False,True)
+                        queue.release_message(message["ReceiptHandle"])
             except Exception as e:
                 logger.debug("Deleting message "+message["MessageId"]+" from the queue")
                 logger.debug("ERROR: "+str(e))
                 queue.delete_message(message["ReceiptHandle"])  
-                db.update_request_status(message["MessageId"], "error", "Job exited with error", message["Body"],False)
-
+                db.update_request_status(message["MessageId"], "error", "Job exited with uncaught error", message["Body"],False)
+                print(str(e))
         else:
             logger.info("No message available in queue. Shutting down.")
 

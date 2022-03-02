@@ -53,3 +53,6 @@ class Queue:
     # Deletes the specified message from the SQS once the job is complete
     def delete_message(self,message_id):
         response = self.__client.delete_message(QueueUrl=self.url(),ReceiptHandle=message_id)
+
+    def release_message(self,message_id):
+        response = self.__client.change_message_visibility(QueueUrl=self.url(), ReceiptHandle=message_id, VisibilityTimeout=0)

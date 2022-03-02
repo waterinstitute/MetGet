@@ -155,7 +155,6 @@ class Database:
 
     def check_ongoing_restore(self, filepath) -> bool:
         metadata = self.s3client().head_object(Bucket=self.bucket(),Key=filepath)
-        print(metadata)
         if "x-amz-restore" in metadata["ResponseMetadata"]["HTTPHeaders"].keys():
             ongoing = metadata["ResponseMetadata"]["HTTPHeaders"]["x-amz-restore"]
             if ongoing == 'ongoing-request="true"':
@@ -203,7 +202,7 @@ class Database:
         else:
             return {"request": request_id, "try": rows[0][0], "status": rows[0][1], "message": rows[0][2]}
 
-    def update_request_status(self, request_id, status, message, jsonstr, istry=False):
+    def update_request_status(self, request_id, status, message, jsonstr, istry=False,decrement=False):
         from datetime import datetime
         import json
         self.generate_request_table()
@@ -217,11 +216,13 @@ class Database:
             sourceip = jsondata["source-ip"]
             sql = "INSERT INTO requests (request_id, try, status, message, api_key, source_ip, start_date, last_date, input_data) values('"+request_id+"',1,'"+status+"','"+message+"','"+apikey+"','"+sourceip+"','"+now+"','"+now+"','"+jsonstr+"');"
         else:
+            jsondata = json.loads(jsonstr)
+            apikey = jsondata["api-key"]
+            sourceip = jsondata["source-ip"]
             if istry:
-                jsondata = json.loads(jsonstr)
-                apikey = jsondata["api-key"]
-                sourceip = jsondata["source-ip"]
                 sql = "UPDATE requests SET try = "+str(response["try"]+1)+", status = '"+status+"', message = '"+message+"', last_date = '"+now+"', source_ip = '"+sourceip+"', api_key = '"+apikey+"'  where request_id = '"+request_id+"';"
+            elif decrement:
+                sql = "UPDATE requests SET try = "+str(response["try"]-1)+", status = '"+status+"', message = '"+message+"', last_date = '"+now+"', source_ip = '"+sourceip+"', api_key = '"+apikey+"'  where request_id = '"+request_id+"';"
             else:
                 sql = "UPDATE requests SET status = '"+status+"', message = '"+message+"', last_date = '"+now+"' where request_id = '"+request_id+"';"
 
