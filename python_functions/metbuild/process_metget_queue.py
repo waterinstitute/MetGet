@@ -120,7 +120,7 @@ def generate_met_domain(inputData, met_object, index):
 
 
 # Main function to process the message and create the output files and post to S3
-def process_message(json_message, queue, json_file=None):
+def process_message(json_message, queue, json_file=None) -> bool:
     import time
     import json
     import pymetbuild
@@ -167,6 +167,7 @@ def process_message(json_message, queue, json_file=None):
     data_type_key = generate_datatype_key(inputData.data_type())
 
     domain_data = []
+    ongoing_restore = False
     for i in range(inputData.num_domains()):
         generate_met_domain(inputData, met_field, i) 
         d = inputData.domain(i)
@@ -180,8 +181,15 @@ def process_message(json_message, queue, json_file=None):
 
         domain_data.append([])
         for item in f:
-            local_file = db.get_file(item[1],d.service(),item[0])
+            local_file, ongoing_restore_this = db.get_file(item[1],d.service(),item[0])
             domain_data[i].append({"time":item[0],"filepath":local_file})
+            if ongoing_restore_this:
+                ongoing_restore = True
+
+    if ongoing_restore:
+        if not json_file:
+            db.update_request_status(message["MessageId"], "ongoing", "Job is in archive restore status", message["Body"],False)
+        return False
 
     def get_next_file_index(time, domain_data):
         for i in range(len(domain_data)):
@@ -266,7 +274,7 @@ def process_message(json_message, queue, json_file=None):
 
     instance.disable_termination_protection()
 
-    return
+    return True
 
 
 def cleanup_temp_files(data):
@@ -342,10 +350,11 @@ def main():
                     logger.debug("Message "+message["MessageId"]+" has had an error. It has been deleted from the queue")
                 else:
                     db.update_request_status(message["MessageId"], "running", "Job has begun running", message["Body"],True)
-                    process_message(message, queue)
-                    logger.debug("Deleting message "+message["MessageId"]+" from the queue")
-                    queue.delete_message(message["ReceiptHandle"])
-                    db.update_request_status(message["MessageId"], "completed", "Job has completed successfully", message["Body"],False)
+                    remove_message = process_message(message, queue)
+                    if remove_message:
+                        logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+                        queue.delete_message(message["ReceiptHandle"])
+                        db.update_request_status(message["MessageId"], "completed", "Job has completed successfully", message["Body"],False)
             except Exception as e:
                 logger.debug("Deleting message "+message["MessageId"]+" from the queue")
                 logger.debug("ERROR: "+str(e))
