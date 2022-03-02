@@ -68,7 +68,6 @@ class Database:
               "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
               "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
               "%Y-%m-%d %H:%M:%S") + "' AND t1.forecastcycle != t1.forecasttime;"
-        print(sql)
         self.cursor().execute(sql)
         rows = self.cursor().fetchall()
         return_list = []
@@ -146,20 +145,51 @@ class Database:
             return_list.append([f[2], f[3]])
         return return_list
 
+    def check_archive_status(self, filepath) -> bool:
+        metadata = self.s3client().head_object(Bucket=self.bucket(),Key=filepath)
+        if "x-amz-archive-status" in metadata["ResponseMetadata"]["HTTPHeaders"].keys():
+            access = metadata["ResponseMetadata"]["HTTPHeaders"]["x-amz-archive-status"]
+            return True
+        else:
+            return False
+
+    def check_ongoing_restore(self, filepath) -> bool:
+        metadata = self.s3client().head_object(Bucket=self.bucket(),Key=filepath)
+        print(metadata)
+        if "x-amz-restore" in metadata["ResponseMetadata"]["HTTPHeaders"].keys():
+            ongoing = metadata["ResponseMetadata"]["HTTPHeaders"]["x-amz-restore"]
+            if ongoing == 'ongoing-request="true"':
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def initiate_restore(self, filepath) -> bool:
+        ongoing = self.check_ongoing_restore(filepath)
+        if not ongoing:
+            response = self.s3client().restore_object(Bucket=self.bucket(), Key=filepath, RestoreRequest={"GlacierJobParameters": {"Tier":"Standard"}})
+
     def get_file(self, db_path, service, time, dry_run=False):
         import tempfile
         import os
+        ongoing_restore = False
         fn = db_path.split("/")[-1]
         local_path = tempfile.gettempdir(
         ) + "/" + service + "." + time.strftime("%Y%m%d%H%M") + "." + fn
         if not dry_run:
             if not os.path.exists(local_path):
-                self.s3client().download_file(self.bucket(), db_path,
+                archive_status = self.check_archive_status(db_path)
+                if archive_status:
+                    self.initiate_restore(db_path)
+                    ongoing_restore = True
+                else:
+                    self.s3client().download_file(self.bucket(), db_path,
                                               local_path)
-        return local_path
+        return local_path, ongoing_restore
 
     def generate_request_table(self):
-        sql = "create table if not exists requests(id INTEGER PRIMARY KEY AUTO_INCREMENT, request_id VARCHAR(36) not null, try INTEGER default 0, status enum('queued', 'running', 'error', 'completed') not null, message VARCHAR(1024), start_date DATETIME not null, last_date DATETIME not null, api_key VARCHAR(128), source_ip VARCHAR(128), input_data VARCHAR(8096));"
+        sql = "create table if not exists requests(id INTEGER PRIMARY KEY AUTO_INCREMENT, request_id VARCHAR(36) not null, try INTEGER default 0, status enum('queued', 'running', 'restore', 'error', 'completed') not null, message VARCHAR(1024), start_date DATETIME not null, last_date DATETIME not null, api_key VARCHAR(128), source_ip VARCHAR(128), input_data VARCHAR(8096));"
         self.cursor().execute(sql)
 
     def query_request_status(self,request_id):
