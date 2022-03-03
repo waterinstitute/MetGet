@@ -56,13 +56,19 @@ class CloudWatch:
                         'message': json.dumps({ "instance": self.__instance, "level": level, "body": message })
                     }
                 ]
-        token = self.__get_sequence_token()
-        if token:
-           response = self.__client.put_log_events(logGroupName=self.__logGroup,
-               logStreamName=self.__logStream,logEvents=event,sequenceToken=token)
-        else:
-           response = self.__client.put_log_events(logGroupName=self.__logGroup,
-               logStreamName=self.__logStream,logEvents=event)
+        for i in range(20):
+            try:
+                token = self.__get_sequence_token()
+                if token:
+                   response = self.__client.put_log_events(logGroupName=self.__logGroup,
+                       logStreamName=self.__logStream,logEvents=event,sequenceToken=token)
+                else:
+                   response = self.__client.put_log_events(logGroupName=self.__logGroup,
+                       logStreamName=self.__logStream,logEvents=event)
+                break
+            except:
+                continue
+
 
     
 
