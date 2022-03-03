@@ -346,6 +346,7 @@ def main():
                     db.update_request_status(message["MessageId"], "running", "Job has begun running", message["Body"],True)
                     remove_message = process_message(message, queue)
                     if remove_message:
+                        db.update_request_status(message["MessageId"], "completed", "Job has completed successfully", message["Body"],False)
                         logger.debug("Deleting message "+message["MessageId"]+" from the queue")
                         queue.delete_message(message["ReceiptHandle"])
                     else:
