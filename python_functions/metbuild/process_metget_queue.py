@@ -63,14 +63,14 @@ def generate_met_field(output_format, start, end, time_step, filename):
     elif output_format == "delft3d":
         return pymetbuild.DelftOutput(start,end,time_step,filename)
     else:
-        raise RuntimeError("Invalid output format selected")
+        raise RuntimeError("Invalid output format selected: "+output_format)
 
 
 def generate_met_domain(inputData, met_object, index):
     import pymetbuild
     d = inputData.domain(index)
     output_format = inputData.format()
-    if output_format == "ascii" or output_format == "owi-ascii":
+    if output_format == "ascii" or output_format == "owi-ascii" or output_format == "adcirc-ascii":
         if inputData.data_type() == "wind_pressure":
             fn1 = inputData.filename()+"_"+"{:02d}".format(index)+".pre"
             fn2 = inputData.filename()+"_"+"{:02d}".format(index)+".wnd"
@@ -116,7 +116,7 @@ def generate_met_domain(inputData, met_object, index):
             raise RuntimeError("Invalid variable requested")
         met_object.addDomain(d.grid().grid_object(), variables)
     else:
-        raise RuntimeError("Invalid output format selected")
+        raise RuntimeError("Invalid output format selected: "+output_format)
 
 
 # Main function to process the message and create the output files and post to S3
