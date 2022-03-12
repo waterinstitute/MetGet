@@ -242,10 +242,10 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 values = met.to_grid(weight)
             met_field.write(Input.date_to_pmb(t),i,values)
 
-        if not json_file:
-            ff = met_field.filenames() 
-            for f in ff:
-                output_file_list.append(f)
+        ff = met_field.filenames() 
+        for f in ff:
+            output_file_list.append(f)
+            if not json_file:
                 path = messageId + "/" + f
                 s3.upload_file(f,path)
                 os.remove(f)
