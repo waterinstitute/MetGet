@@ -39,8 +39,8 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
                                const std::string &windFile)
     : OutputDomain(grid, startDate, endDate, time_step),
       m_previousDate(startDate - time_step),
-      m_ofstream_pressure(std::make_unique<std::ofstream>(pressureFile)),
-      m_ofstream_wind(std::make_unique<std::ofstream>(windFile)),
+      m_ofstream_pressure(pressureFile),
+      m_ofstream_wind(windFile),
       m_pressureFile(pressureFile),
       m_windFile(windFile) {
   assert(startDate < endDate);
@@ -55,7 +55,7 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
                                const std::string &outputFile)
     : OutputDomain(grid, startDate, endDate, time_step),
       m_previousDate(startDate - time_step),
-      m_ofstream_pressure(std::make_unique<std::ofstream>(outputFile)),
+      m_ofstream_pressure(outputFile),
       m_pressureFile(outputFile) {
   assert(startDate < endDate);
   this->m_filenames.push_back(outputFile);
@@ -63,21 +63,21 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
 }
 
 OwiAsciiDomain::~OwiAsciiDomain() {
-  if (m_ofstream_pressure->is_open()) {
-    m_ofstream_pressure->close();
+  if (m_ofstream_pressure.is_open()) {
+    m_ofstream_pressure.close();
   }
-  if (m_ofstream_wind->is_open()) {
-    m_ofstream_wind->is_open();
+  if (m_ofstream_wind.is_open()) {
+    m_ofstream_wind.close();
   }
 }
 
 void OwiAsciiDomain::open() {
-  if (!m_ofstream_pressure->is_open()) {
-    m_ofstream_pressure->open(m_pressureFile);
+  if (!m_ofstream_pressure.is_open()) {
+    m_ofstream_pressure.open(m_pressureFile);
   }
-  if ( !m_windFile.empty() ) {
-    if (!m_ofstream_wind->is_open()) {
-      m_ofstream_wind->open(m_windFile);
+  if (!m_windFile.empty()) {
+    if (!m_ofstream_wind.is_open()) {
+      m_ofstream_wind.open(m_windFile);
     }
   }
   this->write_header();
@@ -85,11 +85,11 @@ void OwiAsciiDomain::open() {
 }
 
 void OwiAsciiDomain::close() {
-  if (!m_ofstream_pressure->is_open()) {
-    m_ofstream_pressure->close();
+  if (!m_ofstream_pressure.is_open()) {
+    m_ofstream_pressure.close();
   }
-  if (!m_ofstream_wind->is_open()) {
-    m_ofstream_wind->is_open();
+  if (!m_ofstream_wind.is_open()) {
+    m_ofstream_wind.close();
   }
   this->set_open(false);
 }
@@ -108,15 +108,14 @@ int OwiAsciiDomain::write(
     metbuild_throw_exception("Attempt to write past file end date");
   }
 
-  *(m_ofstream_pressure) << generateRecordHeader(date, this->grid());
+  m_ofstream_pressure << generateRecordHeader(date, this->grid());
 
-  OwiAsciiDomain::write_record(m_ofstream_pressure.get(), data[0]);
+  OwiAsciiDomain::write_record(&m_ofstream_pressure, data[0]);
 
   m_previousDate = date;
 
   return 0;
 }
-
 
 int OwiAsciiDomain::write(
     const Date &date,
@@ -132,12 +131,12 @@ int OwiAsciiDomain::write(
     metbuild_throw_exception("Attempt to write past file end date");
   }
 
-  *(m_ofstream_pressure) << generateRecordHeader(date, this->grid());
-  *(m_ofstream_wind) << generateRecordHeader(date, this->grid());
+  m_ofstream_pressure << generateRecordHeader(date, this->grid());
+  m_ofstream_wind << generateRecordHeader(date, this->grid());
 
-  OwiAsciiDomain::write_record(m_ofstream_pressure.get(), data[2]);
-  OwiAsciiDomain::write_record(m_ofstream_wind.get(), data[0]);
-  OwiAsciiDomain::write_record(m_ofstream_wind.get(), data[1]);
+  OwiAsciiDomain::write_record(&m_ofstream_pressure, data[2]);
+  OwiAsciiDomain::write_record(&m_ofstream_wind, data[0]);
+  OwiAsciiDomain::write_record(&m_ofstream_wind, data[1]);
 
   m_previousDate = date;
 
@@ -146,9 +145,9 @@ int OwiAsciiDomain::write(
 
 void OwiAsciiDomain::write_header() {
   auto header = generateHeaderLine(this->startDate(), this->endDate());
-  *(m_ofstream_pressure) << header;
-  if(!m_windFile.empty()){
-    *(m_ofstream_wind) << header;
+  m_ofstream_pressure << header;
+  if (!m_windFile.empty()) {
+    m_ofstream_wind << header;
   }
 }
 

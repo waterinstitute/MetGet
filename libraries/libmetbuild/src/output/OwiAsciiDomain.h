@@ -77,8 +77,8 @@ class OwiAsciiDomain : public OutputDomain {
       const;
 
   Date m_previousDate;
-  std::unique_ptr<std::ofstream> m_ofstream_pressure;
-  std::unique_ptr<std::ofstream> m_ofstream_wind;
+  std::ofstream m_ofstream_pressure;
+  std::ofstream m_ofstream_wind;
   const std::string m_pressureFile;
   const std::string m_windFile;
 };
