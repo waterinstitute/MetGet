@@ -44,10 +44,10 @@ set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/output/OwiNetcdfDomain.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/output/RasNetcdf.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/output/RasNetcdfDomain.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Utilities.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Projection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/output/DelftOutput.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/DelftDomain.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/output/DelftDomain.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Utilities.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Projection.cpp)
 
 add_library(metbuild_interface INTERFACE)
 add_library(metbuild_objectlib OBJECT ${METBUILD_SOURCES})
@@ -57,6 +57,8 @@ add_library(metbuild SHARED $<TARGET_OBJECTS:metbuild_objectlib>)
 find_package( NetCDF REQUIRED )
 find_package( PROJ REQUIRED )
 find_package( SQLite3 REQUIRED )
+find_package( TIFF REQUIRED )
+find_package( Boost REQUIRED COMPONENTS iostreams )
 
 set_property(TARGET metbuild_objectlib PROPERTY POSITION_INDEPENDENT_CODE 1)
 target_link_libraries(metbuild_static metbuild_interface)
@@ -72,7 +74,7 @@ add_dependencies(metbuild_objectlib eccodes)
 
 set(metbuild_include_list
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/boost_1_75_0
+    ${Boost_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/nanoflann
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.24.2/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/date_hh
@@ -81,7 +83,7 @@ set(metbuild_include_list
 
 target_include_directories(metbuild_objectlib PRIVATE ${metbuild_include_list})
 
-target_link_libraries(metbuild_interface INTERFACE ${NETCDF_LIBRARIES} ${PROJ_LIBRARY} ${SQLite3_LIBRARIES} eccodes tiff)
+target_link_libraries(metbuild_interface INTERFACE ${NETCDF_LIBRARIES} ${PROJ_LIBRARY} ${SQLite3_LIBRARIES} ${Boost_LIBRARIES} eccodes ${TIFF_LIBRARY_RELEASE})
 target_link_libraries(metbuild_static metbuild_interface)
 target_link_libraries(metbuild metbuild_interface)
 
