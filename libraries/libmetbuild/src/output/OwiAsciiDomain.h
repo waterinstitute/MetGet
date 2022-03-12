@@ -35,6 +35,7 @@
 #include "Grid.h"
 #include "MeteorologicalData.h"
 #include "OutputDomain.h"
+#include "boost/iostreams/filtering_streambuf.hpp"
 
 namespace MetBuild {
 
@@ -42,11 +43,12 @@ class OwiAsciiDomain : public OutputDomain {
  public:
   OwiAsciiDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
                  const MetBuild::Date &endDate, unsigned time_step,
-                 const std::string &pressureFile, const std::string &windFile);
-  
+                 const std::string &pressureFile, const std::string &windFile, 
+		 const bool use_compression);
+
   OwiAsciiDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
                  const MetBuild::Date &endDate, unsigned time_step,
-                 const std::string &pressureFile);
+                 const std::string &pressureFile, const bool use_compression);
 
   ~OwiAsciiDomain() override;
 
@@ -54,7 +56,7 @@ class OwiAsciiDomain : public OutputDomain {
       const MetBuild::Date &date,
       const MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
           &data) override;
-  
+
   int write(
       const MetBuild::Date &date,
       const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
@@ -65,6 +67,8 @@ class OwiAsciiDomain : public OutputDomain {
   void close() override;
 
  private:
+  void _open();
+  void _close();
   void write_header();
 
   static std::string formatHeaderCoordinates(float value);
@@ -72,13 +76,21 @@ class OwiAsciiDomain : public OutputDomain {
   static std::string generateRecordHeader(const Date &date, const Grid *grid);
 
   void write_record(
-      std::ofstream *stream,
+      std::ostream *stream,
       const std::vector<std::vector<MetBuild::MeteorologicalDataType>> &value)
       const;
 
   Date m_previousDate;
   std::ofstream m_ofstream_pressure;
   std::ofstream m_ofstream_wind;
+  boost::iostreams::filtering_streambuf<boost::iostreams::output>
+      m_compressedio_pressure;
+  boost::iostreams::filtering_streambuf<boost::iostreams::output>
+      m_compressedio_wind;
+  std::ostream m_compressed_stream_pressure;
+  std::ostream m_compressed_stream_wind;
+  const bool m_use_compression;
+  const int m_default_compression_level;
   const std::string m_pressureFile;
   const std::string m_windFile;
 };

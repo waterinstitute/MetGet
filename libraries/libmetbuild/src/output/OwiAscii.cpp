@@ -28,18 +28,19 @@
 #include <cassert>
 MetBuild::OwiAscii::OwiAscii(const MetBuild::Date& startDate,
                              const MetBuild::Date& endDate,
-                             const unsigned time_step)
-    : OutputFile(startDate, endDate, time_step) {}
+                             const unsigned time_step,
+			     const bool use_compression)
+    : m_use_compression(use_compression), OutputFile(startDate, endDate, time_step) {}
 
 void MetBuild::OwiAscii::addDomain(const MetBuild::Grid& w,
                                    const std::vector<std::string>& filenames) {
   if(filenames.size() == 1) {
     m_domains.push_back(std::make_unique<MetBuild::OwiAsciiDomain>(
-        &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0]));
+        &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0], m_use_compression));
   } else if(filenames.size() == 2){
     m_domains.push_back(std::make_unique<MetBuild::OwiAsciiDomain>(
         &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0],
-        filenames[1]));
+        filenames[1], m_use_compression));
   } else {
     metbuild_throw_exception("Must provide two filenames for OwiAscii format");
   }

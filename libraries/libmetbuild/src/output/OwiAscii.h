@@ -38,7 +38,7 @@ namespace MetBuild {
 class OwiAscii : public OutputFile {
  public:
   OwiAscii(const MetBuild::Date &date_start, const MetBuild::Date &date_end,
-           unsigned time_step);
+           unsigned time_step, bool use_compression = false);
 
   void addDomain(const MetBuild::Grid &w,
                  const std::vector<std::string> &filenames) override;
@@ -52,6 +52,8 @@ class OwiAscii : public OutputFile {
       const MetBuild::Date &date, size_t domain_index,
       const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
           &data) override;
+ private:
+   const bool m_use_compression;
 };
 }  // namespace MetBuild
 #endif  // METGET_LIBRARY_OWIASCII_H_

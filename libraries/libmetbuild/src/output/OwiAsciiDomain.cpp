@@ -29,6 +29,7 @@
 
 #include "Logging.h"
 #include "boost/format.hpp"
+#include "boost/iostreams/filter/gzip.hpp"
 
 using namespace MetBuild;
 
@@ -36,59 +37,90 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
                                const Date &startDate, const Date &endDate,
                                const unsigned int time_step,
                                const std::string &pressureFile,
-                               const std::string &windFile)
+                               const std::string &windFile,
+			       const bool use_compression)
     : OutputDomain(grid, startDate, endDate, time_step),
       m_previousDate(startDate - time_step),
-      m_ofstream_pressure(pressureFile),
-      m_ofstream_wind(windFile),
+      m_compressed_stream_pressure(&m_compressedio_pressure),
+      m_compressed_stream_wind(&m_compressedio_wind),
       m_pressureFile(pressureFile),
-      m_windFile(windFile) {
+      m_windFile(windFile),
+      m_use_compression(use_compression),
+      m_default_compression_level(4) {
   assert(startDate < endDate);
   this->m_filenames.push_back(pressureFile);
   this->m_filenames.push_back(windFile);
-  this->open();
+  this->_open();
 }
 
 OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
                                const Date &startDate, const Date &endDate,
                                const unsigned int time_step,
-                               const std::string &outputFile)
+                               const std::string &outputFile,
+			       const bool use_compression)
     : OutputDomain(grid, startDate, endDate, time_step),
       m_previousDate(startDate - time_step),
-      m_ofstream_pressure(outputFile),
-      m_pressureFile(outputFile) {
+      m_compressed_stream_pressure(&m_compressedio_pressure),
+      m_compressed_stream_wind(&m_compressedio_wind),
+      m_pressureFile(outputFile),
+      m_use_compression(use_compression),
+      m_default_compression_level(4) {
   assert(startDate < endDate);
   this->m_filenames.push_back(outputFile);
-  this->open();
+  this->_open();
+}
+
+void OwiAsciiDomain::open(){ 
+  this->_open();
 }
 
 OwiAsciiDomain::~OwiAsciiDomain() {
-  if (m_ofstream_pressure.is_open()) {
-    m_ofstream_pressure.close();
-  }
-  if (m_ofstream_wind.is_open()) {
-    m_ofstream_wind.close();
-  }
+  this->_close();
 }
 
-void OwiAsciiDomain::open() {
-  if (!m_ofstream_pressure.is_open()) {
-    m_ofstream_pressure.open(m_pressureFile);
-  }
-  if (!m_windFile.empty()) {
-    if (!m_ofstream_wind.is_open()) {
-      m_ofstream_wind.open(m_windFile);
+void OwiAsciiDomain::_open() {
+  if (m_use_compression) {
+    if (!m_ofstream_pressure.is_open()) {
+      m_ofstream_pressure.open(m_pressureFile,
+                               std::ios_base::out | std::ios_base::binary);
+      m_compressedio_pressure.push(boost::iostreams::gzip_compressor(
+          boost::iostreams::gzip_params(m_default_compression_level)));
+      m_compressedio_pressure.push(m_ofstream_pressure);
+    }
+    if (!m_windFile.empty()) {
+      if (!m_ofstream_wind.is_open()) {
+        m_ofstream_wind.open(m_windFile,
+                             std::ios_base::out | std::ios_base::binary);
+        m_compressedio_wind.push(boost::iostreams::gzip_compressor(
+            boost::iostreams::gzip_params(m_default_compression_level)));
+        m_compressedio_wind.push(m_ofstream_wind);
+      }
+    }
+  } else {
+    if (!m_ofstream_pressure.is_open()) {
+      m_ofstream_pressure.open(m_pressureFile);
+    }
+    if (!m_windFile.empty()) {
+      if (!m_ofstream_wind.is_open()) {
+        m_ofstream_wind.open(m_windFile);
+      }
     }
   }
   this->write_header();
   this->set_open(true);
 }
 
-void OwiAsciiDomain::close() {
-  if (!m_ofstream_pressure.is_open()) {
+void OwiAsciiDomain::close() { 
+  this->_close();
+}
+
+void OwiAsciiDomain::_close() {
+  if (m_ofstream_pressure.is_open()) {
+    if (m_use_compression) boost::iostreams::close(m_compressedio_pressure);
     m_ofstream_pressure.close();
   }
-  if (!m_ofstream_wind.is_open()) {
+  if (m_ofstream_wind.is_open()) {
+    if (m_use_compression) boost::iostreams::close(m_compressedio_wind);
     m_ofstream_wind.close();
   }
   this->set_open(false);
@@ -108,9 +140,18 @@ int OwiAsciiDomain::write(
     metbuild_throw_exception("Attempt to write past file end date");
   }
 
-  m_ofstream_pressure << generateRecordHeader(date, this->grid());
+  auto header = generateRecordHeader(date, this->grid());
+  if (m_use_compression) {
+    m_ofstream_pressure << header;
+  } else {
+    m_ofstream_pressure << header;
+  }
 
-  OwiAsciiDomain::write_record(&m_ofstream_pressure, data[0]);
+  if (m_use_compression) {
+    OwiAsciiDomain::write_record(&m_compressed_stream_pressure, data[0]);
+  } else {
+    OwiAsciiDomain::write_record(&m_ofstream_pressure, data[0]);
+  }
 
   m_previousDate = date;
 
@@ -131,12 +172,20 @@ int OwiAsciiDomain::write(
     metbuild_throw_exception("Attempt to write past file end date");
   }
 
-  m_ofstream_pressure << generateRecordHeader(date, this->grid());
-  m_ofstream_wind << generateRecordHeader(date, this->grid());
-
-  OwiAsciiDomain::write_record(&m_ofstream_pressure, data[2]);
-  OwiAsciiDomain::write_record(&m_ofstream_wind, data[0]);
-  OwiAsciiDomain::write_record(&m_ofstream_wind, data[1]);
+  auto header = generateRecordHeader(date, this->grid());
+  if (m_use_compression) {
+    m_compressed_stream_pressure << header;
+    m_compressed_stream_wind << header;
+    OwiAsciiDomain::write_record(&m_compressed_stream_pressure, data[2]);
+    OwiAsciiDomain::write_record(&m_compressed_stream_wind, data[0]);
+    OwiAsciiDomain::write_record(&m_compressed_stream_wind, data[1]);
+  } else {
+    m_ofstream_pressure << header;
+    m_ofstream_wind << header;
+    OwiAsciiDomain::write_record(&m_ofstream_pressure, data[2]);
+    OwiAsciiDomain::write_record(&m_ofstream_wind, data[0]);
+    OwiAsciiDomain::write_record(&m_ofstream_wind, data[1]);
+  }
 
   m_previousDate = date;
 
@@ -145,9 +194,16 @@ int OwiAsciiDomain::write(
 
 void OwiAsciiDomain::write_header() {
   auto header = generateHeaderLine(this->startDate(), this->endDate());
-  m_ofstream_pressure << header;
-  if (!m_windFile.empty()) {
-    m_ofstream_wind << header;
+  if(m_use_compression) {
+    m_compressed_stream_pressure << header;
+    if(!m_windFile.empty()){
+      m_compressed_stream_wind << header;
+    }
+  } else {
+    m_ofstream_pressure << header;
+    if (!m_windFile.empty()) {
+      m_ofstream_wind << header;
+    }
   }
 }
 
@@ -183,7 +239,7 @@ std::string OwiAsciiDomain::generateRecordHeader(const Date &date,
 }
 
 void OwiAsciiDomain::write_record(
-    std::ofstream *stream,
+    std::ostream *stream,
     const std::vector<std::vector<MetBuild::MeteorologicalDataType>> &value)
     const {
   constexpr size_t num_records_per_line = 8;
