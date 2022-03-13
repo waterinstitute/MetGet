@@ -52,10 +52,10 @@ def generate_datatype_key(data_type):
         raise RuntimeError("Invalid data type requested")
 
 
-def generate_met_field(output_format, start, end, time_step, filename):
+def generate_met_field(output_format, start, end, time_step, filename, compression):
     import pymetbuild
     if output_format == "ascii" or output_format == "owi-ascii" or output_format == "adcirc-ascii":
-        return pymetbuild.OwiAscii(start,end,time_step)
+        return pymetbuild.OwiAscii(start,end,time_step,compression)
     elif output_format == "owi-netcdf" or output_format == "adcirc-netcdf":
         return pymetbuild.OwiNetcdf(start,end,time_step, filename)
     elif output_format == "hec-netcdf":
@@ -83,6 +83,10 @@ def generate_met_domain(inputData, met_object, index):
             fns = [ inputData.filename()+".ice" ]
         else:
             raise RuntimeError("Invalid variable requested")
+        if inputData.compression():
+            for i,s in enumerate(fns):
+                fns[i] = s+".gz"
+                
         met_object.addDomain(d.grid().grid_object(), fns)
     elif output_format == "owi-netcdf":
         group = d.service() 
@@ -159,7 +163,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
     s3 = S3file(os.environ["OUTPUT_BUCKET"])
 
-    met_field = generate_met_field(inputData.format(), start_date_pmb, end_date_pmb, time_step, inputData.filename())
+    met_field = generate_met_field(inputData.format(), start_date_pmb, end_date_pmb, time_step, inputData.filename(), inputData.compression())
 
     nowcast = inputData.nowcast()
     multiple_forecasts = inputData.multiple_forecasts()

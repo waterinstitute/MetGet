@@ -14,6 +14,7 @@ class Input:
         self.__time_step = None
         self.__nowcast = False
         self.__backfill = False
+        self.__compression = False
         self.__epsg = 4326
         self.__multiple_forecasts = True
         self.__domains = []
@@ -80,6 +81,9 @@ class Input:
     def backfill(self):
         return self.__backfill
 
+    def compression(self):
+        return self.__compression
+
     def epsg(self):
         return self.__epsg
 
@@ -119,6 +123,9 @@ class Input:
 
             if "multiple_forecasts" in self.__json.keys():
                 self.__multiple_forecasts = self.__json["multiple_forecasts"]
+
+            if "compression" in self.__json.keys():
+                self.__compression = self.__json["compression"]
 
             ndomain = len(self.__json["domains"])
             if ndomain == 0:
