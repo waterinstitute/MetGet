@@ -26,19 +26,22 @@
 #include "OwiAscii.h"
 
 #include <cassert>
-MetBuild::OwiAscii::OwiAscii(const MetBuild::Date& startDate,
-                             const MetBuild::Date& endDate,
-                             const unsigned time_step,
-			     const bool use_compression)
-    : m_use_compression(use_compression), OutputFile(startDate, endDate, time_step) {}
 
-void MetBuild::OwiAscii::addDomain(const MetBuild::Grid& w,
-                                   const std::vector<std::string>& filenames) {
-  if(filenames.size() == 1) {
-    m_domains.push_back(std::make_unique<MetBuild::OwiAsciiDomain>(
-        &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0], m_use_compression));
-  } else if(filenames.size() == 2){
-    m_domains.push_back(std::make_unique<MetBuild::OwiAsciiDomain>(
+using namespace MetBuild;
+
+OwiAscii::OwiAscii(const Date& startDate, const Date& endDate,
+                   const unsigned time_step, const bool use_compression)
+    : m_use_compression(use_compression),
+      OutputFile(startDate, endDate, time_step) {}
+
+void OwiAscii::addDomain(const Grid& w,
+                         const std::vector<std::string>& filenames) {
+  if (filenames.size() == 1) {
+    m_domains.push_back(std::make_unique<OwiAsciiDomain>(
+        &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0],
+        m_use_compression));
+  } else if (filenames.size() == 2) {
+    m_domains.push_back(std::make_unique<OwiAsciiDomain>(
         &w, this->startDate(), this->endDate(), this->timeStep(), filenames[0],
         filenames[1], m_use_compression));
   } else {
@@ -46,16 +49,19 @@ void MetBuild::OwiAscii::addDomain(const MetBuild::Grid& w,
   }
 }
 
-int MetBuild::OwiAscii::write(
-    const MetBuild::Date& date, const size_t domain_index,
-    const MetBuild::MeteorologicalData<1, MeteorologicalDataType>& data) {
+int OwiAscii::write(const Date& date, const size_t domain_index,
+                    const MeteorologicalData<1, MeteorologicalDataType>& data) {
   assert(domain_index < m_domains.size());
   return m_domains[domain_index]->write(date, data);
 }
 
-int MetBuild::OwiAscii::write(
-    const MetBuild::Date& date, const size_t domain_index,
-    const MetBuild::MeteorologicalData<3, MeteorologicalDataType>& data) {
+int OwiAscii::write(const Date& date, const size_t domain_index,
+                    const MeteorologicalData<3, MeteorologicalDataType>& data) {
   assert(domain_index < m_domains.size());
   return m_domains[domain_index]->write(date, data);
+}
+
+void OwiAscii::close_domain(size_t domain) {
+  assert(domain < m_domains.size());
+  this->m_domains[domain]->close();
 }

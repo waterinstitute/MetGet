@@ -52,8 +52,11 @@ class OwiAscii : public OutputFile {
       const MetBuild::Date &date, size_t domain_index,
       const MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
           &data) override;
+
+  void close_domain(size_t domain);
+
  private:
-   const bool m_use_compression;
+  const bool m_use_compression;
 };
 }  // namespace MetBuild
 #endif  // METGET_LIBRARY_OWIASCII_H_

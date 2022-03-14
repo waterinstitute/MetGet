@@ -38,7 +38,7 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
                                const unsigned int time_step,
                                const std::string &pressureFile,
                                const std::string &windFile,
-			       const bool use_compression)
+                               const bool use_compression)
     : OutputDomain(grid, startDate, endDate, time_step),
       m_previousDate(startDate - time_step),
       m_compressed_stream_pressure(&m_compressedio_pressure),
@@ -46,7 +46,7 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
       m_pressureFile(pressureFile),
       m_windFile(windFile),
       m_use_compression(use_compression),
-      m_default_compression_level(4) {
+      m_default_compression_level(2) {
   assert(startDate < endDate);
   this->m_filenames.push_back(pressureFile);
   this->m_filenames.push_back(windFile);
@@ -57,26 +57,22 @@ OwiAsciiDomain::OwiAsciiDomain(const MetBuild::Grid *grid,
                                const Date &startDate, const Date &endDate,
                                const unsigned int time_step,
                                const std::string &outputFile,
-			       const bool use_compression)
+                               const bool use_compression)
     : OutputDomain(grid, startDate, endDate, time_step),
       m_previousDate(startDate - time_step),
       m_compressed_stream_pressure(&m_compressedio_pressure),
       m_compressed_stream_wind(&m_compressedio_wind),
       m_pressureFile(outputFile),
       m_use_compression(use_compression),
-      m_default_compression_level(4) {
+      m_default_compression_level(2) {
   assert(startDate < endDate);
   this->m_filenames.push_back(outputFile);
   this->_open();
 }
 
-void OwiAsciiDomain::open(){ 
-  this->_open();
-}
+void OwiAsciiDomain::open() { this->_open(); }
 
-OwiAsciiDomain::~OwiAsciiDomain() {
-  this->_close();
-}
+OwiAsciiDomain::~OwiAsciiDomain() { this->_close(); }
 
 void OwiAsciiDomain::_open() {
   if (m_use_compression) {
@@ -110,9 +106,7 @@ void OwiAsciiDomain::_open() {
   this->set_open(true);
 }
 
-void OwiAsciiDomain::close() { 
-  this->_close();
-}
+void OwiAsciiDomain::close() { this->_close(); }
 
 void OwiAsciiDomain::_close() {
   if (m_ofstream_pressure.is_open()) {
@@ -194,9 +188,9 @@ int OwiAsciiDomain::write(
 
 void OwiAsciiDomain::write_header() {
   auto header = generateHeaderLine(this->startDate(), this->endDate());
-  if(m_use_compression) {
+  if (m_use_compression) {
     m_compressed_stream_pressure << header;
-    if(!m_windFile.empty()){
+    if (!m_windFile.empty()) {
       m_compressed_stream_wind << header;
     }
   } else {
@@ -254,5 +248,5 @@ void OwiAsciiDomain::write_record(
       }
     }
   }
-  if (n != num_records_per_line) *(stream) << "\n";
+  *(stream) << "\n";
 }
