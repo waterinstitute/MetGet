@@ -131,6 +131,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
     import datetime
     import os
     import json
+    import sys
     from metbuild.instance import Instance
     from metbuild.input import Input
     from metbuild.database import Database
@@ -196,6 +197,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
         ff = met_field.filenames()
         for f in ff:
             os.remove(f)
+        cleanup_temp_files(domain_data)
         return False
 
     def get_next_file_index(time, domain_data):
@@ -246,18 +248,20 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 values = met.to_grid(weight)
             met_field.write(Input.date_to_pmb(t),i,values)
 
-        ff = met_field.filenames() 
-        met_field = None #...Close files, important for gzip compression
-        for f in ff:
-            output_file_list.append(f)
-            if not json_file:
-                path = messageId + "/" + f
-                s3.upload_file(f,path)
-                os.remove(f)
-
         files_used_list[inputData.domain(i).name()] =  domain_files_used
         
+    output_file_list = met_field.filenames()
+    met_field = None #...Closes all open files
+
     output_file_dict = {"input": inputData.json(), "input_files":files_used_list, "output_files":output_file_list}
+
+    #...Posts the data out to the correct S3 location
+    if not json_file:
+        for f in output_file_list:
+            path = messageId+"/"+f
+            s3.upload_file(f,path)
+            os.remove(f)
+
     with open(filelist_name,'w') as of:
         of.write(json.dumps(output_file_dict,indent=2))
 
@@ -278,9 +282,11 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
 def cleanup_temp_files(data):
     import os
+    from os.path import exists
     for domain in data:
         for f in domain:
-            os.remove(f["filepath"])
+            if exists(f["filepath"]):
+                os.remove(f["filepath"])
 
 
 def initialize_environment_variables():
