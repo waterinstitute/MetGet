@@ -247,6 +247,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
             met_field.write(Input.date_to_pmb(t),i,values)
 
         ff = met_field.filenames() 
+        met_field = None #...Close files, important for gzip compression
         for f in ff:
             output_file_list.append(f)
             if not json_file:
