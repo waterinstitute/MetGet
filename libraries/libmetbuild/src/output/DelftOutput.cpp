@@ -34,11 +34,14 @@ using namespace MetBuild;
 
 DelftOutput::DelftOutput(const MetBuild::Date& date_start,
                          const MetBuild::Date& date_end, unsigned time_step,
-                         std::string filename)
+                         std::string filename, bool use_compression)
     : m_filename(std::move(filename)),
+      m_use_compression(use_compression),
       OutputFile(date_start, date_end, time_step) {}
 
-std::vector<std::string> DelftOutput::filenames() const { return m_domains[0]->filenames(); }
+std::vector<std::string> DelftOutput::filenames() const {
+  return m_domains[0]->filenames();
+}
 
 void DelftOutput::addDomain(const MetBuild::Grid& w,
                             const std::vector<std::string>& variables) {
@@ -46,9 +49,9 @@ void DelftOutput::addDomain(const MetBuild::Grid& w,
     metbuild_throw_exception(
         "Only one domain may be used for Delft formatted output");
   }
-  this->m_domains.push_back(
-      std::make_unique<DelftDomain>(&w, this->startDate(), this->endDate(),
-                                    this->timeStep(), m_filename, variables));
+  this->m_domains.push_back(std::make_unique<DelftDomain>(
+      &w, this->startDate(), this->endDate(), this->timeStep(), m_filename,
+      variables, m_use_compression));
 }
 
 int DelftOutput::write(const MetBuild::Date& date, size_t domain_index,

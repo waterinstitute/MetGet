@@ -28,7 +28,11 @@
 #include <utility>
 
 #include "boost/algorithm/string.hpp"
-#include "boost/format.hpp"
+#include "boost/iostreams/filter/gzip.hpp"
+
+#define FMT_HEADER_ONLY
+#include "fmt/core.h"
+#include "fmt/ostream.h"
 
 using namespace MetBuild;
 
@@ -36,34 +40,61 @@ DelftDomain::DelftDomain(const MetBuild::Grid *grid,
                          const MetBuild::Date &startDate,
                          const MetBuild::Date &endDate, unsigned int time_step,
                          std::string filename,
-                         std::vector<std::string> variables)
+                         std::vector<std::string> variables,
+                         bool use_compression)
     : m_baseFilename(std::move(filename)),
       m_variables(std::move(variables)),
+      m_use_compression(use_compression),
+      m_default_compression_level(2),
       OutputDomain(grid, startDate, endDate, time_step) {
-    this->open();      
+  this->_open();
 }
 
-DelftDomain::~DelftDomain() {
-  for (auto &s : m_ofstreams) {
-    s.close();
-  }
-}
+DelftDomain::~DelftDomain() { this->_close(); }
 
-void DelftDomain::open() {
+void DelftDomain::open() { this->_open(); }
+
+void DelftDomain::close() { this->_close(); }
+
+void DelftDomain::_open() {
   this->m_filenames.reserve(m_variables.size());
   this->m_ofstreams.reserve(m_variables.size());
   const auto grid_unit = this->guessGridUnits();
+
   for (const auto &v : m_variables) {
     std::string filename, variableName, units;
     double multiplier;
-    std::tie(filename, variableName, units, multiplier) = this->variableToFields(v);
+    std::tie(filename, variableName, units, multiplier) =
+        this->variableToFields(v);
     this->m_filenames.push_back(filename);
-    this->m_ofstreams.emplace_back(this->m_filenames.back());
-    this->writeHeader(m_ofstreams.back(), variableName, units, grid_unit);
+
+    if (m_use_compression) {
+      this->m_ofstreams.emplace_back(
+          this->m_filenames.back(), std::ios_base::out | std::ios_base::binary);
+      this->m_compressedio_buffer.push_back(
+          std::make_unique<boost::iostreams::filtering_streambuf<
+              boost::iostreams::output>>());
+      this->m_compressedio_buffer.back().get()->push(
+          boost::iostreams::gzip_compressor(
+              boost::iostreams::gzip_params(m_default_compression_level)));
+      this->m_compressedio_buffer.back().get()->push(m_ofstreams.back());
+      this->m_ostreams.push_back(
+          std::make_unique<std::ostream>(m_compressedio_buffer.back().get()));
+      this->writeHeader(this->m_ostreams.back().get(), variableName, units,
+                        grid_unit);
+    } else {
+      this->m_ofstreams.emplace_back(this->m_filenames.back());
+      this->writeHeader(&m_ofstreams.back(), variableName, units, grid_unit);
+    }
   }
 }
 
-void DelftDomain::close() {
+void DelftDomain::_close() {
+  if (m_use_compression) {
+    for (auto &b : m_compressedio_buffer) {
+      b.reset(nullptr);
+    }
+  }
   for (auto &s : m_ofstreams) {
     s.close();
   }
@@ -75,8 +106,13 @@ int DelftDomain::write(
         &data) {
   std::string filename, variableName, units;
   double multiplier;
-  std::tie(filename, variableName, units, multiplier) = this->variableToFields(m_variables[0]);
-  return this->writeField(m_ofstreams[0], date, data[0]);
+  std::tie(filename, variableName, units, multiplier) =
+      this->variableToFields(m_variables[0]);
+  if (m_use_compression) {
+    return this->writeField(this->m_ostreams[0].get(), date, data[0]);
+  } else {
+    return this->writeField(&m_ofstreams[0], date, data[0]);
+  }
 }
 
 int DelftDomain::write(
@@ -87,14 +123,21 @@ int DelftDomain::write(
   for (size_t i = 0; i < 3; ++i) {
     std::string filename, variableName, units;
     double multiplier;
-    std::tie(filename, variableName, units, multiplier) = this->variableToFields(m_variables[i]);
-    return_val += this->writeField(m_ofstreams[i], date, data[i], multiplier);
+    std::tie(filename, variableName, units, multiplier) =
+        this->variableToFields(m_variables[i]);
+    if (m_use_compression) {
+      return_val += this->writeField(this->m_ostreams[i].get(), date, data[i],
+                                     multiplier);
+    } else {
+      return_val +=
+          this->writeField(&m_ofstreams[i], date, data[i], multiplier);
+    }
   }
   return return_val;
 }
 
-std::tuple<std::string, std::string, std::string, double> DelftDomain::variableToFields(
-    const std::string &variable) {
+std::tuple<std::string, std::string, std::string, double>
+DelftDomain::variableToFields(const std::string &variable) {
   auto v2 = boost::to_lower_copy(variable);
   if (variable == "wind_u") {
     return {this->m_baseFilename + ".amu", "x_wind", "m s-1", 1.0};
@@ -111,50 +154,54 @@ std::tuple<std::string, std::string, std::string, double> DelftDomain::variableT
   } else if (variable == "rain") {
     return {this->m_baseFilename + ".amr", "precipitation", "mm s-1", 1.0};
   } else {
-    metbuild_throw_exception("Invalid variable "+variable+" specified.");
+    metbuild_throw_exception("Invalid variable " + variable + " specified.");
     return {};
   }
 }
 
-void DelftDomain::writeHeader(std::ofstream &stream,
-                              const std::string &variable,
+void DelftDomain::writeHeader(std::ostream *stream, const std::string &variable,
                               const std::string &units,
-			      const std::string &grid_unit) {
-
-  // clang-format off
-  stream << std::string("### START OF HEADER\n") +
-            "### This file generated by MetGet\n" +
-            "### File generated: " + Date::now().toString() + "\n" +
-            "FileVersion      = 1.03\n" +
-            "filetype         = meteo_on_equidistant_grid\n" +
-            "NODATA_value     = "+ boost::str(boost::format("%0.1f") % -999.0) + "\n" +
-            "n_cols           = " + boost::str(boost::format("%d")%this->grid()->ni())+"\n"+
-            "n_rows           = " + boost::str(boost::format("%d")%this->grid()->nj())+"\n"+
-            "grid_unit        = " + grid_unit+"\n" +
-            "x_llcorner       = " + boost::str(boost::format("%0.6f")%this->grid()->bottom_left().x())+"\n"+
-            "y_llcorner       = " + boost::str(boost::format("%0.6f")%this->grid()->bottom_left().y())+"\n"+
-            "dx               = " + boost::str(boost::format("%0.4f")%this->grid()->dx())+"\n"+
-            "dy               = " + boost::str(boost::format("%0.4f")%this->grid()->dy())+"\n"+
-            "n_quantity       = 1\n"+
-            "quantity_1       = "+variable+"\n"+
-            "unit_1           = "+units+"\n"+
-            "### END OF HEADER\n";
-  // clang-format on
+                              const std::string &grid_unit) {
+  fmt::print(*(stream),
+             "### START OF HEADER\n"
+             "### This file generated by MetGet\n"
+             "### File generated: {:s}\n"
+             "FileVersion      = 1.03\n"
+             "filetype         = meteo_on_equidistant_grid\n"
+             "NODATA_value     = {:0.1f}\n"
+             "n_cols           = {:d}\n"
+             "n_rows           = {:d}\n"
+             "grid_unit        = {:s}\n"
+             "x_llcorner       = {:0.6f}\n"
+             "y_llcorner       = {:0.6f}\n"
+             "dx               = {:0.4f}\n"
+             "dy               = {:0.4f}\n"
+             "n_quantity       = 1\n"
+             "quantity_1       = {:s}\n"
+             "unit_1           = {:s}\n"
+             "### END OF HEADER\n",
+             Date::now().toString(), -999.0, this->grid()->ni(),
+             this->grid()->nj(), grid_unit, this->grid()->bottom_left().x(),
+             this->grid()->bottom_left().y(), this->grid()->dx(),
+             this->grid()->dy(), variable, units);
 }
 
 template <typename T>
-int DelftDomain::writeField(std::ofstream &stream, const MetBuild::Date &date,
-                            const std::vector<std::vector<T>> &data, const double multiplier) {
+int DelftDomain::writeField(std::ostream *stream, const MetBuild::Date &date,
+                            const std::vector<std::vector<T>> &data,
+                            const double multiplier) {
   double hours =
       static_cast<double>(date.toSeconds() - this->startDate().toSeconds()) /
       3600.0;
-  stream << "TIME = " << boost::str(boost::format("%0.6f") % hours)
-         << " hours since " << this->startDate().toString() + " +00:00\n";
+
+  fmt::print(*(stream), "TIME = {:0.6f} hours since {:s} +00:00\n", hours,
+             this->startDate().toString());
+
   for (const auto &r : data) {
     for (const auto &c : r) {
-      stream << boost::str(boost::format("%0.6f ") % (c*multiplier));
+      fmt::print(*(stream), "{:0.6f} ", c * multiplier);
     }
-    stream << "\n";
+    *(stream) << "\n";
   }
   return 0;
 }

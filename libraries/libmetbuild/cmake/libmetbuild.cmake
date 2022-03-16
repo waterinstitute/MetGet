@@ -76,6 +76,7 @@ set(metbuild_include_list
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${Boost_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/nanoflann
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/fmt-8.1.1/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.24.2/src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/date_hh
     ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes/src

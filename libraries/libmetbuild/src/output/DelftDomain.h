@@ -31,6 +31,7 @@
 
 #include "MeteorologicalData.h"
 #include "OutputDomain.h"
+#include "boost/iostreams/filtering_streambuf.hpp"
 
 namespace MetBuild {
 
@@ -38,7 +39,8 @@ class DelftDomain : public OutputDomain {
  public:
   DelftDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
               const MetBuild::Date &endDate, unsigned time_step,
-              std::string filename, std::vector<std::string> variables);
+              std::string filename, std::vector<std::string> variables,
+              bool use_compression = false);
 
   ~DelftDomain() override;
 
@@ -57,19 +59,29 @@ class DelftDomain : public OutputDomain {
           &data) override;
 
  private:
+  void _open();
+  void _close();
+
   std::tuple<std::string, std::string, std::string, double> variableToFields(
       const std::string &variable);
 
-  void writeHeader(std::ofstream &stream, const std::string &variable,
+  void writeHeader(std::ostream *stream, const std::string &variable,
                    const std::string &units, const std::string &grid_unit);
 
   template <typename T>
-  int writeField(std::ofstream &stream, const MetBuild::Date &date,
-                 const std::vector<std::vector<T>> &data, double multiplier=1.0);
+  int writeField(std::ostream *stream, const MetBuild::Date &date,
+                 const std::vector<std::vector<T>> &data,
+                 double multiplier = 1.0);
 
   const std::vector<std::string> m_variables;
   const std::string m_baseFilename;
   std::vector<std::ofstream> m_ofstreams;
+  std::vector<std::unique_ptr<
+      boost::iostreams::filtering_streambuf<boost::iostreams::output>>>
+      m_compressedio_buffer;
+  std::vector<std::unique_ptr<std::ostream>> m_ostreams;
+  const bool m_use_compression;
+  const int m_default_compression_level;
 };
 
 }  // namespace MetBuild
