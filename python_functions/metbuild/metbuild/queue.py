@@ -47,7 +47,7 @@ class Queue:
         response = self.__client.receive_message(QueueUrl=self.url(),MaxNumberOfMessages=1,WaitTimeSeconds=1)
         if "Messages" in response:
             msg = response["Messages"][0]
-            self.hold_message(msg)
+            self.hold_message(msg["ReceiptHandle"])
             return True,msg
         else:
             return False,""

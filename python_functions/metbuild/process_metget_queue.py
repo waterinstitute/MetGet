@@ -357,7 +357,6 @@ def main():
             exit(1)
     else:
         queue = Queue(logger)
-        
         has_message,message = queue.get_next_message()
         if has_message:
             logger.debug("Found message in queue. Beginning to process")
