@@ -31,9 +31,7 @@
 
 #include "boost/filesystem.hpp"
 
-namespace MetBuild {
-
-namespace Utilities {
+namespace MetBuild::Utilities {
 template <typename T>
 std::vector<T> vector_generate(size_t n, T init = 0, T increment = 1) {
   std::vector<T> v;
@@ -84,6 +82,5 @@ constexpr bool not_equal_zero(const T v1) {
 
 void ncCheck(int err);
 
-}  // namespace Utilities
-}  // namespace MetBuild
+}  // namespace MetBuild::Utilities
 #endif  // METGET_SRC_UTILITIES_H_

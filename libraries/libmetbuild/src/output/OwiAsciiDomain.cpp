@@ -28,8 +28,11 @@
 #include <cassert>
 
 #include "Logging.h"
-#include "boost/format.hpp"
 #include "boost/iostreams/filter/gzip.hpp"
+
+#define FMT_HEADER_ONLY
+#include "fmt/core.h"
+#include "fmt/ostream.h"
 
 using namespace MetBuild;
 
@@ -203,20 +206,20 @@ void OwiAsciiDomain::write_header() {
 
 std::string OwiAsciiDomain::generateHeaderLine(const Date &date1,
                                                const Date &date2) {
-  return boost ::str(
-      boost::format("Oceanweather WIN/PRE Format                         "
-                    "   %4.4i%02d%02i%02i     %4.4i%02d%02i%02i\n") %
-      date1.year() % date1.month() % date1.day() % date1.hour() % date2.year() %
-      date2.month() % date2.day() % date2.hour());
+  return fmt::format(
+      "Oceanweather WIN/PRE Format                         "
+      "   {:04d}{:02d}{:02d}{:02d}     {:04d}{:02d}{:02d}{:02d}\n",
+      date1.year(), date1.month(), date1.day(), date1.hour(), date2.year(),
+      date2.month(), date2.day(), date2.hour());
 }
 
 std::string OwiAsciiDomain::formatHeaderCoordinates(const float value) {
   if (value <= -100.0) {
-    return boost::str(boost::format("%8.3f") % value);
+    return fmt::format("{:8.3f}", value);
   } else if (value < 0.0 || value >= 100.0) {
-    return boost::str(boost::format("%8.4f") % value);
+    return fmt::format("{:8.4f}", value);
   } else {
-    return boost::str(boost::format("%8.5f") % value);
+    return fmt::format("{:8.5f}", value);
   }
 }
 
@@ -224,12 +227,11 @@ std::string OwiAsciiDomain::generateRecordHeader(const Date &date,
                                                  const Grid *grid) {
   auto lon_string = formatHeaderCoordinates(grid->bottom_left().x());
   auto lat_string = formatHeaderCoordinates(grid->bottom_left().y());
-  return boost::str(
-      boost::format("iLat=%4diLong=%4dDX=%6.4fDY=%6.4fSWLat=%8sSWLon=%8sDT="
-                    "%4.4i%02i%02i%02i%02i\n") %
-      grid->nj() % grid->ni() % grid->dy() % grid->dx() % lat_string %
-      lon_string % date.year() % date.month() % date.day() % date.hour() %
-      date.minute());
+  return fmt::format(
+      "iLat={:4d}iLong={:4d}DX={:6.4f}DY={:6.4f}SWLat={:8s}SWLon={:8s}DT="
+      "{:4.4d}{:02d}{:02d}{:02d}{:02d}\n",
+      grid->nj(), grid->ni(), grid->dy(), grid->dx(), lat_string, lon_string,
+      date.year(), date.month(), date.day(), date.hour(), date.minute());
 }
 
 void OwiAsciiDomain::write_record(
@@ -240,7 +242,7 @@ void OwiAsciiDomain::write_record(
   size_t n = 0;
   for (size_t j = 0; j < this->grid()->nj(); ++j) {
     for (size_t i = 0; i < this->grid()->ni(); ++i) {
-      *(stream) << boost::str(boost::format("%10.4f") % value[j][i]);
+      fmt::print(*(stream), "{:10.4f}", value[j][i]);
       n++;
       if (n == num_records_per_line) {
         *(stream) << "\n";

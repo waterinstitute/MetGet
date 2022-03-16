@@ -33,11 +33,12 @@ namespace MetBuild {
 class DelftOutput : public OutputFile {
  public:
   DelftOutput(const MetBuild::Date &date_start, const MetBuild::Date &date_end,
-              unsigned time_step, std::string filename);
+              unsigned time_step, std::string filename,
+              bool use_compression = false);
 
   ~DelftOutput() = default;
 
-  std::vector<std::string> filenames() const override; 
+  std::vector<std::string> filenames() const override;
 
   void addDomain(const MetBuild::Grid &w,
                  const std::vector<std::string> &variables) override;
@@ -54,6 +55,7 @@ class DelftOutput : public OutputFile {
 
  private:
   const std::string m_filename;
+  const bool m_use_compression;
 };
 }  // namespace MetBuild
 

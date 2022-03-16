@@ -50,7 +50,7 @@ project(
   MetGet
   LANGUAGES C CXX
   VERSION 0.0.1)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 include(CheckIncludeFiles)
 include(CheckLibraryExists)
