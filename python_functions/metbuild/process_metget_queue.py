@@ -173,24 +173,26 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
     domain_data = []
     ongoing_restore = False
+    db_files = []
+    #...Take a first pass on the data and check for restore status
     for i in range(inputData.num_domains()):
-        generate_met_domain(inputData, met_field, i) 
-        d = inputData.domain(i)
-        f = db.generate_file_list(d.service(),inputData.data_type(),start_date,end_date,d.storm(),nowcast,multiple_forecasts) 
-        if len(f) < 2:
-            logger.error("No data found for domain "+str(i)+". Giving up.")
-            if not json_file:
-                logger.debug("Deleting message "+message["MessageId"]+" from the queue")
-                queue.delete_message(message["ReceiptHandle"])
-            sys.exit(1)
+      generate_met_domain(inputData, met_field, i) 
+      d = inputData.domain(i)
+      f = db.generate_file_list(d.service(),inputData.data_type(),start_date,end_date,d.storm(),nowcast,multiple_forecasts) 
+      db_files.append(f)
+      if len(f) < 2:
+        logger.error("No data found for domain "+str(i)+". Giving up.")
+        if not json_file:
+          logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+          queue.delete_message(message["ReceiptHandle"])
+        sys.exit(1)
 
-        domain_data.append([])
-        for item in f:
-            local_file, ongoing_restore_this = db.get_file(item[1],d.service(),item[0])
-            domain_data[i].append({"time":item[0],"filepath":local_file})
-            if ongoing_restore_this:
-                ongoing_restore = True
-
+      for item in f:
+        ongoing_restore_this = db.check_initiate_restore(item[1],d.service(),item[0])
+        if ongoing_restore_this:
+          ongoing_restore = True
+    
+    #...If restore ongoing, this is where we stop
     if ongoing_restore:
         if not json_file:
             db.update_request_status(json_message["MessageId"], "restore", "Job is in archive restore status", json_message["Body"],False)
@@ -199,6 +201,23 @@ def process_message(json_message, queue, json_file=None) -> bool:
             os.remove(f)
         cleanup_temp_files(domain_data)
         return False
+   
+    #...Begin downloading data from s3
+    for i in range(inputData.num_domains()):
+      d = inputData.domain(i)
+      f = db_files[i] 
+      if len(f) < 2:
+        logger.error("No data found for domain "+str(i)+". Giving up.")
+        if not json_file:
+          logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+          queue.delete_message(message["ReceiptHandle"])
+        sys.exit(1)
+
+      domain_data.append([])
+      for item in f:
+        local_file = db.get_file(item[1],d.service(),item[0])
+        domain_data[i].append({"time":item[0],"filepath":local_file})
+
 
     def get_next_file_index(time, domain_data):
         for i in range(len(domain_data)):

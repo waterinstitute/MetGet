@@ -143,6 +143,8 @@ class Database:
         return_list = []
         for f in rows:
             return_list.append([f[2], f[3]])
+        self.cursor().execute("drop temporary table tmptbl1;")
+        self.cursor().execute("drop temporary table tmptbl2;")
         return return_list
 
     def check_archive_status(self, filepath) -> bool:
@@ -168,24 +170,33 @@ class Database:
         ongoing = self.check_ongoing_restore(filepath)
         if not ongoing:
             response = self.s3client().restore_object(Bucket=self.bucket(), Key=filepath, RestoreRequest={"GlacierJobParameters": {"Tier":"Standard"}})
+            print("Initiating restore for file: "+filepath)
+        else:
+            print("Ongoing restore for file: "+filepath)
+
+
+    def check_initiate_restore(self, db_path, service, time, dry_run=False) -> bool:
+        if dry_run:
+          return False
+        archive_status = self.check_archive_status(db_path)
+        if archive_status:
+          self.initiate_restore(db_path)
+          return True
+        return False
+
 
     def get_file(self, db_path, service, time, dry_run=False):
         import tempfile
         import os
-        ongoing_restore = False
         fn = db_path.split("/")[-1]
         local_path = tempfile.gettempdir(
         ) + "/" + service + "." + time.strftime("%Y%m%d%H%M") + "." + fn
         if not dry_run:
             if not os.path.exists(local_path):
-                archive_status = self.check_archive_status(db_path)
-                if archive_status:
-                    self.initiate_restore(db_path)
-                    ongoing_restore = True
-                else:
-                    self.s3client().download_file(self.bucket(), db_path,
-                                              local_path)
-        return local_path, ongoing_restore
+              self.s3client().download_file(self.bucket(), db_path,
+                                            local_path)
+        return local_path
+
 
     def generate_request_table(self):
         sql = "create table if not exists requests(id INTEGER PRIMARY KEY AUTO_INCREMENT, request_id VARCHAR(36) not null, try INTEGER default 0, status enum('queued', 'running', 'restore', 'error', 'completed') not null, message VARCHAR(1024), start_date DATETIME not null, last_date DATETIME not null, api_key VARCHAR(128), source_ip VARCHAR(128), input_data VARCHAR(8096));"

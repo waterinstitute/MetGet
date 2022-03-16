@@ -46,13 +46,18 @@ class Queue:
     def get_next_message(self):
         response = self.__client.receive_message(QueueUrl=self.url(),MaxNumberOfMessages=1,WaitTimeSeconds=1)
         if "Messages" in response:
-            return True,response["Messages"][0]
+            msg = response["Messages"][0]
+            self.hold_message(msg)
+            return True,msg
         else:
             return False,""
     
     # Deletes the specified message from the SQS once the job is complete
     def delete_message(self,message_id):
         response = self.__client.delete_message(QueueUrl=self.url(),ReceiptHandle=message_id)
+
+    def hold_message(self,message_id):
+        response = self.__client.change_message_visibility(QueueUrl=self.url(), ReceiptHandle=message_id, VisibilityTimeout=7200)
 
     def release_message(self,message_id):
         response = self.__client.change_message_visibility(QueueUrl=self.url(), ReceiptHandle=message_id, VisibilityTimeout=120)
