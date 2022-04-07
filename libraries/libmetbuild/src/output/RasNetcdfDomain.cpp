@@ -118,7 +118,7 @@ void RasNetcdfDomain::initialize() {
 
   // TIME
   auto referenceTimeString =
-      "minutes since " + this->startDate().toString("%Y-%m-%d %H:%M%OS.0 +0000");
+      "minutes since " + this->startDate().toString("%F %T");
   ncCheck(
       nc_def_var(m_ncid, "time", NC_DOUBLE, 1, &m_dimid_time, &m_varid_time));
   //ncCheck(nc_put_att_text(m_ncid, m_varid_time, "standard_name", 4, "time"));

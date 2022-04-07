@@ -303,7 +303,7 @@ void Date::fromString(const std::string &datestr, const std::string &format) {
 }
 
 std::string Date::toString(const std::string &format) const {
-  return date::format(format, this->m_datetime);
+  return date::format(format, date::floor<seconds>(this->m_datetime));
 }
 
 std::chrono::system_clock::time_point Date::time_point() const {
