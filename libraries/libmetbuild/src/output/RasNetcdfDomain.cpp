@@ -70,42 +70,40 @@ void RasNetcdfDomain::initialize() {
 
   if(grid_unit == "deg"){
     // X
-    ncCheck(nc_def_var(m_ncid, "x", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "longitude"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "long_name", 34,
-                            "x coordinate according to WGS 1984"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", grid_unit.size(), &grid_unit[0]));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "x"));
+    ncCheck(nc_def_var(m_ncid, "lon", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));
+    //ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "longitude"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "long_name", 9, "Longitude"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", 12, "degrees_east"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "X"));
     ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_x, 1, 1, 2));
 
     // Y
-    ncCheck(nc_def_var(m_ncid, "y", NC_DOUBLE, 1, &m_dimid_y, &m_varid_y));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "latitude"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "long_name", 34,
-                            "y coordinate according to WGS 1984"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", 3, "DEG"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "y"));
+    ncCheck(nc_def_var(m_ncid, "lat", NC_DOUBLE, 1, &m_dimid_y, &m_varid_y));
+    ////ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "latitude"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "long_name", 8, "Latitude"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", 13, "degrees_north"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "Y"));
     ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_y, 1, 1, 2));
   } else {
     // X
     ncCheck(nc_def_var(m_ncid, "x", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "x"));
+    //ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "x"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "long_name", 34,
                             "x coordinate"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", grid_unit.size(), &grid_unit[0]));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "x"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "X"));
     ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_x, 1, 1, 2));
 
     // Y
     ncCheck(nc_def_var(m_ncid, "y", NC_DOUBLE, 1, &m_dimid_y, &m_varid_y));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "y"));
+    //ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "y"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "long_name", 34,
                             "y coordinate"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", 3, "DEG"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "y"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", grid_unit.size(), &grid_unit[0]));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "Y"));
     ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_y, 1, 1, 2));
   }
@@ -120,10 +118,10 @@ void RasNetcdfDomain::initialize() {
 
   // TIME
   auto referenceTimeString =
-      "minutes since" + this->startDate().toString("%Y-%m-%d %H:%M%OS.0 +0000");
+      "minutes since " + this->startDate().toString("%Y-%m-%d %H:%M%OS.0 +0000");
   ncCheck(
       nc_def_var(m_ncid, "time", NC_DOUBLE, 1, &m_dimid_time, &m_varid_time));
-  ncCheck(nc_put_att_text(m_ncid, m_varid_time, "standard_name", 4, "time"));
+  //ncCheck(nc_put_att_text(m_ncid, m_varid_time, "standard_name", 4, "time"));
   ncCheck(nc_put_att_text(m_ncid, m_varid_time, "long_name", 4, "time"));
   ncCheck(nc_put_att_text(m_ncid, m_varid_time, "units",
                           referenceTimeString.size(), &referenceTimeString[0]));
@@ -181,8 +179,8 @@ void RasNetcdfDomain::initialize() {
       units = "mb";
     } else if (v == "rain") {
       standard_name = "rainfall_rate";
-      long_name = "rate of rainfall";
-      units = "mm s-1";
+      long_name = "Total rainfall accumulation over 1 minute";
+      units = "mm";
     } else if (v == "humidity") {
       standard_name = "relative_humidity";
       long_name = "relative humidity in air at ground level";
@@ -201,11 +199,12 @@ void RasNetcdfDomain::initialize() {
     ncCheck(nc_def_var(m_ncid, &v[0], NC_DOUBLE, 3, threed, &varid));
     ncCheck(nc_def_var_fill(m_ncid, varid, NC_FILL, &double_fill));
 #endif
-    ncCheck(nc_put_att_text(m_ncid, varid, "standard_name",
-                            standard_name.size(), &standard_name[0]));
+    //ncCheck(nc_put_att_text(m_ncid, varid, "standard_name",
+    //                        standard_name.size(), &standard_name[0]));
     ncCheck(nc_put_att_text(m_ncid, varid, "long_name", long_name.size(),
                             &long_name[0]));
     ncCheck(nc_put_att_text(m_ncid, varid, "units", units.size(), &units[0]));
+    ncCheck(nc_put_att_text(m_ncid, varid, "grid_mapping", 3, "crs"));
     ncCheck(nc_def_var_deflate(m_ncid, varid, 1, 1, 2));
     this->m_varids.push_back(varid);
   }
@@ -230,10 +229,20 @@ int RasNetcdfDomain::write(const MetBuild::Date &date,
   const size_t start_scalar[] = {m_counter};
   const size_t count_scalar[] = {1};
 
+
   ncCheck(nc_put_vara_double(m_ncid, m_varid_time, start_scalar, count_scalar,
                              minutes));
 
   const auto array = data.toVector(0);
+  std::vector<MeteorologicalDataType> out_data;
+  out_data.reserve(array.size());
+  if(m_variables[0] == "rain"){
+    for(const auto &v : array){
+      out_data.push_back(v*60.0);
+    }
+  } else {
+    out_data = array;
+  }
 #ifdef METBUILD_USE_FLOAT
   ncCheck(nc_put_vara_float(m_ncid, m_varids[0], start_array, count_array,
                             array.data()));
