@@ -56,8 +56,15 @@ void RasNetcdfDomain::initialize() {
   auto nx = this->grid()->ni();
   auto ny = this->grid()->nj();
 
-  ncCheck(nc_def_dim(m_ncid, "x", nx, &m_dimid_x));
-  ncCheck(nc_def_dim(m_ncid, "y", ny, &m_dimid_y));
+  const auto grid_unit = this->guessGridUnits(); 
+
+  if(grid_unit == "deg"){
+    ncCheck(nc_def_dim(m_ncid, "lon", nx, &m_dimid_x));
+    ncCheck(nc_def_dim(m_ncid, "lat", ny, &m_dimid_y));
+  } else {
+    ncCheck(nc_def_dim(m_ncid, "x", nx, &m_dimid_x));
+    ncCheck(nc_def_dim(m_ncid, "y", ny, &m_dimid_y));
+  }
   ncCheck(nc_def_dim(m_ncid, "time", NC_UNLIMITED, &m_dimid_time));
 
   const int one[] = {1};
@@ -66,8 +73,6 @@ void RasNetcdfDomain::initialize() {
   const float float_fill = MeteorologicalData<1>::flag_value();
   const double double_fill = MeteorologicalData<1>::flag_value();
 
-  const auto grid_unit = this->guessGridUnits(); 
-
   if(grid_unit == "deg"){
     // X
     ncCheck(nc_def_var(m_ncid, "lon", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));
@@ -75,7 +80,7 @@ void RasNetcdfDomain::initialize() {
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "long_name", 9, "Longitude"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", 12, "degrees_east"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "X"));
-    ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
+    //ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_x, 1, 1, 2));
 
     // Y
@@ -84,7 +89,7 @@ void RasNetcdfDomain::initialize() {
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "long_name", 8, "Latitude"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", 13, "degrees_north"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "Y"));
-    ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
+    //ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_y, 1, 1, 2));
   } else {
     // X
@@ -94,7 +99,7 @@ void RasNetcdfDomain::initialize() {
                             "x coordinate"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", grid_unit.size(), &grid_unit[0]));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "X"));
-    ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
+    //ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_x, 1, 1, 2));
 
     // Y
@@ -104,7 +109,7 @@ void RasNetcdfDomain::initialize() {
                             "y coordinate"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", grid_unit.size(), &grid_unit[0]));
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "Y"));
-    ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
+    //ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_y, 1, 1, 2));
   }
 
@@ -113,7 +118,7 @@ void RasNetcdfDomain::initialize() {
   ncCheck(nc_put_att_text(m_ncid, m_varid_z, "units", 6, "meters"));
   ncCheck(nc_put_att_text(m_ncid, m_varid_z, "long_name", 27,
                           "height above mean sea level"));
-  ncCheck(nc_def_var_fill(m_ncid, m_varid_z, NC_FILL, &double_fill));
+  //ncCheck(nc_def_var_fill(m_ncid, m_varid_z, NC_FILL, &double_fill));
   ncCheck(nc_def_var_deflate(m_ncid, m_varid_z, 1, 1, 2));
 
   // TIME
@@ -126,7 +131,7 @@ void RasNetcdfDomain::initialize() {
   ncCheck(nc_put_att_text(m_ncid, m_varid_time, "units",
                           referenceTimeString.size(), &referenceTimeString[0]));
   ncCheck(nc_put_att_text(m_ncid, m_varid_time, "axis", 1, "T"));
-  ncCheck(nc_def_var_fill(m_ncid, m_varid_time, NC_FILL, &double_fill));
+  //ncCheck(nc_def_var_fill(m_ncid, m_varid_time, NC_FILL, &double_fill));
   ncCheck(nc_def_var_deflate(m_ncid, m_varid_time, 1, 1, 2));
 
   // CRS
