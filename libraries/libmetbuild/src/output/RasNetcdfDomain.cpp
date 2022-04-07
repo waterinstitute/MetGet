@@ -245,10 +245,10 @@ int RasNetcdfDomain::write(const MetBuild::Date &date,
   }
 #ifdef METBUILD_USE_FLOAT
   ncCheck(nc_put_vara_float(m_ncid, m_varids[0], start_array, count_array,
-                            array.data()));
+                            out_data.data()));
 #else
   ncCheck(nc_put_vara_double(m_ncid, m_varids[0], start_array, count_array,
-                             array.data()));
+                             out_data.data()));
 #endif
 
   m_counter++;
