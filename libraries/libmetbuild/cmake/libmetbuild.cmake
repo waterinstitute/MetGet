@@ -75,10 +75,10 @@ add_dependencies(metbuild_objectlib eccodes)
 set(metbuild_include_list
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${Boost_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/nanoflann
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/fmt-8.1.1/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.24.2/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/date_hh
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/nanoflann
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fmt-8.1.1/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eccodes-2.25.0/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/date_hh
     ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes/src
     ${NETCDF_INCLUDE_DIRS} ${PROJ_INCLUDE_DIR} ${SQLite3_INCLUDE_DIRS})
 
@@ -105,7 +105,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/metbuildConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
 install(
   DIRECTORY
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.24.2/definitions
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eccodes-2.25.0/definitions
   DESTINATION ${CMAKE_INSTALL_PREFIX}/share/eccodes)
 
 # ##############################################################################

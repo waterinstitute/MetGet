@@ -12,8 +12,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -23,8 +23,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# Author: Zach Cobell
-# Contact: zcobell@thewaterinstitute.org
+# Author: Zach Cobell Contact: zcobell@thewaterinstitute.org
 #
 # ##############################################################################
 set(ENABLE_FORTRAN
@@ -34,14 +33,17 @@ set(ENABLE_PYTHON
     OFF
     CACHE BOOL "Enable Python functionality in eccodes")
 set(ENABLE_NETCDF
-        OFF
-        CACHE BOOL "Enable NetCDF functionality in eccodes")
+    OFF
+    CACHE BOOL "Enable NetCDF functionality in eccodes")
 set(ENABLE_PRODUCT_BUFR
     OFF
     CACHE BOOL "Enable BUFR")
 set(BUILD_SHARED_LIBS
     OFF
     CACHE BOOL "Enable building shared libraries")
+#set(ENABLE_JPG_LIBJASPER
+#    OFF
+#    CACHE BOOL "Enable JPEG LIBJASPER")
 
 mark_as_advanced(
   ENABLE_WARNINGS
@@ -71,6 +73,7 @@ mark_as_advanced(
   CMATH_LIBRARIES
   BUILD_SHARED_LIBS)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/eccodes-2.24.2
-                 ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes EXCLUDE_FROM_ALL)
+add_subdirectory(
+  ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eccodes-2.25.0
+  ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes EXCLUDE_FROM_ALL)
 # ##############################################################################
