@@ -1,0 +1,15 @@
+#########################
+#
+# author: Sebastien Villaume
+# created: 14 Feb 2014
+#
+#################################
+### LOCAL SECTION DESCRIPTION ###
+#################################
+
+# base local definition
+include "grib3/local.82.0.def";
+
+unsigned[1] marsExperimentOffset = 0 : dump, long_type;
+
+
