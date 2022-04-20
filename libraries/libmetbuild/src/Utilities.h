@@ -44,6 +44,8 @@ std::vector<T> vector_generate(size_t n, T init = 0, T increment = 1) {
   return v;
 }
 
+inline bool isNotAlpha(char c) { return !isalpha(c) && !isalnum(c); }
+
 inline std::string extension(const std::string &file) {
   return boost::filesystem::path(file).extension().string();
 }

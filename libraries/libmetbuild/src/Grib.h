@@ -23,8 +23,8 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#ifndef GRIB_H
-#define GRIB_H
+#ifndef METBUILD_GRIB_H
+#define METBUILD_GRIB_H
 
 #include <array>
 #include <cstdlib>
@@ -91,7 +91,7 @@ class Grib {
                                const std::string &variableName);
 
   static int getStepLength(const std::string &filename,
-                           const std::string &name);
+                           const std::string &parameter);
 
  private:
   void initialize();
@@ -99,10 +99,6 @@ class Grib {
   void findCorners();
   static std::vector<std::vector<double>> mapTo2d(const std::vector<double> &v,
                                                   size_t ni, size_t nj);
-
-  static codes_handle *make_handle(const std::string &filename,
-                                   const std::string &name, bool quiet = false);
-  static void close_handle(codes_handle *handle);
 
   std::string m_filename;
   size_t m_size;
@@ -119,4 +115,4 @@ class Grib {
   int m_convention;
 };
 }  // namespace MetBuild
-#endif  // GRIB_H
+#endif  // METBUILD_GRIB_H
