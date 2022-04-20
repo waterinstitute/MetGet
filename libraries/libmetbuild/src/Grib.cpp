@@ -26,13 +26,13 @@
 #include "Grib.h"
 
 #include <cmath>
-#include <fstream>
 #include <iostream>
-#include <memory>
 #include <utility>
 
 #include "Geometry.h"
+#include "GribHandle.h"
 #include "Logging.h"
+#include "Utilities.h"
 #include "boost/algorithm/string/split.hpp"
 #include "boost/algorithm/string/trim.hpp"
 #include "eccodes.h"
@@ -53,98 +53,43 @@ Grib::~Grib() = default;
 
 std::string Grib::filename() const { return m_filename; }
 
-bool isNotAlpha(char c) { return !isalpha(c) && !isalnum(c); }
-
-int Grib::getStepLength(const std::string &filename, const std::string &name) {
-  FILE *f = fopen(filename.c_str(), "r");
-  int ierr = 0;
-
-  while (auto h = codes_handle_new_from_file(codes_context_get_default(), f,
-                                             PRODUCT_GRIB, &ierr)) {
-    CODES_CHECK(ierr, nullptr);
-    std::string pname;
-    size_t plen = 0;
-    CODES_CHECK(codes_get_length(h, "shortName", &plen), nullptr);
-    pname.resize(plen, ' ');
-    CODES_CHECK(codes_get_string(h, "shortName", &pname[0], &plen), nullptr);
-    boost::trim_if(pname, isNotAlpha);
-    if (pname == name) {
-      std::string p2name;
-      size_t p2len = 0;
-      CODES_CHECK(codes_get_length(h, "stepRange", &p2len), nullptr);
-      p2name.resize(p2len, ' ');
-      CODES_CHECK(codes_get_string(h, "stepRange", &p2name[0], &p2len),
-                  nullptr);
-      boost::trim_if(p2name, isNotAlpha);
-      Grib::close_handle(h);
-      fclose(f);
-      boost::trim_if(p2name, boost::is_any_of(" "));
-      std::vector<std::string> result;
-      boost::algorithm::split(result, p2name, boost::is_any_of("-"),
-                              boost::token_compress_off);
-      for (auto &s : result) {
-        boost::trim_left(s);
-      }
-
-      if (result.size() == 1) {
-        return 1;
-      } else {
-        return std::stoi(result[1]) - std::stoi(result[0]);
-      }
-
-    } else {
-      Grib::close_handle(h);
-    }
+int Grib::getStepLength(const std::string &filename,
+                        const std::string &parameter) {
+  auto h = GribHandle(filename, parameter);
+  std::string p2name;
+  size_t p2len = 0;
+  CODES_CHECK(codes_get_length(h.ptr(), "stepRange", &p2len), nullptr);
+  p2name.resize(p2len, ' ');
+  CODES_CHECK(codes_get_string(h.ptr(), "stepRange", &p2name[0], &p2len),
+              nullptr);
+  boost::trim_if(p2name, Utilities::isNotAlpha);
+  boost::trim_if(p2name, boost::is_any_of(" "));
+  std::vector<std::string> result;
+  boost::algorithm::split(result, p2name, boost::is_any_of("-"),
+                          boost::token_compress_off);
+  for (auto &s : result) {
+    boost::trim_left(s);
   }
-  fclose(f);
+
+  if (result.size() == 1) {
+    return 1;
+  } else {
+    return std::stoi(result[1]) - std::stoi(result[0]);
+  }
+
   metbuild_throw_exception("Could not generate the step range");
   return 0;
-}
-
-codes_handle *Grib::make_handle(const std::string &filename,
-                                const std::string &name, bool quiet) {
-  FILE *f = fopen(filename.c_str(), "r");
-  int ierr = 0;
-
-  while (auto h = codes_handle_new_from_file(codes_context_get_default(), f,
-                                             PRODUCT_GRIB, &ierr)) {
-    CODES_CHECK(ierr, nullptr);
-    std::string pname;
-    std::string p2name;
-    size_t plen = 0;
-    CODES_CHECK(codes_get_length(h, "shortName", &plen), nullptr);
-    pname.resize(plen, ' ');
-    CODES_CHECK(codes_get_string(h, "shortName", &pname[0], &plen), nullptr);
-    boost::trim_if(pname, isNotAlpha);
-    if (pname == name) {
-      fclose(f);
-      return h;
-    } else {
-      Grib::close_handle(h);
-    }
-  }
-  fclose(f);
-  if (!quiet) metbuild_throw_exception("Could not generate the eccodes handle");
-  return nullptr;
-}
-
-void Grib::close_handle(codes_handle *handle) {
-  auto err = codes_handle_delete(handle);
-  if (err != GRIB_SUCCESS) {
-    metbuild_throw_exception("Could not delete the codes_handle object");
-  }
 }
 
 void Grib::initialize() {
   codes_grib_multi_support_on(grib_context_get_default());
 
-  auto handle = Grib::make_handle(m_filename, "prmsl");
-  CODES_CHECK(codes_get_long(handle, "Ni", &m_ni), nullptr);
-  CODES_CHECK(codes_get_long(handle, "Nj", &m_nj), nullptr);
-  CODES_CHECK(codes_get_size(handle, "values", &m_size), nullptr);
+  auto handle = GribHandle(m_filename, "prmsl");
+  CODES_CHECK(codes_get_long(handle.ptr(), "Ni", &m_ni), nullptr);
+  CODES_CHECK(codes_get_long(handle.ptr(), "Nj", &m_nj), nullptr);
+  CODES_CHECK(codes_get_size(handle.ptr(), "values", &m_size), nullptr);
 
-  this->readCoordinates(handle);
-  Grib::close_handle(handle);
+  this->readCoordinates(handle.ptr());
 
   m_tree = std::make_unique<Kdtree>(m_longitude, m_latitude);
   this->findCorners();
@@ -153,9 +98,8 @@ void Grib::initialize() {
 bool Grib::containsVariable(const std::string &filename,
                             const std::string &name) {
   codes_grib_multi_support_on(grib_context_get_default());
-  auto handle = Grib::make_handle(filename, name, true);
-  if (handle) {
-    Grib::close_handle(handle);
+  auto handle = GribHandle(filename, name, true);
+  if (handle.ptr()) {
     return true;
   } else {
     return false;
@@ -167,10 +111,10 @@ std::vector<double> Grib::getGribArray1d(const std::string &name) {
   if (pvm == m_preread_value_map.end()) {
     std::vector<double> arr1d(m_size, 0.0);
     size_t s = m_size;
-    auto handle = Grib::make_handle(m_filename, name);
-    CODES_CHECK(codes_get_double_array(handle, "values", arr1d.data(), &s),
-                nullptr);
-    Grib::close_handle(handle);
+    auto handle = GribHandle(m_filename, name);
+    CODES_CHECK(
+        codes_get_double_array(handle.ptr(), "values", arr1d.data(), &s),
+        nullptr);
     m_preread_values.push_back(arr1d);
     m_preread_value_map[name] = m_preread_values.size() - 1;
     return m_preread_values.back();

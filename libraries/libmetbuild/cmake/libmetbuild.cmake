@@ -47,18 +47,22 @@ set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/output/DelftOutput.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/output/DelftDomain.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Utilities.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Projection.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Projection.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/FileWrapper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/FileWrapper.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/GribHandle.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/GribHandle.h)
 
 add_library(metbuild_interface INTERFACE)
 add_library(metbuild_objectlib OBJECT ${METBUILD_SOURCES})
 add_library(metbuild_static STATIC $<TARGET_OBJECTS:metbuild_objectlib>)
 add_library(metbuild SHARED $<TARGET_OBJECTS:metbuild_objectlib>)
 
-find_package( NetCDF REQUIRED )
-find_package( PROJ REQUIRED )
-find_package( SQLite3 REQUIRED )
-find_package( TIFF REQUIRED )
-find_package( Boost REQUIRED COMPONENTS iostreams )
+find_package(NetCDF REQUIRED)
+find_package(PROJ REQUIRED)
+find_package(SQLite3 REQUIRED)
+find_package(TIFF REQUIRED)
+find_package(Boost REQUIRED COMPONENTS iostreams)
 
 set_property(TARGET metbuild_objectlib PROPERTY POSITION_INDEPENDENT_CODE 1)
 target_link_libraries(metbuild_static metbuild_interface)
@@ -80,11 +84,16 @@ set(metbuild_include_list
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eccodes-2.25.0/src
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/date_hh
     ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes/src
-    ${NETCDF_INCLUDE_DIRS} ${PROJ_INCLUDE_DIR} ${SQLite3_INCLUDE_DIRS})
+    ${NETCDF_INCLUDE_DIRS}
+    ${PROJ_INCLUDE_DIR}
+    ${SQLite3_INCLUDE_DIRS})
 
 target_include_directories(metbuild_objectlib PRIVATE ${metbuild_include_list})
 
-target_link_libraries(metbuild_interface INTERFACE ${NETCDF_LIBRARIES} ${PROJ_LIBRARY} ${SQLite3_LIBRARIES} ${Boost_LIBRARIES} eccodes ${TIFF_LIBRARY_RELEASE})
+target_link_libraries(
+  metbuild_interface
+  INTERFACE ${NETCDF_LIBRARIES} ${PROJ_LIBRARY} ${SQLite3_LIBRARIES}
+            ${Boost_LIBRARIES} eccodes ${TIFF_LIBRARY_RELEASE})
 target_link_libraries(metbuild_static metbuild_interface)
 target_link_libraries(metbuild metbuild_interface)
 
@@ -104,8 +113,7 @@ install(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/metbuildConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
 install(
-  DIRECTORY
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eccodes-2.25.0/definitions
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eccodes-2.25.0/definitions
   DESTINATION ${CMAKE_INSTALL_PREFIX}/share/eccodes)
 
 # ##############################################################################
