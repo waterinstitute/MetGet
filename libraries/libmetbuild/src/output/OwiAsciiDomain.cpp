@@ -229,7 +229,7 @@ std::string OwiAsciiDomain::generateRecordHeader(const Date &date,
   auto lat_string = formatHeaderCoordinates(grid->bottom_left().y());
   return fmt::format(
       "iLat={:4d}iLong={:4d}DX={:6.4f}DY={:6.4f}SWLat={:8s}SWLon={:8s}DT="
-      "{:4.4d}{:02d}{:02d}{:02d}{:02d}\n",
+      "{:04d}{:02d}{:02d}{:02d}{:02d}\n",
       grid->nj(), grid->ni(), grid->dy(), grid->dx(), lat_string, lon_string,
       date.year(), date.month(), date.day(), date.hour(), date.minute());
 }
