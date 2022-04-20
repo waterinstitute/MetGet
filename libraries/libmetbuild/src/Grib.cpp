@@ -33,10 +33,8 @@
 
 #include "Geometry.h"
 #include "Logging.h"
-#include "Utilities.h"
 #include "boost/algorithm/string/split.hpp"
 #include "boost/algorithm/string/trim.hpp"
-#include "boost/format.hpp"
 #include "eccodes.h"
 
 using namespace MetBuild;
@@ -55,7 +53,7 @@ Grib::~Grib() = default;
 
 std::string Grib::filename() const { return m_filename; }
 
-bool isnotalpha(char c) { return !isalpha(c) && !isalnum(c); }
+bool isNotAlpha(char c) { return !isalpha(c) && !isalnum(c); }
 
 int Grib::getStepLength(const std::string &filename, const std::string &name) {
   FILE *f = fopen(filename.c_str(), "r");
@@ -69,7 +67,7 @@ int Grib::getStepLength(const std::string &filename, const std::string &name) {
     CODES_CHECK(codes_get_length(h, "shortName", &plen), nullptr);
     pname.resize(plen, ' ');
     CODES_CHECK(codes_get_string(h, "shortName", &pname[0], &plen), nullptr);
-    boost::trim_if(pname, isnotalpha);
+    boost::trim_if(pname, isNotAlpha);
     if (pname == name) {
       std::string p2name;
       size_t p2len = 0;
@@ -77,7 +75,7 @@ int Grib::getStepLength(const std::string &filename, const std::string &name) {
       p2name.resize(p2len, ' ');
       CODES_CHECK(codes_get_string(h, "stepRange", &p2name[0], &p2len),
                   nullptr);
-      boost::trim_if(p2name, isnotalpha);
+      boost::trim_if(p2name, isNotAlpha);
       Grib::close_handle(h);
       fclose(f);
       boost::trim_if(p2name, boost::is_any_of(" "));
@@ -117,7 +115,7 @@ codes_handle *Grib::make_handle(const std::string &filename,
     CODES_CHECK(codes_get_length(h, "shortName", &plen), nullptr);
     pname.resize(plen, ' ');
     CODES_CHECK(codes_get_string(h, "shortName", &pname[0], &plen), nullptr);
-    boost::trim_if(pname, isnotalpha);
+    boost::trim_if(pname, isNotAlpha);
     if (pname == name) {
       fclose(f);
       return h;
