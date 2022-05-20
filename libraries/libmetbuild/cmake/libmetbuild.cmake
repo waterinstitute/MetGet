@@ -31,7 +31,6 @@
 
 set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Date.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Grib.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Kdtree.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/KdtreePrivate.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Meteorology.cpp
@@ -51,7 +50,20 @@ set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/FileWrapper.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/FileWrapper.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/GribHandle.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/GribHandle.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/GribHandle.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/VariableNames.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/Grib.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GriddedData.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GriddedData.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GfsData.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/NamData.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/HwrfData.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/CoampsData.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/CoampsData.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/CoampsDomain.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/CoampsDomain.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/NetcdfFile.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/NetcdfFile.h)
 
 add_library(metbuild_interface INTERFACE)
 add_library(metbuild_objectlib OBJECT ${METBUILD_SOURCES})

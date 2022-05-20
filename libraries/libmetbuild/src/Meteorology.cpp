@@ -31,29 +31,33 @@
 #include <stdexcept>
 #include <utility>
 
-#include "Grib.h"
 #include "Logging.h"
 #include "MetBuild_Status.h"
 #include "Projection.h"
 #include "Utilities.h"
+#include "data_sources/GfsData.h"
+#include "data_sources/Grib.h"
+#include "data_sources/HwrfData.h"
+#include "data_sources/NamData.h"
 
 using namespace MetBuild;
 
-Meteorology::Meteorology(const MetBuild::Grid *windGrid, Meteorology::TYPE type,
+Meteorology::Meteorology(const MetBuild::Grid *windGrid,
+                         Meteorology::SOURCE source, GriddedData::TYPE type,
                          bool backfill, int epsg_output)
     : m_type(type),
+      m_source(source),
       m_windGrid(windGrid),
       m_rate_scaling_1(1.0),
       m_rate_scaling_2(1.0),
-      m_grib1(nullptr),
-      m_grib2(nullptr),
-      m_file1(std::string()),
-      m_file2(std::string()),
+      m_gridded1(nullptr),
+      m_gridded2(nullptr),
       m_interpolation_1(nullptr),
       m_interpolation_2(nullptr),
       m_useBackgroundFlag(backfill),
       m_epsg_output(epsg_output),
-      m_grid_positions(m_windGrid->grid_positions()) {
+      m_grid_positions(m_windGrid->grid_positions()),
+      m_variables(generate_variable_list(type)) {
   // We assume that all data in the database is in WGS84 and the user can
   // get out other projections if they need to
   if (m_epsg_output != 4326) {
@@ -83,11 +87,12 @@ MetBuild::Grid::grid Meteorology::reproject_grid(MetBuild::Grid::grid g) const {
 
 void Meteorology::set_next_file(const std::string &filename) {
   m_file1 = std::move(m_file2);
-  m_file2 = filename;
+  m_file2 = {filename};
 }
 
-void Meteorology::set_next_file(const char *filename) {
-  this->set_next_file(std::string(filename));
+void Meteorology::set_next_file(const std::vector<std::string> &filenames) {
+  m_file1 = std::move(m_file2);
+  m_file2 = filenames;
 }
 
 int Meteorology::process_data() {
@@ -100,37 +105,40 @@ int Meteorology::process_data() {
     return MB_ERROR;
   }
 
-  if (m_grib1 && m_grib2) {
-    if (m_file1 == m_grib1->filename() && m_file2 == m_grib2->filename()) {
+  if (m_gridded1 && m_gridded2) {
+    if (m_file1 == m_gridded1->filenames() &&
+        m_file2 == m_gridded2->filenames()) {
       return MB_NOERROR;
     }
   }
 
-  if (m_grib2) {
-    if (m_grib2->filename() == m_file1) {
-      m_grib1.reset(nullptr);
-      m_grib1 = std::move(m_grib2);
+  if (m_gridded2) {
+    if (m_gridded2->filenames() == m_file1) {
+      m_gridded1.reset(nullptr);
+      m_gridded1 = std::move(m_gridded2);
       m_interpolation_1 = std::move(m_interpolation_2);
     } else {
-      m_grib1 = std::make_unique<Grib>(m_file1);
+      m_gridded1 = this->gridded_data_factory(m_file1, m_source);
       m_interpolation_1 = std::make_shared<InterpolationWeights>(
-          Meteorology::generate_interpolation_weight(m_grib1.get(),
+          Meteorology::generate_interpolation_weight(m_gridded1.get(),
                                                      &m_grid_positions));
     }
   } else {
-    m_grib1 = std::make_unique<Grib>(m_file1);
+    m_gridded1 = this->gridded_data_factory(m_file1, m_source);
     m_interpolation_1 = std::make_shared<InterpolationWeights>(
-        Meteorology::generate_interpolation_weight(m_grib1.get(), &m_grid_positions));
+        Meteorology::generate_interpolation_weight(m_gridded1.get(),
+                                                   &m_grid_positions));
   }
-  m_grib2 = std::make_unique<Grib>(m_file2);
+  m_gridded2 = this->gridded_data_factory(m_file2, m_source);
 
-  if (m_grib1->latitude1d() == m_grib2->latitude1d() &&
-      m_grib1->longitude1d() == m_grib2->longitude1d()) {
+  if (m_gridded1->latitude1d() == m_gridded2->latitude1d() &&
+      m_gridded1->longitude1d() == m_gridded2->longitude1d()) {
     m_interpolation_2 =
         std::make_shared<InterpolationWeights>(*m_interpolation_1);
   } else {
     m_interpolation_2 = std::make_shared<InterpolationWeights>(
-        Meteorology::generate_interpolation_weight(m_grib2.get(), &m_grid_positions));
+        Meteorology::generate_interpolation_weight(m_gridded2.get(),
+                                                   &m_grid_positions));
   }
 
   return MB_NOERROR;
@@ -151,22 +159,23 @@ MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
     return r;
   }
 
-  m_scalarVariableName_1 = this->findScalarVariableName(m_file1);
-  if (m_scalarVariableName_1 == "apcp" || m_scalarVariableName_1 == "tp") {
-    m_rate_scaling_1 = 1.0 / static_cast<double>(Grib::getStepLength(
-                                 m_file1, m_scalarVariableName_1));
-  }
-
-  m_scalarVariableName_2 = this->findScalarVariableName(m_file2);
-  if (m_scalarVariableName_2 == "apcp" || m_scalarVariableName_2 == "tp") {
-    m_rate_scaling_2 = 1.0 / static_cast<double>(Grib::getStepLength(
-                                 m_file2, m_scalarVariableName_2));
-  }
+  // TODO: Need to reintroduce scaling value
+  //  m_scalarVariableName_1 = this->findScalarVariableName(m_file1);
+  //  if (m_scalarVariableName_1 == "apcp" || m_scalarVariableName_1 == "tp") {
+  //    m_rate_scaling_1 = 1.0 / static_cast<double>(Grib::getStepLength(
+  //                                 m_file1, m_scalarVariableName_1));
+  //  }
+  //
+  //  m_scalarVariableName_2 = this->findScalarVariableName(m_file2);
+  //  if (m_scalarVariableName_2 == "apcp" || m_scalarVariableName_2 == "tp") {
+  //    m_rate_scaling_2 = 1.0 / static_cast<double>(Grib::getStepLength(
+  //                                 m_file2, m_scalarVariableName_2));
+  //  }
 
   this->process_data();
 
-  const auto r1 = m_grib1->getGribArray1d(m_scalarVariableName_1);
-  const auto r2 = m_grib2->getGribArray1d(m_scalarVariableName_2);
+  const auto r1 = m_gridded1->getVariable1d(m_variables[0]);
+  const auto r2 = m_gridded2->getVariable1d(m_variables[0]);
 
   for (size_t j = 0; j < m_windGrid->nj(); ++j) {
     for (size_t i = 0; i < m_windGrid->ni(); ++i) {
@@ -228,7 +237,7 @@ MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
 Meteorology::to_wind_grid(double time_weight) {
   using namespace MetBuild::Utilities;
 
-  if (this->m_type != Meteorology::WIND_PRESSURE) {
+  if (this->m_type != GriddedData::WIND_PRESSURE) {
     metbuild_throw_exception(
         "Data type must be wind and pressure to interpolate to a wind grid "
         "object");
@@ -253,13 +262,13 @@ Meteorology::to_wind_grid(double time_weight) {
 
   this->process_data();
 
-  const auto u1 = m_grib1->getGribArray1d("10u");
-  const auto v1 = m_grib1->getGribArray1d("10v");
-  const auto p1 = m_grib1->getGribArray1d("prmsl");
+  const auto u1 = m_gridded1->getVariable1d(GriddedData::VAR_U10);
+  const auto v1 = m_gridded1->getVariable1d(GriddedData::VAR_V10);
+  const auto p1 = m_gridded1->getVariable1d(GriddedData::VAR_PRESSURE);
 
-  const auto u2 = m_grib2->getGribArray1d("10u");
-  const auto v2 = m_grib2->getGribArray1d("10v");
-  const auto p2 = m_grib2->getGribArray1d("prmsl");
+  const auto u2 = m_gridded2->getVariable1d(GriddedData::VAR_U10);
+  const auto v2 = m_gridded2->getVariable1d(GriddedData::VAR_V10);
+  const auto p2 = m_gridded2->getVariable1d(GriddedData::VAR_PRESSURE);
 
   for (size_t j = 0; j < m_windGrid->nj(); ++j) {
     for (size_t i = 0; i < m_windGrid->ni(); ++i) {
@@ -345,24 +354,24 @@ Meteorology::to_wind_grid(double time_weight) {
 }
 
 Meteorology::InterpolationWeights Meteorology::generate_interpolation_weight(
-    const MetBuild::Grib *grib, const MetBuild::Grid::grid *grid) {
+    const MetBuild::GriddedData *gridded, const MetBuild::Grid::grid *grid) {
   InterpolationWeights weights;
   const auto ni = grid->at(0).size();
   const auto nj = grid->size();
-  weights.resize(ni,nj);
+  weights.resize(ni, nj);
 
   for (size_t j = 0; j < nj; ++j) {
     for (size_t i = 0; i < ni; ++i) {
       auto p = grid->at(j)[i];
       p.setX((std::fmod(p.x() + 180.0, 360.0)) - 180.0);
 
-      if (!grib->point_inside(p)) {
+      if (!gridded->point_inside(p)) {
         std::fill(weights.index[j][i].begin(), weights.index[j][i].end(), 0);
         std::fill(weights.weight[j][i].begin(), weights.weight[j][i].end(),
                   0.0);
       } else {
         const auto result =
-            grib->kdtree()->findXNearest(p.x(), p.y(), c_idw_depth);
+            gridded->kdtree()->findXNearest(p.x(), p.y(), c_idw_depth);
 
         if (result[0].second < Meteorology::epsilon_squared()) {
           std::fill(weights.index[j][i].begin(), weights.index[j][i].end(),
@@ -388,7 +397,7 @@ Meteorology::InterpolationWeights Meteorology::generate_interpolation_weight(
 }
 
 int Meteorology::write_debug_file(int index) const {
-  Grib *ptr = index == 0 ? m_grib1.get() : m_grib2.get();
+  auto *ptr = index == 0 ? m_gridded1.get() : m_gridded2.get();
 
   if (ptr == nullptr) {
     metbuild_throw_exception(
@@ -396,20 +405,18 @@ int Meteorology::write_debug_file(int index) const {
     return 1;
   }
 
-  const auto lon = ptr->longitude2d();
-  const auto lat = ptr->latitude2d();
-  const auto u = ptr->getGribArray2d("10u");
-  const auto v = ptr->getGribArray2d("10v");
-  const auto p = ptr->getGribArray2d("prmsl");
+  const auto lon = ptr->longitude1d();
+  const auto lat = ptr->latitude1d();
+  const auto u = ptr->getVariable1d(GriddedData::VAR_U10);
+  const auto v = ptr->getVariable1d(GriddedData::VAR_V10);
+  const auto p = ptr->getVariable1d(GriddedData::VAR_PRESSURE);
 
   std::ofstream file;
-  file.open(ptr->filename() += ".out");
+  file.open(ptr->filenames()[0] += ".out");
   for (size_t i = 0; i < lon.size(); ++i) {
-    for (size_t j = 0; j < lon[i].size(); ++j) {
-      file << lon[i][j] << " " << lat[i][j] << " "
-           << std::sqrt(std::pow(u[i][j], 2.0) + std::pow(v[i][j], 2.0)) << " "
-           << p[i][j] << std::endl;
-    }
+    file << lon[i] << " " << lat[i] << " "
+         << std::sqrt(std::pow(u[i], 2.0) + std::pow(v[i], 2.0)) << " " << p[i]
+         << std::endl;
   }
   file.close();
 
@@ -425,34 +432,54 @@ double Meteorology::generate_time_weight(const MetBuild::Date &t1,
   return (s3 - s1) / (s2 - s1);
 }
 
-std::string Meteorology::findScalarVariableName(const std::string &filename) {
-  const auto candidates = [&]() {  // IILE
-    switch (m_type) {
-      case RAINFALL:
-        return std::vector<std::string>{"apcp", "prate", "tp"};
-      case TEMPERATURE:
-        return std::vector<std::string>{"tmp:30-0 mb above ground",
-                                        "tmp:2 m above ground"};
-      case HUMIDITY:
-        return std::vector<std::string>{"rh:30-0 mb above ground",
-                                        "rh:2 m above ground"};
-      case ICE:
-        return std::vector<std::string>{"ICEC:surface"};
-      case WIND_PRESSURE:
-        metbuild_throw_exception(
-            "Invalid to select WIND_PRESSURE for scalar field");
-        return std::vector<std::string>();
-      default:
-        metbuild_throw_exception("Invalid scalar variable type specified.");
-        return std::vector<std::string>();
-    }
-  }();
+// std::string Meteorology::findScalarVariableName(const std::string &filename)
+// {
+//   const auto candidates = [&]() {  // IILE
+//     switch (m_type) {
+//       case RAINFALL:
+//         return std::vector<std::string>{"apcp", "prate", "tp"};
+//       case TEMPERATURE:
+//         return std::vector<std::string>{"tmp:30-0 mb above ground",
+//                                         "tmp:2 m above ground"};
+//       case HUMIDITY:
+//         return std::vector<std::string>{"rh:30-0 mb above ground",
+//                                         "rh:2 m above ground"};
+//       case ICE:
+//         return std::vector<std::string>{"ICEC:surface"};
+//       case WIND_PRESSURE:
+//         metbuild_throw_exception(
+//             "Invalid to select WIND_PRESSURE for scalar field");
+//         return std::vector<std::string>();
+//       default:
+//         metbuild_throw_exception("Invalid scalar variable type specified.");
+//         return std::vector<std::string>();
+//     }
+//   }();
+//
+//   for (const auto &s : candidates) {
+//     if (Grib::containsVariable(filename, s)) {
+//       return s;
+//     }
+//   }
+//   metbuild_throw_exception("Variable could not be found in the specified
+//   file"); return {};
+// }
 
-  for (const auto &s : candidates) {
-    if (Grib::containsVariable(filename, s)) {
-      return s;
-    }
+std::unique_ptr<GriddedData> Meteorology::gridded_data_factory(
+    const std::vector<std::string> &filenames,
+    const Meteorology::SOURCE source) {
+  switch (source) {
+    case GFS:
+      return std::make_unique<MetBuild::GfsData>(filenames[0]);
+    case NAM:
+      return std::make_unique<MetBuild::NamData>(filenames[0]);
+    case HWRF:
+      return std::make_unique<MetBuild::HwrfData>(filenames[0]);
+    case COAMPS:
+      return nullptr;
+    default:
+      Logging::throwError(
+          "No valid source type defined. Cannot create object.");
+      return nullptr;
   }
-  metbuild_throw_exception("Variable could not be found in the specified file");
-  return std::string();
 }
