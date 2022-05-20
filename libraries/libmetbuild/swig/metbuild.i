@@ -35,6 +35,7 @@
 #include "MetBuild_Global.h"
 #include "CppAttributes.h"
 #include "Point.h"
+#include "data_sources/GriddedData.h"
 #include "Meteorology.h"
 #include "Grid.h"
 #include "MeteorologicalData.h"
@@ -75,6 +76,7 @@ namespace std {
 
 %include "MetBuild_Global.h"
 %include "Point.h"
+%include "data_sources/GriddedData.h"
 %include "Meteorology.h"
 %include "CppAttributes.h"
 %include "Grid.h"

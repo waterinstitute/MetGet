@@ -35,6 +35,9 @@ namespace MetBuild {
 
 class VariableNames {
  public:
+
+  VariableNames() = default;
+
   VariableNames(std::string longitude, std::string latitude,
                 std::string pressure, std::string u10, std::string v10,
                 std::string precipitation, std::string humidity,
