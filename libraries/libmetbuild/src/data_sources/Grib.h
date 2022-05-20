@@ -33,8 +33,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include "GriddedData.h"
 #include "Kdtree.h"
 #include "Point.h"
+#include "VariableNames.h"
 
 //...Forward Declarations
 struct grib_handle;
@@ -45,45 +47,17 @@ typedef struct grib_context codes_context;
 
 namespace MetBuild {
 
-class Geometry;
-
-class Grib {
+class Grib : public GriddedData {
  public:
-  explicit Grib(std::string filename);
+  explicit Grib(std::string filename, VariableNames variable_names);
 
   ~Grib();
 
-  constexpr size_t size() const { return m_size; }
+  NODISCARD std::vector<std::vector<double>> latitude2d() override;
+  NODISCARD const std::vector<double> &latitude1d() const override;
 
-  std::vector<std::vector<double>> latitude2d();
-  const std::vector<double> &latitude1d() const;
-
-  std::vector<std::vector<double>> longitude2d();
-  const std::vector<double> &longitude1d() const;
-
-  Kdtree *kdtree() const { return m_tree.get(); }
-
-  constexpr long ni() const { return m_ni; }
-
-  constexpr long nj() const { return m_nj; }
-
-  constexpr std::tuple<size_t, size_t> indexToPair(size_t index) const {
-    size_t j = index % nj();
-    size_t i = index / nj();
-    return std::make_pair(i, j);
-  }
-
-  std::vector<double> getGribArray1d(const std::string &name);
-  std::vector<std::vector<double>> getGribArray2d(const std::string &name);
-
-  std::string filename() const;
-
-  bool point_inside(const Point &p) const;
-
-  Point bottom_left() const { return m_corners[0]; }
-  Point bottom_right() const { return m_corners[1]; }
-  Point top_left() const { return m_corners[3]; }
-  Point top_right() const { return m_corners[2]; }
+  NODISCARD std::vector<std::vector<double>> longitude2d() override;
+  NODISCARD const std::vector<double> &longitude1d() const override;
 
   void write_to_ascii(const std::string &filename, const std::string &varname);
 
@@ -95,23 +69,21 @@ class Grib {
 
  private:
   void initialize();
+
+  void findCorners() override;
+
+  std::vector<double> getArray1d(const std::string &name) override;
+  std::vector<std::vector<double>> getArray2d(const std::string &name) override;
+
   void readCoordinates(codes_handle *handle);
-  void findCorners();
   static std::vector<std::vector<double>> mapTo2d(const std::vector<double> &v,
                                                   size_t ni, size_t nj);
 
-  std::string m_filename;
-  size_t m_size;
-  long m_ni;
-  long m_nj;
   std::vector<double> m_latitude;
   std::vector<double> m_longitude;
   std::vector<std::vector<double>> m_preread_values;
   std::unordered_map<std::string, size_t> m_preread_value_map;
-  std::unique_ptr<MetBuild::Kdtree> m_tree;
-  std::unique_ptr<MetBuild::Geometry> m_geometry;
   std::unique_ptr<FILE *> m_file;
-  std::array<MetBuild::Point, 4> m_corners;
   int m_convention;
 };
 }  // namespace MetBuild

@@ -29,7 +29,6 @@
 #include <iostream>
 #include <utility>
 
-#include "Geometry.h"
 #include "GribHandle.h"
 #include "Logging.h"
 #include "Utilities.h"
@@ -39,19 +38,25 @@
 
 using namespace MetBuild;
 
-Grib::Grib(std::string filename)
-    : m_filename(std::move(filename)),
-      m_size(0),
-      m_ni(0),
-      m_nj(0),
-      m_tree(nullptr),
-      m_convention(0) {
-  initialize();
+Grib::Grib(std::string filename, VariableNames variable_names)
+    : m_convention(0),
+      GriddedData(std::move(filename), std::move(variable_names)) {
+  this->initialize();
 }
 
 Grib::~Grib() = default;
 
-std::string Grib::filename() const { return m_filename; }
+const std::vector<double> &Grib::latitude1d() const { return m_latitude; }
+
+const std::vector<double> &Grib::longitude1d() const { return m_longitude; }
+
+std::vector<std::vector<double>> Grib::longitude2d() {
+  return mapTo2d(m_longitude, ni(), nj());
+}
+
+std::vector<std::vector<double>> Grib::latitude2d() {
+  return mapTo2d(m_latitude, ni(), nj());
+}
 
 int Grib::getStepLength(const std::string &filename,
                         const std::string &parameter) {
@@ -84,14 +89,24 @@ int Grib::getStepLength(const std::string &filename,
 void Grib::initialize() {
   codes_grib_multi_support_on(grib_context_get_default());
 
-  auto handle = GribHandle(m_filename, "prmsl");
-  CODES_CHECK(codes_get_long(handle.ptr(), "Ni", &m_ni), nullptr);
-  CODES_CHECK(codes_get_long(handle.ptr(), "Nj", &m_nj), nullptr);
-  CODES_CHECK(codes_get_size(handle.ptr(), "values", &m_size), nullptr);
+  auto handle = GribHandle(this->filenames()[0], "prmsl");
+
+  long ni = 0;
+  CODES_CHECK(codes_get_long(handle.ptr(), "Ni", &ni), nullptr);
+  this->setNi(ni);
+
+  long nj = 0;
+  CODES_CHECK(codes_get_long(handle.ptr(), "Nj", &nj), nullptr);
+  this->setNj(nj);
+
+  size_t size = 0;
+  CODES_CHECK(codes_get_size(handle.ptr(), "values", &size), nullptr);
+  this->setSize(size);
 
   this->readCoordinates(handle.ptr());
 
-  m_tree = std::make_unique<Kdtree>(m_longitude, m_latitude);
+  auto tree = std::make_unique<Kdtree>(m_longitude, m_latitude);
+  this->setTree(tree);
   this->findCorners();
 }
 
@@ -106,12 +121,15 @@ bool Grib::containsVariable(const std::string &filename,
   }
 }
 
-std::vector<double> Grib::getGribArray1d(const std::string &name) {
+std::vector<double> Grib::getArray1d(const std::string &name) {
+  if (name.empty()) {
+    Logging::throwError("Empty variable specified for read.");
+  }
   auto pvm = m_preread_value_map.find(name);
   if (pvm == m_preread_value_map.end()) {
-    std::vector<double> arr1d(m_size, 0.0);
-    size_t s = m_size;
-    auto handle = GribHandle(m_filename, name);
+    std::vector<double> arr1d(this->size(), 0.0);
+    size_t s = this->size();
+    auto handle = GribHandle(this->filenames()[0], name);
     CODES_CHECK(
         codes_get_double_array(handle.ptr(), "values", arr1d.data(), &s),
         nullptr);
@@ -123,8 +141,11 @@ std::vector<double> Grib::getGribArray1d(const std::string &name) {
   }
 }
 
-std::vector<std::vector<double>> Grib::getGribArray2d(const std::string &name) {
-  return mapTo2d(this->getGribArray1d(name), ni(), nj());
+std::vector<std::vector<double>> Grib::getArray2d(const std::string &name) {
+  if (name.empty()) {
+    Logging::throwError("Empty variable specified for read.");
+  }
+  return mapTo2d(this->getArray1d(name), ni(), nj());
 }
 
 std::vector<std::vector<double>> Grib::mapTo2d(const std::vector<double> &v,
@@ -140,29 +161,17 @@ std::vector<std::vector<double>> Grib::mapTo2d(const std::vector<double> &v,
   return arr2d;
 }
 
-const std::vector<double> &Grib::latitude1d() const { return m_latitude; }
-
-const std::vector<double> &Grib::longitude1d() const { return m_longitude; }
-
-std::vector<std::vector<double>> Grib::longitude2d() {
-  return mapTo2d(this->m_longitude, ni(), nj());
-}
-
-std::vector<std::vector<double>> Grib::latitude2d() {
-  return mapTo2d(this->m_latitude, ni(), nj());
-}
-
 void Grib::readCoordinates(codes_handle *handle) {
-  if (this->m_latitude.empty()) {
-    m_latitude.resize(m_size);
-    size_t s = m_size;
+  if (m_latitude.empty()) {
+    m_latitude.resize(this->size());
+    size_t s = size();
     CODES_CHECK(
         codes_get_double_array(handle, "latitudes", m_latitude.data(), &s),
         nullptr);
   }
-  if (this->m_longitude.empty()) {
-    m_longitude.resize(m_size);
-    size_t s = m_size;
+  if (m_longitude.empty()) {
+    m_longitude.resize(this->size());
+    size_t s = this->size();
     CODES_CHECK(
         codes_get_double_array(handle, "longitudes", m_longitude.data(), &s),
         nullptr);
@@ -174,36 +183,39 @@ void Grib::readCoordinates(codes_handle *handle) {
   }
 }
 
-bool Grib::point_inside(const Point &p) const {
-  return this->m_geometry->is_inside(p);
-}
-
-void Grib::findCorners() {
-  double xtl =
-      *(std::min_element(m_longitude.begin(), m_longitude.begin() + m_ni - 1));
-  double xtr =
-      *(std::max_element(m_longitude.begin(), m_longitude.begin() + m_ni - 1));
-  double xll = *(std::min_element(m_longitude.end() - m_ni, m_longitude.end()));
-  double xlr = *(std::max_element(m_longitude.end() - m_ni, m_longitude.end()));
-
-  double ytl =
-      *(std::min_element(m_latitude.begin(), m_latitude.begin() + m_ni - 1));
-  double ytr =
-      *(std::max_element(m_latitude.begin(), m_latitude.begin() + m_ni - 1));
-  double yll = *(std::min_element(m_latitude.end() - m_ni, m_latitude.end()));
-  double ylr = *(std::max_element(m_latitude.end() - m_ni, m_latitude.end()));
-
-  m_corners = {Point(xll, yll), Point(xlr, ylr), Point(xtr, ytr),
-               Point(xtl, ytl)};
-  m_geometry = std::make_unique<Geometry>(m_corners);
-}
-
 void Grib::write_to_ascii(const std::string &filename,
                           const std::string &varname) {
-  auto values = this->getGribArray1d(varname);
+  auto values = this->getArray1d(varname);
   std::ofstream f(filename);
   for (size_t i = 0; i < this->size(); ++i) {
     f << m_longitude[i] << ", " << m_latitude[i] << ", " << values[i] << "\n";
   }
   f.close();
+}
+
+void Grib::findCorners() {
+  double xtl = *(std::min_element(this->longitude1d().begin(),
+                                  this->longitude1d().begin() + ni() - 1));
+  double xtr = *(std::max_element(this->longitude1d().begin(),
+                                  this->longitude1d().begin() + ni() - 1));
+  double xll = *(std::min_element(this->longitude1d().end() - ni(),
+                                  this->longitude1d().end()));
+  double xlr = *(std::max_element(this->longitude1d().end() - ni(),
+                                  this->longitude1d().end()));
+
+  double ytl = *(std::min_element(this->latitude1d().begin(),
+                                  this->latitude1d().begin() + ni() - 1));
+  double ytr = *(std::max_element(this->latitude1d().begin(),
+                                  this->latitude1d().begin() + ni() - 1));
+  double yll = *(std::min_element(this->latitude1d().end() - ni(),
+                                  this->latitude1d().end()));
+  double ylr = *(std::max_element(this->latitude1d().end() - ni(),
+                                  this->latitude1d().end()));
+
+  std::array<Point, 4> corners = {Point(xll, yll), Point(xlr, ylr),
+                                  Point(xtr, ytr), Point(xtl, ytl)};
+  this->setCorners(corners);
+
+  auto geometry = std::make_unique<Geometry>(this->corners());
+  this->setGeometry(geometry);
 }
