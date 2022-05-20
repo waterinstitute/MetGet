@@ -33,9 +33,8 @@ namespace MetBuild {
 class GfsData : public Grib {
  public:
   explicit GfsData(const std::string &filename)
-      : Grib(filename, {"longitudes", "latitudes", "prmsl", "u10", "v10",
-                        "PRATE", "RH:30-0 mb above ground",
-                        "TMP:30-0 mb above ground", "ICEC:surface"}) {}
+      : Grib(filename, {"longitudes", "latitudes", "prmsl", "10u", "10v",
+                        "prate", "r", "t", "ci"}) {}
 };
 }  // namespace MetBuild
 #endif  // METGET_SRC_GFSDATA_H_

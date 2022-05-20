@@ -35,21 +35,35 @@ def datespan(startDate, endDate, delta):
 def generate_datatype_key(data_type):
     import pymetbuild
     if data_type == "wind_pressure":
-        return pymetbuild.Meteorology.WIND_PRESSURE
+        return pymetbuild.GriddedData.WIND_PRESSURE
     elif data_type == "pressure":
-        return pymetbuild.Meteorology.PRESSURE
+        return pymetbuild.GriddedData.PRESSURE
     elif data_type == "wind":
-        return pymetbuild.Meteorology.WIND
+        return pymetbuild.GriddedData.WIND
     elif data_type == "rain":
-        return pymetbuild.Meteorology.RAINFALL
+        return pymetbuild.GriddedData.RAINFALL
     elif data_type == "humidity":
-        return pymetbuild.Meteorology.HUMIDITY
+        return pymetbuild.GriddedData.HUMIDITY
     elif data_type == "temperature":
-        return pymetbuild.Meteorology.TEMPERATURE
+        return pymetbuild.GriddedData.TEMPERATURE
     elif data_type == "ice":
-        return pymetbuild.Meteorology.ICE
+        return pymetbuild.GriddedData.ICE
     else:
         raise RuntimeError("Invalid data type requested")
+
+
+def generate_data_source_key(data_source):
+    import pymetbuild
+    if data_source == "gfs-ncep":
+        return pymetbuild.Meteorology.GFS
+    elif data_source == "nam-ncep":
+        return pymetbuild.Meteorology.NAM
+    elif data_source == "hwrf":
+        return pymetbuild.Meteorology.HWRF
+    elif data_source == "coamps":
+        return pymetbuild.Meteorology.COAMPS
+    else:
+        raise RuntimeError("Invalid data source")
 
 
 def generate_met_field(output_format, start, end, time_step, filename, compression):
@@ -229,7 +243,8 @@ def process_message(json_message, queue, json_file=None) -> bool:
     files_used_list={}
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
-        met = pymetbuild.Meteorology(d.grid().grid_object(),data_type_key,inputData.backfill(),inputData.epsg())
+        source_key = generate_data_source_key(d.service())
+        met = pymetbuild.Meteorology(d.grid().grid_object(),source_key,data_type_key,inputData.backfill(),inputData.epsg())
 
         t0 = domain_data[i][0]["time"]
 
