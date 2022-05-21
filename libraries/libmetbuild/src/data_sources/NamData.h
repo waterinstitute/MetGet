@@ -33,9 +33,8 @@ namespace MetBuild {
 class NamData : public Grib {
  public:
   explicit NamData(const std::string &filename)
-      : Grib(filename, {"longitudes", "latitudes", "prmsl", "u10", "v10",
-                        "prate", "rh:30-0 mb above ground",
-                        "tmp:30-0 mb above ground", "ICEC:surface"}){};
+      : Grib(filename, {"longitudes", "latitudes", "prmsl", "10u", "10v",
+                        "tp", "r", "t", "ci"}){};
 };
 }  // namespace MetBuild
 
