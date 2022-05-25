@@ -214,6 +214,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
         for f in ff:
             os.remove(f)
         cleanup_temp_files(domain_data)
+        instance.disable_termination_protection()
         return False
    
     #...Begin downloading data from s3
