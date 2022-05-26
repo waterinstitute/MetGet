@@ -27,33 +27,34 @@
 
 #include <utility>
 
+#include "Geometry.h"
+#include "Kdtree.h"
 #include "Logging.h"
+#include "Triangulation.h"
 
 using namespace MetBuild;
 
 GriddedData::GriddedData(std::string filename, VariableNames variableNames)
-    : m_filenames({std::move(filename)}),
-      m_variableNames(std::move(variableNames)),
-      m_ni(0),
+    : m_ni(0),
       m_nj(0),
-      m_size(0) {}
+      m_size(0),
+      m_filenames({std::move(filename)}),
+      m_variableNames(std::move(variableNames)) {}
 
 GriddedData::GriddedData(std::vector<std::string> filenames,
                          VariableNames variableNames)
-    : m_filenames(std::move(filenames)),
-      m_variableNames(std::move(variableNames)),
-      m_ni(0),
+    : m_ni(0),
       m_nj(0),
-      m_size(0) {}
+      m_size(0),
+      m_filenames(std::move(filenames)),
+      m_variableNames(std::move(variableNames)) {}
+
+GriddedData::~GriddedData() = default;
 
 std::vector<std::string> GriddedData::filenames() const { return m_filenames; }
 
 bool GriddedData::point_inside(const Point &p) const {
   return this->m_geometry->is_inside(p);
-}
-
-void GriddedData::setTree(std::unique_ptr<MetBuild::Kdtree> &tree) {
-  m_tree = std::move(tree);
 }
 
 void GriddedData::setNi(size_t ni) { m_ni = ni; }
@@ -62,21 +63,22 @@ void GriddedData::setNj(size_t nj) { m_nj = nj; }
 
 void GriddedData::setSize(size_t size) { m_size = size; }
 
-std::vector<double> GriddedData::getVariable1d(VARIABLES v) {
+std::vector<double> GriddedData::getVariable1d(
+    MetBuild::GriddedDataTypes::VARIABLES v) {
   switch (v) {
-    case GriddedData::VAR_PRESSURE:
+    case MetBuild::GriddedDataTypes::VAR_PRESSURE:
       return this->getArray1d(m_variableNames.pressure());
-    case GriddedData::VAR_U10:
+    case MetBuild::GriddedDataTypes::VAR_U10:
       return this->getArray1d(m_variableNames.u10());
-    case GriddedData::VAR_V10:
+    case MetBuild::GriddedDataTypes::VAR_V10:
       return this->getArray1d(m_variableNames.v10());
-    case GriddedData::VAR_RAINFALL:
+    case MetBuild::GriddedDataTypes::VAR_RAINFALL:
       return this->getArray1d(m_variableNames.precipitation());
-    case GriddedData::VAR_HUMIDITY:
+    case MetBuild::GriddedDataTypes::VAR_HUMIDITY:
       return this->getArray1d(m_variableNames.humidity());
-    case GriddedData::VAR_TEMPERATURE:
+    case MetBuild::GriddedDataTypes::VAR_TEMPERATURE:
       return this->getArray1d(m_variableNames.temperature());
-    case GriddedData::VAR_ICE:
+    case MetBuild::GriddedDataTypes::VAR_ICE:
       return this->getArray1d(m_variableNames.ice());
     default:
       Logging::throwError("No valid variable specified.");
@@ -84,21 +86,22 @@ std::vector<double> GriddedData::getVariable1d(VARIABLES v) {
   }
 };
 
-std::vector<std::vector<double>> GriddedData::getVariable2d(VARIABLES v) {
+std::vector<std::vector<double>> GriddedData::getVariable2d(
+    MetBuild::GriddedDataTypes::VARIABLES v) {
   switch (v) {
-    case GriddedData::VAR_PRESSURE:
+    case MetBuild::GriddedDataTypes::VAR_PRESSURE:
       return this->getArray2d(m_variableNames.pressure());
-    case GriddedData::VAR_U10:
+    case MetBuild::GriddedDataTypes::VAR_U10:
       return this->getArray2d(m_variableNames.u10());
-    case GriddedData::VAR_V10:
+    case MetBuild::GriddedDataTypes::VAR_V10:
       return this->getArray2d(m_variableNames.v10());
-    case GriddedData::VAR_RAINFALL:
+    case MetBuild::GriddedDataTypes::VAR_RAINFALL:
       return this->getArray2d(m_variableNames.precipitation());
-    case GriddedData::VAR_HUMIDITY:
+    case MetBuild::GriddedDataTypes::VAR_HUMIDITY:
       return this->getArray2d(m_variableNames.humidity());
-    case GriddedData::VAR_TEMPERATURE:
+    case MetBuild::GriddedDataTypes::VAR_TEMPERATURE:
       return this->getArray2d(m_variableNames.temperature());
-    case GriddedData::VAR_ICE:
+    case MetBuild::GriddedDataTypes::VAR_ICE:
       return this->getArray2d(m_variableNames.ice());
     default:
       Logging::throwError("No valid variable specified.");
@@ -114,4 +117,37 @@ std::array<Point, 4> GriddedData::corners() const { return m_corners; }
 
 void GriddedData::setGeometry(std::unique_ptr<MetBuild::Geometry> &geometry) {
   m_geometry = std::move(geometry);
+}
+
+// void GriddedData::setTriangulation(
+//     std::unique_ptr<MetBuild::Triangulation> &tri) {
+//   m_triangulation = std::move(tri);
+// }
+// MetBuild::InterpolationWeight GriddedData::interpolationWeight(double x,
+//                                                                double y)
+//                                                                const {
+//   return this->m_triangulation->getInterpolationFactors(x, y);
+// }
+
+void GriddedData::setType(const MetBuild::GriddedDataTypes::TYPE &t) {
+  m_type = t;
+}
+
+MetBuild::GriddedDataTypes::TYPE GriddedData::type() const { return m_type; }
+
+void GriddedData::setSourceSubtype(
+    const MetBuild::GriddedDataTypes::SOURCE_SUBTYPE &t) {
+  m_sourceSubtype = t;
+}
+
+MetBuild::GriddedDataTypes::SOURCE_SUBTYPE GriddedData::sourceSubtype() const {
+  return m_sourceSubtype;
+}
+
+std::vector<MetBuild::Point> GriddedData::bounding_region() const {
+  return m_bounding_region;
+}
+
+void GriddedData::set_bounding_region(const std::vector<Point> &region) {
+  m_bounding_region = region;
 }

@@ -29,6 +29,7 @@
 
 #include "boost/algorithm/string.hpp"
 #include "boost/iostreams/filter/gzip.hpp"
+#include "boost/iostreams/filtering_streambuf.hpp"
 
 #define FMT_HEADER_ONLY
 #include "fmt/core.h"
@@ -42,11 +43,11 @@ DelftDomain::DelftDomain(const MetBuild::Grid *grid,
                          std::string filename,
                          std::vector<std::string> variables,
                          bool use_compression)
-    : m_baseFilename(std::move(filename)),
+    : OutputDomain(grid, startDate, endDate, time_step),
       m_variables(std::move(variables)),
+      m_baseFilename(std::move(filename)),
       m_use_compression(use_compression),
-      m_default_compression_level(2),
-      OutputDomain(grid, startDate, endDate, time_step) {
+      m_default_compression_level(2) {
   this->_open();
 }
 

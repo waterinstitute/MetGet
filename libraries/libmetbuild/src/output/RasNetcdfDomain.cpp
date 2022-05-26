@@ -38,17 +38,17 @@ RasNetcdfDomain::RasNetcdfDomain(const MetBuild::Grid *grid,
                                  unsigned int time_step, const int &ncid,
                                  std::vector<std::string> variables)
     : OutputDomain(grid, startDate, endDate, time_step),
-      m_ncid(ncid),
-      m_variables(std::move(variables)),
       m_counter(0),
+      m_ncid(ncid),
       m_dimid_x(0),
       m_dimid_y(0),
       m_dimid_time(0),
       m_varid_x(0),
       m_varid_y(0),
       m_varid_z(0),
+      m_varid_time(0),
       m_varid_crs(0),
-      m_varid_time(0) {
+      m_variables(std::move(variables)) {
   this->initialize();
 }
 
@@ -71,7 +71,7 @@ void RasNetcdfDomain::initialize() {
   const int twod[] = {m_dimid_y, m_dimid_x};
   const int threed[] = {m_dimid_time, m_dimid_y, m_dimid_x};
   const float float_fill = MeteorologicalData<1>::flag_value();
-  const double double_fill = MeteorologicalData<1>::flag_value();
+  //const double double_fill = MeteorologicalData<1>::flag_value();
 
   if(grid_unit == "deg"){
     // X

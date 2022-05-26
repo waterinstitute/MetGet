@@ -35,7 +35,15 @@ class HwrfData : public Grib {
   explicit HwrfData(const std::string &filename)
       : Grib(filename, {"longitudes", "latitudes", "prmsl", "u10", "v10",
                         "PRATE", "RH:30-0 mb above ground",
-                        "TMP:30-0 mb above ground", "ICEC:surface"}) {}
+                        "TMP:30-0 mb above ground", "ICEC:surface"}) {
+    this->get_bounding_region();
+    this->generate_triangulation();
+  }
+
+ private:
+  void get_bounding_region() {
+    this->set_bounding_region(std::vector<Point>());
+  }
 };
 }  // namespace MetBuild
 #endif  // METGET_SRC_HWRFDATA_H_

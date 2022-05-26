@@ -31,7 +31,6 @@
 
 #include "MeteorologicalData.h"
 #include "OutputDomain.h"
-#include "boost/iostreams/filtering_streambuf.hpp"
 
 namespace MetBuild {
 
@@ -76,8 +75,9 @@ class DelftDomain : public OutputDomain {
   const std::vector<std::string> m_variables;
   const std::string m_baseFilename;
   std::vector<std::ofstream> m_ofstreams;
-  std::vector<std::unique_ptr<
-      boost::iostreams::filtering_streambuf<boost::iostreams::output>>>
+  std::vector<std::unique_ptr<boost::iostreams::filtering_streambuf<
+      boost::iostreams::output, char, std::char_traits<char>,
+      std::allocator<char>, boost::iostreams::public_>>>
       m_compressedio_buffer;
   std::vector<std::unique_ptr<std::ostream>> m_ostreams;
   const bool m_use_compression;

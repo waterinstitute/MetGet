@@ -34,17 +34,21 @@ if(UNIX OR CYGWIN)
     # ...C++ Testing
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cxx_testcases)
 
-    set(TEST_LIST cxx_test1.cpp)
+    # Pre-build the Catch2 main because it is a lengthy compile
+    add_library(catch_boilerplate ${CMAKE_CURRENT_SOURCE_DIR}/testing/cxx_tests/catch_boilerplate.cpp)
+    target_include_directories(catch_boilerplate PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/catch2)
+
+    set(TEST_LIST cxx_test_windgrid.cpp cxx_test_gfs.cpp cxx_test_coamps.cpp)
 
     foreach(TESTFILE ${TEST_LIST})
       get_filename_component(TESTNAME ${TESTFILE} NAME_WE)
       add_executable(${TESTNAME}
                      ${CMAKE_SOURCE_DIR}/testing/cxx_tests/${TESTFILE})
-      add_dependencies(${TESTNAME} metbuild_static)
-      target_link_libraries(${TESTNAME} metbuild_static metbuild_interface)
+      add_dependencies(${TESTNAME} metbuild_static catch_boilerplate)
+      target_link_libraries(${TESTNAME} metbuild_static metbuild_interface catch_boilerplate)
       target_include_directories(
         ${TESTNAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-                            ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/catch2)
+                            ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/catch2)
       set_target_properties(
         ${TESTNAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                ${CMAKE_BINARY_DIR}/cxx_testcases)

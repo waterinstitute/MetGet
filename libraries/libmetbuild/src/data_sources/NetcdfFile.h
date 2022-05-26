@@ -36,7 +36,7 @@ class NetcdfFile {
 
   ~NetcdfFile();
 
-  NODISCARD int ncid();
+  NODISCARD int ncid() const;
 
   NODISCARD int getDimid(const std::string &name) const;
 

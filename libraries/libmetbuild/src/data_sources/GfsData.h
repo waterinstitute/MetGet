@@ -34,7 +34,46 @@ class GfsData : public Grib {
  public:
   explicit GfsData(const std::string &filename)
       : Grib(filename, {"longitudes", "latitudes", "prmsl", "10u", "10v",
-                        "prate", "r", "t", "ci"}) {}
+                        "prate", "r", "t", "ci"}) {
+    this->get_bounding_region();
+  }
+
+  ~GfsData() override = default;
+
+ private:
+  void get_bounding_region() {
+    const auto x = this->longitude1d();
+    const auto y = this->latitude1d();
+    std::vector<Point> region;
+
+    std::vector<double> top;
+    for (size_t i = 0; i < ni(); ++i) {
+      top.push_back(x[i]);
+    }
+    std::sort(top.begin(), top.end());
+    for (const auto &v : top) {
+      region.emplace_back(v, 90.0);
+    }
+
+    std::vector<double> right;
+    for (size_t i = 0; i < nj(); ++i) {
+      right.push_back(y[i * ni()]);
+    }
+
+    for (const auto &v : right) {
+      region.emplace_back(179.75, v);
+    }
+
+    for (auto it = top.rbegin(); it != top.rend(); ++it) {
+      region.emplace_back(*(it), -90);
+    }
+
+    for (auto it = right.rbegin(); it != right.rend(); ++it) {
+      region.emplace_back(-180.0, *(it));
+    }
+
+    this->set_bounding_region(region);
+  }
 };
 }  // namespace MetBuild
 #endif  // METGET_SRC_GFSDATA_H_

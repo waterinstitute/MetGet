@@ -49,7 +49,7 @@ class MeteorologicalData {
     this->resize(m_ni, m_nj);
   }
 
-  ~MeteorologicalData() = default;
+  virtual ~MeteorologicalData() = default;
 
   NODISCARD static constexpr T background_pressure() { return 1013.0; }
 
@@ -121,7 +121,7 @@ class MeteorologicalData {
   }
 
   NODISCARD T get(const size_t parameter, const size_t i,
-                      const size_t j) const {
+                  const size_t j) const {
     assert(parameter < parameters);
     assert(i < m_ni);
     assert(j < m_nj);
@@ -129,7 +129,7 @@ class MeteorologicalData {
   }
 
   NODISCARD std::array<T, parameters> getPack(const size_t i,
-                                                  const size_t j) const {
+                                              const size_t j) const {
     std::array<T, parameters> out;
     assert(i < m_ni);
     assert(j < m_nj);

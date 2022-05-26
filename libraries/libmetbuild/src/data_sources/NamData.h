@@ -33,8 +33,45 @@ namespace MetBuild {
 class NamData : public Grib {
  public:
   explicit NamData(const std::string &filename)
-      : Grib(filename, {"longitudes", "latitudes", "prmsl", "10u", "10v",
-                        "tp", "r", "t", "ci"}){};
+      : Grib(filename, {"longitudes", "latitudes", "prmsl", "10u", "10v", "tp",
+                        "r", "t", "ci"}) {
+    this->get_bounding_region();
+  };
+
+ private:
+  /**
+   * Walk the outside of the GRIB data to create a bounding region
+   * @return bounding region of points in anticlockwise orientation
+   */
+  void get_bounding_region() {
+    std::vector<Point> region;
+
+    const auto longitude = this->longitude1d();
+    const auto latitude = this->latitude1d();
+
+    // Bottom Left --> Bottom Right
+    for (size_t i = 0; i < ni(); ++i) {
+      region.emplace_back(longitude[i], latitude[i]);
+    }
+
+    // Bottom Right --> Top Right
+    for (size_t i = 1; i < nj(); ++i) {
+      region.emplace_back(longitude[i * ni() - 1], latitude[i * ni() - 1]);
+    }
+
+    // Top Right --> Top Left
+    for (size_t i = 0; i < ni(); ++i) {
+      region.emplace_back(longitude[nj() * ni() - 1 - i],
+                          latitude[nj() * ni() - 1 - i]);
+    }
+
+    // Top Left --> Bottom Left (note: skips last point)
+    for (long i = nj() - 1; i > 0; --i) {
+      region.emplace_back(longitude[i * ni()], latitude[i * ni()]);
+    }
+
+    this->set_bounding_region(region);
+  }
 };
 }  // namespace MetBuild
 

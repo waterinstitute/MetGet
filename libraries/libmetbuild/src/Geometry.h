@@ -26,6 +26,8 @@
 #ifndef METGET_LIBRARY_GEOMETRY_H_
 #define METGET_LIBRARY_GEOMETRY_H_
 
+#include <iostream>
+
 #include "Point.h"
 #include "boost/geometry.hpp"
 
@@ -43,9 +45,11 @@ class Geometry {
     boost::geometry::correct(m_polygon);
   }
 
-  bool is_inside(const Point &p) const {
+  [[nodiscard]] bool is_inside(const Point &p) const {
     return boost::geometry::covered_by(geom_point_t(p.x(), p.y()), m_polygon);
   }
+
+  void print() { std::cout << boost::geometry::wkt(m_polygon) << std::endl; }
 
  private:
   typedef boost::geometry::model::point<double, 2,

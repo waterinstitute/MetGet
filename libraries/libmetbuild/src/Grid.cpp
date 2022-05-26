@@ -49,8 +49,8 @@ Grid::Grid(double llx, double lly, double urx, double ury, double dx, double dy,
       m_nj(std::floor((ury - lly) / m_dyy) + 1),
       m_width(urx - llx),
       m_height(ury - lly),
-      m_epsg(epsg),
       m_center((llx + m_width / 2.0), (lly + m_height / 2.0)),
+      m_epsg(epsg),
       m_corners(generateCorners(m_center.x(), m_center.y(), m_width, m_height)),
       m_geometry(std::make_unique<Geometry>(m_corners)) {
   assert(urx > llx);
@@ -75,10 +75,10 @@ Grid::Grid(double xinit, double yinit, size_t ni, size_t nj, double di,
       m_dyy(dj * std::cos(m_rotation)),
       m_ni(ni),
       m_nj(nj),
-      m_epsg(epsg),
       m_width(static_cast<double>(m_ni - 1) * m_dxx),
       m_height(static_cast<double>(m_nj - 1) * m_dyy),
       m_center((xinit + m_width / 2.0), (yinit + m_height / 2.0)),
+      m_epsg(epsg),
       m_corners(generateCorners(m_center.x(), m_center.y(), m_width, m_height)),
       m_geometry(std::make_unique<Geometry>(m_corners)) {
   assert(m_di > 0);
@@ -101,11 +101,11 @@ Grid::Grid(const Grid &w)
       m_dyy(m_dj * std::cos(m_rotation)),
       m_ni(w.ni()),
       m_nj(w.nj()),
-      m_epsg(w.epsg()),
       m_width(static_cast<double>(m_ni - 1) * m_dxx),
       m_height(static_cast<double>(m_nj - 1) * m_dyy),
       m_center((w.bottom_left().x() + m_width / 2.0),
                (w.bottom_left().y() + m_height / 2.0)),
+      m_epsg(w.epsg()),
       m_corners(generateCorners(m_center.x(), m_center.y(), m_width, m_height)),
       m_geometry(std::make_unique<Geometry>(m_corners)) {}
 
