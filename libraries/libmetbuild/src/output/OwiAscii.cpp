@@ -31,8 +31,8 @@ using namespace MetBuild;
 
 OwiAscii::OwiAscii(const Date& startDate, const Date& endDate,
                    const unsigned time_step, const bool use_compression)
-    : m_use_compression(use_compression),
-      OutputFile(startDate, endDate, time_step) {}
+    : OutputFile(startDate, endDate, time_step),
+      m_use_compression(use_compression) {}
 
 void OwiAscii::addDomain(const Grid& w,
                          const std::vector<std::string>& filenames) {

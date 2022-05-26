@@ -41,6 +41,9 @@ set(ENABLE_PRODUCT_BUFR
 set(BUILD_SHARED_LIBS
     OFF
     CACHE BOOL "Enable building shared libraries")
+set(ENABLE_TESTS OFF CACHE BOOL "Enable ecCodes tests")
+set(ENABLE_TESTING OFF CACHE BOOL "Enable ecCodes tests")
+set(ENABLE_EXAMPLES OFF CACHE BOOL "Disable ecCodes examples")
 #set(ENABLE_JPG_LIBJASPER
 #    OFF
 #    CACHE BOOL "Enable JPEG LIBJASPER")

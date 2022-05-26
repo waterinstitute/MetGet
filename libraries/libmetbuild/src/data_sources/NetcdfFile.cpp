@@ -36,7 +36,7 @@ NetcdfFile::NetcdfFile(const std::string& filename) : m_ncid(-1) {
     if (m_ncid != -1) {
       nc_close(m_ncid);
     }
-    Logging::throwError("Error opening netCDF file.");
+    Logging::throwError("Error opening netCDF file: "+filename);
   }
 }
 
@@ -49,7 +49,7 @@ NetcdfFile::~NetcdfFile() {
   }
 }
 
-int NetcdfFile::ncid() { return m_ncid; }
+int NetcdfFile::ncid() const { return m_ncid; }
 
 int NetcdfFile::getDimid(const std::string& name) const {
   int dimid = 0;

@@ -31,15 +31,54 @@
 #include <vector>
 
 #include "CppAttributes.h"
+#include "Geometry.h"
 #include "NetcdfFile.h"
+#include "Point.h"
 
 namespace MetBuild {
 class CoampsDomain {
  public:
   explicit CoampsDomain(std::string filename);
 
+  NetcdfFile *ncid();
+
+  size_t size() const;
+
+  size_t nlat() const;
+
+  size_t nlon() const;
+
+  double longitude(size_t index) const;
+
+  double latitude(size_t index) const;
+
+  std::array<Point, 4> corners() const;
+
+  MetBuild::Geometry *geometry();
+
+  bool point_inside(const Point &p);
+
+  size_t n_masked_points() const;
+
+  bool masked(size_t index) const;
+
+  void setMask(size_t index, bool value);
+
+  std::array<std::vector<double>, 2> getUnmaskedCoordinates() const;
+
+  std::vector<double> get(const std::string &variable) const;
+
+  [[nodiscard]] const MetBuild::Point &point_ll() const;
+
+  [[nodiscard]] const MetBuild::Point &point_ur() const;
+
+  std::vector<Point> get_bounding_region() const;
+
  private:
   void initialize();
+  void findCorners();
+
+  static double normalize_longitude(double longitude);
 
   std::string m_filename;
   std::unique_ptr<NetcdfFile> m_ncid;
@@ -47,17 +86,19 @@ class CoampsDomain {
   int m_dimid_lon;
   size_t m_nlon;
   size_t m_nlat;
+  size_t m_mask_count;
   int m_varid_lat;
   int m_varid_lon;
-  int m_varid_press;
-  int m_varid_uwind;
-  int m_varid_vwind;
-  int m_varid_rh;
-  int m_varid_temp;
+  double m_xll;
+
+  MetBuild::Point m_point_ll;
+  MetBuild::Point m_point_ur;
 
   std::vector<double> m_longitude;
   std::vector<double> m_latitude;
+  std::vector<bool> m_mask;
 
+  std::array<MetBuild::Point, 4> m_corners;
 };
 }  // namespace MetBuild
 #endif  // METGET_SRC_DATA_SOURCES_COAMPSDOMAIN_H_

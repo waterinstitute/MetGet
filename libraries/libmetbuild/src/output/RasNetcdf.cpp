@@ -39,8 +39,8 @@ RasNetcdf::RasNetcdf(const MetBuild::Date& date_start,
                      const MetBuild::Date& date_end, unsigned int time_step,
                      std::string filename)
     : OutputFile(date_start, date_end, time_step),
-      m_filename(std::move(filename)),
-      m_ncid(0) {
+      m_ncid(0), 
+      m_filename(std::move(filename)) {
   this->initialize();
 }
 

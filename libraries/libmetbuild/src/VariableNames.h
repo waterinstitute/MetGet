@@ -29,13 +29,10 @@
 #include <string>
 #include <utility>
 
-#include "CppAttributes.h"
-
 namespace MetBuild {
 
 class VariableNames {
  public:
-
   VariableNames() = default;
 
   VariableNames(std::string longitude, std::string latitude,
@@ -52,15 +49,15 @@ class VariableNames {
         m_temperature(std::move(temperature)),
         m_ice(std::move(ice)){};
 
-  NODISCARD std::string longitude() const { return m_longitude; }
-  NODISCARD std::string latitude() const { return m_latitude; }
-  NODISCARD std::string pressure() const { return m_pressure; }
-  NODISCARD std::string u10() const { return m_u10; }
-  NODISCARD std::string v10() const { return m_v10; }
-  NODISCARD std::string temperature() const { return m_temperature; }
-  NODISCARD std::string humidity() const { return m_humidity; }
-  NODISCARD std::string ice() const { return m_ice; }
-  NODISCARD std::string precipitation() const { return m_precipitation; }
+  std::string longitude() const { return m_longitude; }
+  std::string latitude() const { return m_latitude; }
+  std::string pressure() const { return m_pressure; }
+  std::string u10() const { return m_u10; }
+  std::string v10() const { return m_v10; }
+  std::string temperature() const { return m_temperature; }
+  std::string humidity() const { return m_humidity; }
+  std::string ice() const { return m_ice; }
+  std::string precipitation() const { return m_precipitation; }
 
  private:
   std::string m_longitude;
@@ -68,10 +65,10 @@ class VariableNames {
   std::string m_pressure;
   std::string m_u10;
   std::string m_v10;
-  std::string m_temperature;
-  std::string m_humidity;
-  std::string m_ice;
   std::string m_precipitation;
+  std::string m_humidity;
+  std::string m_temperature;
+  std::string m_ice;
 };
 
 }  // namespace MetBuild

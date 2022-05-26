@@ -29,7 +29,7 @@
 #ifndef SWIG
 #define NODISCARD [[nodiscard]]
 #else
-#define NODISCARD 
+#define NODISCARD
 #endif
 
-#endif // METGET_CPP_ATTRIBUTES
+#endif  // METGET_CPP_ATTRIBUTES

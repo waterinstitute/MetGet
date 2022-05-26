@@ -49,15 +49,15 @@ namespace MetBuild {
 
 class Grib : public GriddedData {
  public:
-  explicit Grib(std::string filename, VariableNames variable_names);
+  explicit Grib(std::string filename, MetBuild::VariableNames variable_names);
 
-  ~Grib();
+  ~Grib() override;
 
-  NODISCARD std::vector<std::vector<double>> latitude2d() override;
-  NODISCARD const std::vector<double> &latitude1d() const override;
+  std::vector<std::vector<double>> latitude2d() override;
+  const std::vector<double> &latitude1d() const override;
 
-  NODISCARD std::vector<std::vector<double>> longitude2d() override;
-  NODISCARD const std::vector<double> &longitude1d() const override;
+  std::vector<std::vector<double>> longitude2d() override;
+  const std::vector<double> &longitude1d() const override;
 
   void write_to_ascii(const std::string &filename, const std::string &varname);
 
@@ -66,6 +66,8 @@ class Grib : public GriddedData {
 
   static int getStepLength(const std::string &filename,
                            const std::string &parameter);
+
+  MetBuild::Triangulation generate_triangulation() const override;
 
  private:
   void initialize();

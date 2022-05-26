@@ -32,6 +32,19 @@
 #include "Grid.h"
 #include "Logging.h"
 
+namespace boost {
+namespace iostreams {
+
+struct public_;
+
+template <typename Mode, typename Ch, typename Tr, typename Alloc,
+          typename Access>
+class filtering_streambuf;
+
+class output;
+}  // namespace iostreams
+}  // namespace boost
+
 namespace MetBuild {
 class OutputDomain {
  public:
@@ -72,28 +85,26 @@ class OutputDomain {
     metbuild_throw_exception("Function not implemented");
     return 1;
   }
-  
-  std::vector<std::string> filenames() const {
-    return m_filenames;
-  }
+
+  std::vector<std::string> filenames() const { return m_filenames; }
 
  protected:
   void set_open(bool status) { m_isOpen = status; }
 
-  std::string guessGridUnits(){
+  std::string guessGridUnits() {
     auto ul = this->grid()->top_left();
     auto ur = this->grid()->top_right();
     auto bl = this->grid()->bottom_left();
     auto br = this->grid()->bottom_right();
-    std::array<double,4> x = {ul.x(),ur.x(),bl.x(),br.x()};
-    std::array<double,4> y = {ul.y(),ur.y(),bl.y(),br.y()};
+    std::array<double, 4> x = {ul.x(), ur.x(), bl.x(), br.x()};
+    std::array<double, 4> y = {ul.y(), ur.y(), bl.y(), br.y()};
 
-    auto xmax = std::abs(*std::max_element(x.begin(),x.end()));
-    auto xmin = std::abs(*std::min_element(x.begin(),x.end()));
-    auto ymax = std::abs(*std::max_element(y.begin(),y.end()));
-    auto ymin = std::abs(*std::min_element(y.begin(),y.end()));
+    auto xmax = std::abs(*std::max_element(x.begin(), x.end()));
+    auto xmin = std::abs(*std::min_element(x.begin(), x.end()));
+    auto ymax = std::abs(*std::max_element(y.begin(), y.end()));
+    auto ymin = std::abs(*std::min_element(y.begin(), y.end()));
 
-    if(xmax > 180.0 || xmin > 180.0 || ymax > 90.0 || ymin > 90.0){
+    if (xmax > 180.0 || xmin > 180.0 || ymax > 90.0 || ymin > 90.0) {
       return "m";
     } else {
       return "deg";
@@ -103,11 +114,11 @@ class OutputDomain {
   std::vector<std::string> m_filenames;
 
  private:
-  bool m_isOpen;
   const MetBuild::Grid *m_grid;
   const MetBuild::Date m_startDate;
   const MetBuild::Date m_endDate;
   const unsigned m_timestep;
+  bool m_isOpen;
 };
 }  // namespace MetBuild
 #endif  // METGET_SRC_OUTPUTDOMAIN_H_

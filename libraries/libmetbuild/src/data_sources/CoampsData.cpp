@@ -27,6 +27,9 @@
 
 #include <utility>
 
+#include "Kdtree.h"
+#include "Triangulation.h"
+
 using namespace MetBuild;
 
 CoampsData::CoampsData(std::vector<std::string> filenames)
@@ -34,6 +37,76 @@ CoampsData::CoampsData(std::vector<std::string> filenames)
                   VariableNames("lon", "lat", "slpres", "uuwind", "vvwind", "",
                                 "relhum", "airtmp", "")) {
   this->initialize();
+  this->setSourceSubtype(MetBuild::GriddedDataTypes::SOURCE_SUBTYPE::COAMPS);
 }
 
-void CoampsData::initialize() {}
+void CoampsData::initialize() {
+  for (const auto& f : this->filenames()) {
+    m_domains.emplace_back(f);
+  }
+  this->computeMasking();
+  this->computeCoordinates();
+  this->set_bounding_region(m_domains[0].get_bounding_region());
+}
+
+std::vector<std::vector<double>> CoampsData::latitude2d() { return {}; }
+
+const std::vector<double>& CoampsData::latitude1d() const { return m_latitude; }
+
+std::vector<std::vector<double>> CoampsData::longitude2d() { return {}; }
+
+const std::vector<double>& CoampsData::longitude1d() const {
+  return m_longitude;
+}
+
+void CoampsData::findCorners() { return; }
+
+std::vector<double> CoampsData::getArray1d(const std::string& variable) {
+  std::vector<double> result;
+  for (const auto& d : m_domains) {
+    const auto values = d.get(variable);
+    result.reserve(result.size() + values.size());
+    result.insert(result.end(), values.begin(), values.end());
+  }
+  return result;
+}
+
+std::vector<std::vector<double>> CoampsData::getArray2d(
+    const std::string& variable) {
+  return {};
+}
+
+void CoampsData::computeMasking() {
+  size_t nmask = 0;
+  for (size_t dom = 0; dom < m_domains.size() - 1; ++dom) {
+    for (size_t p = 0; p < m_domains[dom].size(); ++p) {
+      const auto point =
+          Point(m_domains[dom].longitude(p), m_domains[dom].latitude(p));
+      for (auto inner_dom = dom + 1; inner_dom < m_domains.size();
+           ++inner_dom) {
+        if (point.x() >= m_domains[inner_dom].point_ll().x() &&
+            point.x() <= m_domains[inner_dom].point_ur().x() &&
+            point.y() >= m_domains[inner_dom].point_ll().y() &&
+            point.y() <= m_domains[inner_dom].point_ur().y()) {
+          m_domains[dom].setMask(p, true);
+          nmask++;
+        }
+      }
+    }
+  }
+}
+
+void CoampsData::computeCoordinates() {
+  for (auto& d : m_domains) {
+    const auto [lon, lat] = d.getUnmaskedCoordinates();
+    m_longitude.insert(m_longitude.end(), lon.begin(), lon.end());
+    m_latitude.insert(m_latitude.end(), lat.begin(), lat.end());
+  }
+  this->setSize(m_longitude.size());
+  this->setNi(0);
+  this->setNj(0);
+}
+
+Triangulation CoampsData::generate_triangulation() const {
+  return {m_longitude, m_latitude, this->bounding_region()};
+}

@@ -40,7 +40,7 @@ class FileWrapper {
   FILE* ptr();
 
  private:
-  FILE *m_ptr;
+  FILE* m_ptr;
 };
 
 }  // namespace MetBuild

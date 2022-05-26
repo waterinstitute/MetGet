@@ -31,9 +31,11 @@
 
 #include "Date.h"
 #include "Grid.h"
-#include "data_sources/GriddedData.h"
+#include "InterpolationData.h"
 #include "MetBuild_Global.h"
 #include "MeteorologicalData.h"
+#include "data_sources/GriddedData.h"
+#include "data_sources/GriddedDataTypes.h"
 
 namespace MetBuild {
 
@@ -43,7 +45,7 @@ class Meteorology {
 
   METBUILD_EXPORT explicit Meteorology(const MetBuild::Grid *grid,
                                        Meteorology::SOURCE source_type,
-                                       GriddedData::TYPE type,
+                                       MetBuild::GriddedDataTypes::TYPE type,
                                        bool backfill = false,
                                        int epsg_output = 4326);
 
@@ -78,58 +80,51 @@ class Meteorology {
 
   constexpr static size_t c_idw_depth = 6;
 
-  struct InterpolationWeights {
-    std::vector<std::vector<std::array<double, c_idw_depth>>> weight;
-    std::vector<std::vector<std::array<unsigned, c_idw_depth>>> index;
-    void resize(size_t ni, size_t nj) {
-      weight = std::vector<std::vector<std::array<double, c_idw_depth>>>(
-          nj, std::vector<std::array<double, c_idw_depth>>(ni));
-      index = std::vector<std::vector<std::array<unsigned, c_idw_depth>>>(
-          nj, std::vector<std::array<unsigned, c_idw_depth>>(ni));
-    };
-  };
-
   static InterpolationWeights generate_interpolation_weight(
-      const MetBuild::GriddedData *gridded, const MetBuild::Grid::grid *grid);
+      const MetBuild::Triangulation *triangulation,
+      const MetBuild::Grid::grid *grid);
 
   MetBuild::MeteorologicalData<1> scalar_value_interpolation(
       double time_weight);
 
-  static constexpr unsigned typeLengthMap(GriddedData::TYPE type) {
+  static double getPressureScaling(const GriddedData *g);
+
+  static constexpr unsigned typeLengthMap(
+      MetBuild::GriddedDataTypes::TYPE type) {
     switch (type) {
-      case GriddedData::RAINFALL:
-      case GriddedData::TEMPERATURE:
-      case GriddedData::HUMIDITY:
-      case GriddedData::ICE:
+      case MetBuild::GriddedDataTypes::RAINFALL:
+      case MetBuild::GriddedDataTypes::TEMPERATURE:
+      case MetBuild::GriddedDataTypes::HUMIDITY:
+      case MetBuild::GriddedDataTypes::ICE:
         return 1;
-      case GriddedData::WIND_PRESSURE:
+      case MetBuild::GriddedDataTypes::WIND_PRESSURE:
         return 3;
       default:
         return 1;
     }
   }
 
-  static std::vector<GriddedData::VARIABLES> generate_variable_list(
-      GriddedData::TYPE type) {
+  static std::vector<MetBuild::GriddedDataTypes::VARIABLES>
+  generate_variable_list(MetBuild::GriddedDataTypes::TYPE type) {
     switch (type) {
-      case GriddedData::WIND_PRESSURE:
-        return {GriddedData::VARIABLES::VAR_PRESSURE,
-                GriddedData::VARIABLES::VAR_U10,
-                GriddedData::VARIABLES::VAR_V10};
-      case GriddedData::RAINFALL:
-        return {GriddedData::VARIABLES::VAR_RAINFALL};
-      case GriddedData::HUMIDITY:
-        return {GriddedData::VARIABLES::VAR_HUMIDITY};
-      case GriddedData::TEMPERATURE:
-        return {GriddedData::VARIABLES::VAR_TEMPERATURE};
-      case GriddedData::ICE:
-        return {GriddedData::VARIABLES::VAR_ICE};
+      case MetBuild::GriddedDataTypes::WIND_PRESSURE:
+        return {MetBuild::GriddedDataTypes::VARIABLES::VAR_PRESSURE,
+                MetBuild::GriddedDataTypes::VARIABLES::VAR_U10,
+                MetBuild::GriddedDataTypes::VARIABLES::VAR_V10};
+      case MetBuild::GriddedDataTypes::RAINFALL:
+        return {MetBuild::GriddedDataTypes::VARIABLES::VAR_RAINFALL};
+      case MetBuild::GriddedDataTypes::HUMIDITY:
+        return {MetBuild::GriddedDataTypes::VARIABLES::VAR_HUMIDITY};
+      case MetBuild::GriddedDataTypes::TEMPERATURE:
+        return {MetBuild::GriddedDataTypes::VARIABLES::VAR_TEMPERATURE};
+      case MetBuild::GriddedDataTypes::ICE:
+        return {MetBuild::GriddedDataTypes::VARIABLES::VAR_ICE};
       default:
-        return {GriddedData::VARIABLES::VAR_PRESSURE};
+        return {MetBuild::GriddedDataTypes::VARIABLES::VAR_PRESSURE};
     }
   }
 
-  GriddedData::TYPE m_type;
+  MetBuild::GriddedDataTypes::TYPE m_type;
   SOURCE m_source;
   const Grid *m_windGrid;
   Grid::grid m_grid_positions;
@@ -137,13 +132,13 @@ class Meteorology {
   std::unique_ptr<GriddedData> m_gridded2;
   double m_rate_scaling_1;
   double m_rate_scaling_2;
-  std::vector<GriddedData::VARIABLES> m_variables;
-  std::vector<std::string> m_file1;
-  std::vector<std::string> m_file2;
-  std::shared_ptr<InterpolationWeights> m_interpolation_1;
-  std::shared_ptr<InterpolationWeights> m_interpolation_2;
+  std::shared_ptr<InterpolationData> m_interpolation_1;
+  std::shared_ptr<InterpolationData> m_interpolation_2;
   bool m_useBackgroundFlag;
   int m_epsg_output;
+  std::vector<MetBuild::GriddedDataTypes::VARIABLES> m_variables;
+  std::vector<std::string> m_file1;
+  std::vector<std::string> m_file2;
 };
 }  // namespace MetBuild
 #endif  // METBUILD_METEOROLOGY_H

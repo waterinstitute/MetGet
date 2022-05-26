@@ -42,7 +42,7 @@ std::vector<std::string> OwiNetcdf::filenames() const {
 
 void OwiNetcdf::addDomain(const MetBuild::Grid &w,
                           const std::vector<std::string> &groupNames) {
-  constexpr bool isMovingGrid = false;
+  //constexpr bool isMovingGrid = false;
 
   if (groupNames.empty()) {
     metbuild_throw_exception(

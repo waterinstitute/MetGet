@@ -42,7 +42,7 @@ OwiNcFile::OwiNcFile(std::string filename)
 OwiNcFile::~OwiNcFile() {
   if (m_ncid != 0) {
     std::string group_order;
-    for (auto i = 0; i < m_groups.size(); ++i) {
+    for (size_t i = 0; i < m_groups.size(); ++i) {
       if (i + 1 < m_groups.size()) {
         group_order += m_groups[i].name + " ";
       } else {

@@ -25,7 +25,6 @@
 //
 #include "Meteorology.h"
 
-#include <array>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -34,7 +33,9 @@
 #include "Logging.h"
 #include "MetBuild_Status.h"
 #include "Projection.h"
+#include "Triangulation.h"
 #include "Utilities.h"
+#include "data_sources/CoampsData.h"
 #include "data_sources/GfsData.h"
 #include "data_sources/Grib.h"
 #include "data_sources/HwrfData.h"
@@ -43,20 +44,21 @@
 using namespace MetBuild;
 
 Meteorology::Meteorology(const MetBuild::Grid *windGrid,
-                         Meteorology::SOURCE source, GriddedData::TYPE type,
-                         bool backfill, int epsg_output)
+                         Meteorology::SOURCE source,
+                         MetBuild::GriddedDataTypes::TYPE type, bool backfill,
+                         int epsg_output)
     : m_type(type),
       m_source(source),
       m_windGrid(windGrid),
-      m_rate_scaling_1(1.0),
-      m_rate_scaling_2(1.0),
+      m_grid_positions(m_windGrid->grid_positions()),
       m_gridded1(nullptr),
       m_gridded2(nullptr),
+      m_rate_scaling_1(1.0),
+      m_rate_scaling_2(1.0),
       m_interpolation_1(nullptr),
       m_interpolation_2(nullptr),
       m_useBackgroundFlag(backfill),
       m_epsg_output(epsg_output),
-      m_grid_positions(m_windGrid->grid_positions()),
       m_variables(generate_variable_list(type)) {
   // We assume that all data in the database is in WGS84 and the user can
   // get out other projections if they need to
@@ -118,27 +120,24 @@ int Meteorology::process_data() {
       m_gridded1 = std::move(m_gridded2);
       m_interpolation_1 = std::move(m_interpolation_2);
     } else {
-      m_gridded1 = this->gridded_data_factory(m_file1, m_source);
-      m_interpolation_1 = std::make_shared<InterpolationWeights>(
-          Meteorology::generate_interpolation_weight(m_gridded1.get(),
-                                                     &m_grid_positions));
+      m_gridded1 =
+          MetBuild::Meteorology::gridded_data_factory(m_file1, m_source);
+      m_interpolation_1 = std::make_shared<InterpolationData>(
+          m_gridded1->generate_triangulation(), m_grid_positions);
     }
   } else {
-    m_gridded1 = this->gridded_data_factory(m_file1, m_source);
-    m_interpolation_1 = std::make_shared<InterpolationWeights>(
-        Meteorology::generate_interpolation_weight(m_gridded1.get(),
-                                                   &m_grid_positions));
+    m_gridded1 = MetBuild::Meteorology::gridded_data_factory(m_file1, m_source);
+    m_interpolation_1 = std::make_shared<InterpolationData>(
+        m_gridded1->generate_triangulation(), m_grid_positions);
   }
-  m_gridded2 = this->gridded_data_factory(m_file2, m_source);
 
+  m_gridded2 = MetBuild::Meteorology::gridded_data_factory(m_file2, m_source);
   if (m_gridded1->latitude1d() == m_gridded2->latitude1d() &&
       m_gridded1->longitude1d() == m_gridded2->longitude1d()) {
-    m_interpolation_2 =
-        std::make_shared<InterpolationWeights>(*m_interpolation_1);
+    m_interpolation_2 = std::make_shared<InterpolationData>(*m_interpolation_1);
   } else {
-    m_interpolation_2 = std::make_shared<InterpolationWeights>(
-        Meteorology::generate_interpolation_weight(m_gridded2.get(),
-                                                   &m_grid_positions));
+    m_interpolation_2 = std::make_shared<InterpolationData>(
+        m_gridded2->generate_triangulation(), m_grid_positions);
   }
 
   return MB_NOERROR;
@@ -177,44 +176,39 @@ MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
   const auto r1 = m_gridded1->getVariable1d(m_variables[0]);
   const auto r2 = m_gridded2->getVariable1d(m_variables[0]);
 
-  for (size_t j = 0; j < m_windGrid->nj(); ++j) {
-    for (size_t i = 0; i < m_windGrid->ni(); ++i) {
-      if (m_interpolation_1->index[j][i][0] == 0 ||
-          m_interpolation_2->index[j][i][0] == 0 ||
-          m_interpolation_1->weight[j][i][0] == 0.0 ||
-          m_interpolation_2->weight[j][i][0] == 0.0) {
+  for (size_t i = 0; i < m_windGrid->ni(); ++i) {
+    for (size_t j = 0; j < m_windGrid->nj(); ++j) {
+      const auto interp_1 = m_interpolation_1->interpolation().get(i, j);
+      const auto interp_2 = m_interpolation_2->interpolation().get(i, j);
+
+      auto valid1 =
+          InterpolationWeight::valid(interp_1, Triangulation::invalid_point());
+      auto valid2 =
+          InterpolationWeight::valid(interp_2, Triangulation::invalid_point());
+
+      if (!valid1 || !valid2) {
         if (this->m_useBackgroundFlag) {
           r.set(0, i, j, MeteorologicalData<1, float>::flag_value());
         } else {
           r.set(0, i, j, 0.0);
         }
       } else {
-        double r_star1 = 0.0;
-        double r_star2 = 0.0;
-        double w1_sum = 0.0;
-        double w2_sum = 0.0;
-        for (size_t k = 0; k < c_idw_depth; ++k) {
-          auto idx1 = m_interpolation_1->index[j][i][k];
-          auto idx2 = m_interpolation_2->index[j][i][k];
-          auto w1 = m_interpolation_1->weight[j][i][k];
-          auto w2 = m_interpolation_2->weight[j][i][k];
-          r_star1 += w1 * r1[idx1];
-          r_star2 += w2 * r2[idx2];
-          w1_sum += w1;
-          w2_sum += w2;
-        }
+        const auto w1 = m_interpolation_1->interpolation().get(i, j).weight();
+        const auto i1 = m_interpolation_1->interpolation().get(i, j).index();
 
-        if (equal_zero(w1_sum) && equal_zero(w2_sum)) {
-          r.set(0, i, j, 0.0);
-        } else if (equal_zero(w1_sum) && not_equal_zero(w2_sum)) {
-          r.set(0, i, j, r_star2 * (1.0 / w2_sum) * m_rate_scaling_2);
-        } else if (not_equal_zero(w1_sum) && equal_zero(w2_sum)) {
-          r.set(0, i, j, r_star1 * (1.0 / w1_sum) * m_rate_scaling_1);
-        } else {
-          r.set(0, i, j,
-                ((1.0 - time_weight) * (r_star1 * m_rate_scaling_1) +
-                 time_weight * (r_star2 * m_rate_scaling_2)));
-        }
+        const auto w2 = m_interpolation_2->interpolation().get(i, j).weight();
+        const auto i2 = m_interpolation_2->interpolation().get(i, j).index();
+
+        const std::array<double, 3> v1 = {r1[i1[0]], r1[i1[1]], r1[i1[2]]};
+        const std::array<double, 3> v2 = {r2[i2[0]], r2[i2[1]], r2[i2[2]]};
+
+        const auto r_star1 = InterpolationWeight::interpolate(w1, v1);
+        const auto r_star2 = InterpolationWeight::interpolate(w2, v2);
+
+        const auto r_value = (1.0 - time_weight) * r_star1 * m_rate_scaling_1 +
+                             time_weight * r_star2 * m_rate_scaling_2;
+
+        r.set(0, i, j, r_value);
       }
     }
   }
@@ -237,7 +231,12 @@ MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
 Meteorology::to_wind_grid(double time_weight) {
   using namespace MetBuild::Utilities;
 
-  if (this->m_type != GriddedData::WIND_PRESSURE) {
+  const auto pressure_scaling_1 =
+      MetBuild::Meteorology::getPressureScaling(m_gridded1.get());
+  const auto pressure_scaling_2 =
+      MetBuild::Meteorology::getPressureScaling(m_gridded2.get());
+
+  if (this->m_type != MetBuild::GriddedDataTypes::WIND_PRESSURE) {
     metbuild_throw_exception(
         "Data type must be wind and pressure to interpolate to a wind grid "
         "object");
@@ -262,138 +261,83 @@ Meteorology::to_wind_grid(double time_weight) {
 
   this->process_data();
 
-  const auto u1 = m_gridded1->getVariable1d(GriddedData::VAR_U10);
-  const auto v1 = m_gridded1->getVariable1d(GriddedData::VAR_V10);
-  const auto p1 = m_gridded1->getVariable1d(GriddedData::VAR_PRESSURE);
+  const auto u1 =
+      m_gridded1->getVariable1d(MetBuild::GriddedDataTypes::VAR_U10);
+  const auto v1 =
+      m_gridded1->getVariable1d(MetBuild::GriddedDataTypes::VAR_V10);
+  const auto p1 =
+      m_gridded1->getVariable1d(MetBuild::GriddedDataTypes::VAR_PRESSURE);
 
-  const auto u2 = m_gridded2->getVariable1d(GriddedData::VAR_U10);
-  const auto v2 = m_gridded2->getVariable1d(GriddedData::VAR_V10);
-  const auto p2 = m_gridded2->getVariable1d(GriddedData::VAR_PRESSURE);
+  const auto u2 =
+      m_gridded2->getVariable1d(MetBuild::GriddedDataTypes::VAR_U10);
+  const auto v2 =
+      m_gridded2->getVariable1d(MetBuild::GriddedDataTypes::VAR_V10);
+  const auto p2 =
+      m_gridded2->getVariable1d(MetBuild::GriddedDataTypes::VAR_PRESSURE);
 
-  for (size_t j = 0; j < m_windGrid->nj(); ++j) {
-    for (size_t i = 0; i < m_windGrid->ni(); ++i) {
-      if (m_interpolation_1->index[j][i][0] == 0 ||
-          m_interpolation_2->index[j][i][0] == 0 ||
-          m_interpolation_1->weight[j][i][0] == 0.0 ||
-          m_interpolation_2->weight[j][i][0] == 0.0) {
+  const auto lon = m_gridded1->longitude1d();
+  const auto lat = m_gridded1->latitude1d();
+
+  for (size_t i = 0; i < m_windGrid->ni(); ++i) {
+    for (size_t j = 0; j < m_windGrid->nj(); ++j) {
+      const auto interp_1 = m_interpolation_1->interpolation().get(i, j);
+      const auto interp_2 = m_interpolation_2->interpolation().get(i, j);
+
+      const auto valid1 =
+          InterpolationWeight::valid(interp_1, Triangulation::invalid_point());
+      const auto valid2 =
+          InterpolationWeight::valid(interp_2, Triangulation::invalid_point());
+
+      if (!valid1 || !valid2) {
         if (this->m_useBackgroundFlag) {
           w.set(0, i, j,
                 MeteorologicalData<3, MeteorologicalDataType>::flag_value());
-          w.set(1, i, j,
-                MeteorologicalData<3, MeteorologicalDataType>::flag_value());
-          w.set(2, i, j,
-                MeteorologicalData<3, MeteorologicalDataType>::flag_value());
         } else {
-          w.set(0, i, j, 0.0);
-          w.set(1, i, j, 0.0);
-          w.set(2, i, j,
-                MeteorologicalData<3, MeteorologicalDataType>::flag_value());
-        }
-      } else {
-        double u_star1 = 0.0;
-        double v_star1 = 0.0;
-        double p_star1 = 0.0;
-        double u_star2 = 0.0;
-        double v_star2 = 0.0;
-        double p_star2 = 0.0;
-        double w1_sum = 0.0;
-        double w2_sum = 0.0;
-        for (size_t k = 0; k < c_idw_depth; ++k) {
-          auto idx1 = m_interpolation_1->index[j][i][k];
-          auto idx2 = m_interpolation_2->index[j][i][k];
-          auto w1 = m_interpolation_1->weight[j][i][k];
-          auto w2 = m_interpolation_2->weight[j][i][k];
-          u_star1 += w1 * u1[idx1];
-          u_star2 += w2 * u2[idx2];
-          v_star1 += w1 * v1[idx1];
-          v_star2 += w2 * v2[idx2];
-          p_star1 += w1 * p1[idx1];
-          p_star2 += w2 * p2[idx2];
-          w1_sum += w1;
-          w2_sum += w2;
-        }
-
-        if (equal_zero(w1_sum) && equal_zero(w2_sum)) {
           w.set(0, i, j, 0.0);
           w.set(1, i, j, 0.0);
           w.set(2, i, j,
                 MeteorologicalData<
                     3, MeteorologicalDataType>::background_pressure());
-        } else if (equal_zero(w1_sum) && not_equal_zero(w2_sum)) {
-          w.set(0, i, j,
-                static_cast<MeteorologicalDataType>(u_star2 * (1.0 / w2_sum)));
-          w.set(1, i, j,
-                static_cast<MeteorologicalDataType>(v_star2 * (1.0 / w2_sum)));
-          w.set(2, i, j,
-                static_cast<MeteorologicalDataType>(
-                    p_star2 * (1.0 / w2_sum) / 100.0));  // .. Convert to mb
-        } else if (not_equal_zero(w1_sum) && equal_zero(w2_sum)) {
-          w.set(0, i, j,
-                static_cast<MeteorologicalDataType>(u_star1 * (1.0 / w1_sum)));
-          w.set(1, i, j,
-                static_cast<MeteorologicalDataType>(v_star1 * (1.0 / w1_sum)));
-          w.set(2, i, j,
-                static_cast<MeteorologicalDataType>(
-                    p_star1 * (1.0 / w2_sum) / 100.0));  // .. Convert to mb
-        } else {
-          w.set(0, i, j,
-                static_cast<MeteorologicalDataType>(
-                    (1.0 - time_weight) * u_star1 + time_weight * u_star2));
-          w.set(1, i, j,
-                static_cast<MeteorologicalDataType>(
-                    (1.0 - time_weight) * v_star1 + time_weight * v_star2));
-          w.set(2, i, j,
-                static_cast<MeteorologicalDataType>(
-                    ((1.0 - time_weight) * p_star1 + time_weight * p_star2) /
-                    100.0));  // .. Convert to mb
         }
+      } else {
+        const auto w1 = m_interpolation_1->interpolation().get(i, j).weight();
+        const auto w2 = m_interpolation_2->interpolation().get(i, j).weight();
+        const auto i1 = m_interpolation_1->interpolation().get(i, j).index();
+        const auto i2 = m_interpolation_2->interpolation().get(i, j).index();
+
+        const std::array<double, 3> uu1 = {u1[i1[0]], u1[i1[1]], u1[i1[2]]};
+        const std::array<double, 3> vv1 = {v1[i1[0]], v1[i1[1]], v1[i1[2]]};
+        const std::array<double, 3> pp1 = {p1[i1[0]], p1[i1[1]], p1[i1[2]]};
+
+        const std::array<double, 3> uu2 = {u2[i2[0]], u2[i2[1]], u2[i2[2]]};
+        const std::array<double, 3> vv2 = {v2[i2[0]], v2[i2[1]], v2[i2[2]]};
+        const std::array<double, 3> pp2 = {p2[i2[0]], p2[i2[1]], p2[i2[2]]};
+
+        const auto u_star1 = InterpolationWeight::interpolate(w1, uu1);
+        const auto u_star2 = InterpolationWeight::interpolate(w2, uu2);
+
+        const auto v_star1 = InterpolationWeight::interpolate(w1, vv1);
+        const auto v_star2 = InterpolationWeight::interpolate(w2, vv2);
+
+        const auto p_star1 =
+            InterpolationWeight::interpolate(w1, pp1) * pressure_scaling_1;
+        const auto p_star2 =
+            InterpolationWeight::interpolate(w2, pp2) * pressure_scaling_2;
+
+        const auto u_value =
+            (1.0 - time_weight) * u_star1 + time_weight * u_star2;
+        const auto v_value =
+            (1.0 - time_weight) * v_star1 + time_weight * v_star2;
+        const auto p_value =
+            (1.0 - time_weight) * p_star1 + time_weight * p_star2;
+
+        w.set(0, i, j, u_value);
+        w.set(1, i, j, v_value);
+        w.set(2, i, j, p_value);
       }
     }
   }
   return w;
-}
-
-Meteorology::InterpolationWeights Meteorology::generate_interpolation_weight(
-    const MetBuild::GriddedData *gridded, const MetBuild::Grid::grid *grid) {
-  InterpolationWeights weights;
-  const auto ni = grid->at(0).size();
-  const auto nj = grid->size();
-  weights.resize(ni, nj);
-
-  for (size_t j = 0; j < nj; ++j) {
-    for (size_t i = 0; i < ni; ++i) {
-      auto p = grid->at(j)[i];
-      p.setX((std::fmod(p.x() + 180.0, 360.0)) - 180.0);
-
-      if (!gridded->point_inside(p)) {
-        std::fill(weights.index[j][i].begin(), weights.index[j][i].end(), 0);
-        std::fill(weights.weight[j][i].begin(), weights.weight[j][i].end(),
-                  0.0);
-      } else {
-        const auto result =
-            gridded->kdtree()->findXNearest(p.x(), p.y(), c_idw_depth);
-
-        if (result[0].second < Meteorology::epsilon_squared()) {
-          std::fill(weights.index[j][i].begin(), weights.index[j][i].end(),
-                    result[0].first);
-          std::fill(weights.weight[j][i].begin() + 1,
-                    weights.weight[j][i].end(), 0.0);
-          weights.weight[j][i][0] = 1.0;
-        } else {
-          double w_total = 0.0;
-          for (size_t k = 0; k < c_idw_depth; ++k) {
-            weights.weight[j][i][k] = 1.0 / result[k].second;
-            w_total += 1.0 / result[k].second;
-            weights.index[j][i][k] = result[k].first;
-          }
-          for (auto &w : weights.weight[j][i]) {
-            w = w / w_total;
-          }
-        }
-      }
-    }
-  }
-  return weights;
 }
 
 int Meteorology::write_debug_file(int index) const {
@@ -407,9 +351,9 @@ int Meteorology::write_debug_file(int index) const {
 
   const auto lon = ptr->longitude1d();
   const auto lat = ptr->latitude1d();
-  const auto u = ptr->getVariable1d(GriddedData::VAR_U10);
-  const auto v = ptr->getVariable1d(GriddedData::VAR_V10);
-  const auto p = ptr->getVariable1d(GriddedData::VAR_PRESSURE);
+  const auto u = ptr->getVariable1d(MetBuild::GriddedDataTypes::VAR_U10);
+  const auto v = ptr->getVariable1d(MetBuild::GriddedDataTypes::VAR_V10);
+  const auto p = ptr->getVariable1d(MetBuild::GriddedDataTypes::VAR_PRESSURE);
 
   std::ofstream file;
   file.open(ptr->filenames()[0] += ".out");
@@ -432,39 +376,6 @@ double Meteorology::generate_time_weight(const MetBuild::Date &t1,
   return (s3 - s1) / (s2 - s1);
 }
 
-// std::string Meteorology::findScalarVariableName(const std::string &filename)
-// {
-//   const auto candidates = [&]() {  // IILE
-//     switch (m_type) {
-//       case RAINFALL:
-//         return std::vector<std::string>{"apcp", "prate", "tp"};
-//       case TEMPERATURE:
-//         return std::vector<std::string>{"tmp:30-0 mb above ground",
-//                                         "tmp:2 m above ground"};
-//       case HUMIDITY:
-//         return std::vector<std::string>{"rh:30-0 mb above ground",
-//                                         "rh:2 m above ground"};
-//       case ICE:
-//         return std::vector<std::string>{"ICEC:surface"};
-//       case WIND_PRESSURE:
-//         metbuild_throw_exception(
-//             "Invalid to select WIND_PRESSURE for scalar field");
-//         return std::vector<std::string>();
-//       default:
-//         metbuild_throw_exception("Invalid scalar variable type specified.");
-//         return std::vector<std::string>();
-//     }
-//   }();
-//
-//   for (const auto &s : candidates) {
-//     if (Grib::containsVariable(filename, s)) {
-//       return s;
-//     }
-//   }
-//   metbuild_throw_exception("Variable could not be found in the specified
-//   file"); return {};
-// }
-
 std::unique_ptr<GriddedData> Meteorology::gridded_data_factory(
     const std::vector<std::string> &filenames,
     const Meteorology::SOURCE source) {
@@ -476,10 +387,18 @@ std::unique_ptr<GriddedData> Meteorology::gridded_data_factory(
     case HWRF:
       return std::make_unique<MetBuild::HwrfData>(filenames[0]);
     case COAMPS:
-      return nullptr;
+      return std::make_unique<MetBuild::CoampsData>(filenames);
     default:
       Logging::throwError(
           "No valid source type defined. Cannot create object.");
       return nullptr;
+  }
+}
+
+double Meteorology::getPressureScaling(const GriddedData *g) {
+  if (g->sourceSubtype() == MetBuild::GriddedDataTypes::SOURCE_SUBTYPE::GRIB) {
+    return 1.0 / 100.0;
+  } else {
+    return 1.0;
   }
 }

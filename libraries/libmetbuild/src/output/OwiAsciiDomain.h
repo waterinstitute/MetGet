@@ -35,7 +35,6 @@
 #include "Grid.h"
 #include "MeteorologicalData.h"
 #include "OutputDomain.h"
-#include "boost/iostreams/filtering_streambuf.hpp"
 
 namespace MetBuild {
 
@@ -43,8 +42,8 @@ class OwiAsciiDomain : public OutputDomain {
  public:
   OwiAsciiDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
                  const MetBuild::Date &endDate, unsigned time_step,
-                 const std::string &pressureFile, const std::string &windFile, 
-		 const bool use_compression);
+                 const std::string &pressureFile, const std::string &windFile,
+                 const bool use_compression);
 
   OwiAsciiDomain(const MetBuild::Grid *grid, const MetBuild::Date &startDate,
                  const MetBuild::Date &endDate, unsigned time_step,
@@ -83,9 +82,13 @@ class OwiAsciiDomain : public OutputDomain {
   Date m_previousDate;
   std::ofstream m_ofstream_pressure;
   std::ofstream m_ofstream_wind;
-  boost::iostreams::filtering_streambuf<boost::iostreams::output>
+  std::unique_ptr<boost::iostreams::filtering_streambuf<
+      boost::iostreams::output, char, std::char_traits<char>,
+      std::allocator<char>, boost::iostreams::public_>>
       m_compressedio_pressure;
-  boost::iostreams::filtering_streambuf<boost::iostreams::output>
+  std::unique_ptr<boost::iostreams::filtering_streambuf<
+      boost::iostreams::output, char, std::char_traits<char>,
+      std::allocator<char>, boost::iostreams::public_>>
       m_compressedio_wind;
   std::ostream m_compressed_stream_pressure;
   std::ostream m_compressed_stream_wind;

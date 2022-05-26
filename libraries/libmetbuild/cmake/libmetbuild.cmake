@@ -52,6 +52,13 @@ set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/GribHandle.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/GribHandle.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/VariableNames.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Triangulation.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Triangulation.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/TriangulationPrivate.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/TriangulationPrivate.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/InterpolationWeights.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/InterpolationWeights.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/InterpolationWeight.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/Grib.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GriddedData.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GriddedData.h
@@ -63,7 +70,10 @@ set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/CoampsDomain.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/CoampsDomain.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/NetcdfFile.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/NetcdfFile.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/NetcdfFile.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GriddedDataTypes.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/InterpolationData.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/InterpolationData.h)
 
 add_library(metbuild_interface INTERFACE)
 add_library(metbuild_objectlib OBJECT ${METBUILD_SOURCES})
@@ -74,7 +84,8 @@ find_package(NetCDF REQUIRED)
 find_package(PROJ REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(TIFF REQUIRED)
-find_package(Boost REQUIRED COMPONENTS iostreams)
+find_package(GMP REQUIRED)
+find_package(Boost REQUIRED COMPONENTS iostreams system)
 
 set_property(TARGET metbuild_objectlib PROPERTY POSITION_INDEPENDENT_CODE 1)
 target_link_libraries(metbuild_static metbuild_interface)
@@ -96,16 +107,19 @@ set(metbuild_include_list
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eccodes-2.25.0/src
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/date_hh
     ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/CGAL-5.4/include
     ${NETCDF_INCLUDE_DIRS}
     ${PROJ_INCLUDE_DIR}
-    ${SQLite3_INCLUDE_DIRS})
+    ${SQLite3_INCLUDE_DIRS}
+    ${GMP_INCLUDE_DIRS})
 
+target_compile_definitions(metbuild_objectlib PRIVATE CGAL_DISABLE_ROUNDING_MATH_CHECK)
 target_include_directories(metbuild_objectlib PRIVATE ${metbuild_include_list})
 
 target_link_libraries(
   metbuild_interface
   INTERFACE ${NETCDF_LIBRARIES} ${PROJ_LIBRARY} ${SQLite3_LIBRARIES}
-            ${Boost_LIBRARIES} eccodes ${TIFF_LIBRARY_RELEASE})
+            ${Boost_LIBRARIES} eccodes ${TIFF_LIBRARY_RELEASE} ${GMP_LIBRARIES})
 target_link_libraries(metbuild_static metbuild_interface)
 target_link_libraries(metbuild metbuild_interface)
 

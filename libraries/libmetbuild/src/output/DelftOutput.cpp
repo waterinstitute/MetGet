@@ -35,9 +35,9 @@ using namespace MetBuild;
 DelftOutput::DelftOutput(const MetBuild::Date& date_start,
                          const MetBuild::Date& date_end, unsigned time_step,
                          std::string filename, bool use_compression)
-    : m_filename(std::move(filename)),
-      m_use_compression(use_compression),
-      OutputFile(date_start, date_end, time_step) {}
+    : OutputFile(date_start, date_end, time_step), 
+      m_filename(std::move(filename)),
+      m_use_compression(use_compression) {}
 
 std::vector<std::string> DelftOutput::filenames() const {
   return m_domains[0]->filenames();

@@ -29,8 +29,11 @@
 #include <iostream>
 #include <utility>
 
+#include "Geometry.h"
 #include "GribHandle.h"
+#include "Kdtree.h"
 #include "Logging.h"
+#include "Triangulation.h"
 #include "Utilities.h"
 #include "boost/algorithm/string/split.hpp"
 #include "boost/algorithm/string/trim.hpp"
@@ -39,9 +42,10 @@
 using namespace MetBuild;
 
 Grib::Grib(std::string filename, VariableNames variable_names)
-    : m_convention(0),
-      GriddedData(std::move(filename), std::move(variable_names)) {
+    : GriddedData(std::move(filename), std::move(variable_names)),
+      m_convention(0) {
   this->initialize();
+  this->setSourceSubtype(MetBuild::GriddedDataTypes::SOURCE_SUBTYPE::GRIB);
 }
 
 Grib::~Grib() = default;
@@ -104,9 +108,6 @@ void Grib::initialize() {
   this->setSize(size);
 
   this->readCoordinates(handle.ptr());
-
-  auto tree = std::make_unique<Kdtree>(m_longitude, m_latitude);
-  this->setTree(tree);
   this->findCorners();
 }
 
@@ -218,4 +219,8 @@ void Grib::findCorners() {
 
   auto geometry = std::make_unique<Geometry>(this->corners());
   this->setGeometry(geometry);
+}
+
+Triangulation Grib::generate_triangulation() const {
+  return {m_longitude, m_latitude, this->bounding_region()};
 }

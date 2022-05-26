@@ -35,9 +35,9 @@
 #include "MetBuild_Global.h"
 #include "CppAttributes.h"
 #include "Point.h"
-#include "data_sources/GriddedData.h"
 #include "Meteorology.h"
 #include "Grid.h"
+#include "data_sources/GriddedDataTypes.h"
 #include "MeteorologicalData.h"
 #include "Kdtree.h"
 #include "Date.h"
@@ -67,6 +67,7 @@
 namespace std {
     %template(IntVector) vector<int>;
     %template(SizetVector) vector<size_t>;
+    %template(FloatVector) vector<float>;
     %template(DoubleVector) vector<double>;
     %template(DoubleDoubleVector) vector<vector<double>>;
     %template(SizetSizetVector) vector<vector<size_t>>;
@@ -76,10 +77,11 @@ namespace std {
 
 %include "MetBuild_Global.h"
 %include "Point.h"
-%include "data_sources/GriddedData.h"
+%include "VariableNames.h"
 %include "Meteorology.h"
 %include "CppAttributes.h"
 %include "Grid.h"
+%include "data_sources/GriddedDataTypes.h"
 %include "Kdtree.h"
 %include "Date.h"
 %include "MeteorologicalData.h"

@@ -44,6 +44,8 @@ class OutputFile {
         m_start_date(date_start),
         m_end_date(date_end) {}
 
+  virtual ~OutputFile() = default;
+
   virtual int write(
       const MetBuild::Date &date, size_t domain_index,
       const MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
