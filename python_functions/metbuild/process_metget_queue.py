@@ -35,35 +35,21 @@ def datespan(startDate, endDate, delta):
 def generate_datatype_key(data_type):
     import pymetbuild
     if data_type == "wind_pressure":
-        return pymetbuild.GriddedData.WIND_PRESSURE
+        return pymetbuild.Meteorology.WIND_PRESSURE
     elif data_type == "pressure":
-        return pymetbuild.GriddedData.PRESSURE
+        return pymetbuild.Meteorology.PRESSURE
     elif data_type == "wind":
-        return pymetbuild.GriddedData.WIND
+        return pymetbuild.Meteorology.WIND
     elif data_type == "rain":
-        return pymetbuild.GriddedData.RAINFALL
+        return pymetbuild.Meteorology.RAINFALL
     elif data_type == "humidity":
-        return pymetbuild.GriddedData.HUMIDITY
+        return pymetbuild.Meteorology.HUMIDITY
     elif data_type == "temperature":
-        return pymetbuild.GriddedData.TEMPERATURE
+        return pymetbuild.Meteorology.TEMPERATURE
     elif data_type == "ice":
-        return pymetbuild.GriddedData.ICE
+        return pymetbuild.Meteorology.ICE
     else:
         raise RuntimeError("Invalid data type requested")
-
-
-def generate_data_source_key(data_source):
-    import pymetbuild
-    if data_source == "gfs-ncep":
-        return pymetbuild.Meteorology.GFS
-    elif data_source == "nam-ncep":
-        return pymetbuild.Meteorology.NAM
-    elif data_source == "hwrf":
-        return pymetbuild.Meteorology.HWRF
-    elif data_source == "coamps":
-        return pymetbuild.Meteorology.COAMPS
-    else:
-        raise RuntimeError("Invalid data source")
 
 
 def generate_met_field(output_format, start, end, time_step, filename, compression):
@@ -153,9 +139,6 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
     filelist_name = "filelist.json"
 
-    instance = Instance()
-
-    instance.enable_termination_protection()
     
     db = Database()
 
@@ -214,7 +197,6 @@ def process_message(json_message, queue, json_file=None) -> bool:
         for f in ff:
             os.remove(f)
         cleanup_temp_files(domain_data)
-        instance.disable_termination_protection()
         return False
    
     #...Begin downloading data from s3
@@ -244,8 +226,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
     files_used_list={}
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
-        source_key = generate_data_source_key(d.service())
-        met = pymetbuild.Meteorology(d.grid().grid_object(),source_key,data_type_key,inputData.backfill(),inputData.epsg())
+        met = pymetbuild.Meteorology(d.grid().grid_object(),data_type_key,inputData.backfill(),inputData.epsg())
 
         t0 = domain_data[i][0]["time"]
 
@@ -310,8 +291,6 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
     cleanup_temp_files(domain_data)
 
-    instance.disable_termination_protection()
-
     return True
 
 
@@ -357,12 +336,16 @@ def initialize_environment_variables():
 def main():
     from metbuild.queue import Queue
     from metbuild.database import Database
+    from metbuild.instance import Instance
     import sys
     import os
 
     logger.debug("Beginning execution")
 
     initialize_environment_variables()
+
+    instance = Instance()
+    instance.enable_termination_protection()
 
     if len(sys.argv)==2:
         jsonfile = sys.argv[1]
@@ -406,6 +389,7 @@ def main():
         else:
             logger.info("No message available in queue. Shutting down.")
 
+    instance.disable_termination_protection()
     logger.debug("Exiting script with status 0")
     exit(0)
 
