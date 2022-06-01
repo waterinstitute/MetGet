@@ -34,7 +34,6 @@
 #include <vector>
 
 #include "GriddedData.h"
-#include "Kdtree.h"
 #include "Point.h"
 #include "VariableNames.h"
 

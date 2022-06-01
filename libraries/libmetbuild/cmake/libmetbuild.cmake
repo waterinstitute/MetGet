@@ -31,8 +31,6 @@
 
 set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Date.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/Kdtree.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/KdtreePrivate.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Meteorology.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Grid.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Logging.cpp
