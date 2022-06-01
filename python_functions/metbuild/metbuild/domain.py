@@ -25,7 +25,7 @@ class Domain:
         return self.__json
 
     def __get_storm(self):
-        if self.service() == "hwrf":
+        if self.service() == "hwrf" or self.service() == "coamps-tc":
             if "storm" in self.__json:
                 self.__storm = self.__json["storm"]
             else: 
