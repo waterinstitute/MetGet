@@ -35,21 +35,35 @@ def datespan(startDate, endDate, delta):
 def generate_datatype_key(data_type):
     import pymetbuild
     if data_type == "wind_pressure":
-        return pymetbuild.Meteorology.WIND_PRESSURE
+        return pymetbuild.WIND_PRESSURE
     elif data_type == "pressure":
-        return pymetbuild.Meteorology.PRESSURE
+        return pymetbuild.PRESSURE
     elif data_type == "wind":
-        return pymetbuild.Meteorology.WIND
+        return pymetbuild.WIND
     elif data_type == "rain":
-        return pymetbuild.Meteorology.RAINFALL
+        return pymetbuild.RAINFALL
     elif data_type == "humidity":
-        return pymetbuild.Meteorology.HUMIDITY
+        return pymetbuild.HUMIDITY
     elif data_type == "temperature":
-        return pymetbuild.Meteorology.TEMPERATURE
+        return pymetbuild.TEMPERATURE
     elif data_type == "ice":
-        return pymetbuild.Meteorology.ICE
+        return pymetbuild.ICE
     else:
         raise RuntimeError("Invalid data type requested")
+
+
+def generate_data_source_key(data_source):
+    import pymetbuild
+    if data_source == "gfs-ncep":
+        return pymetbuild.Meteorology.GFS
+    elif data_source == "nam-ncep":
+        return pymetbuild.Meteorology.NAM
+    elif data_source == "hwrf":
+        return pymetbuild.Meteorology.HWRF
+    elif data_source == "coamps-tc":
+        return pymetbuild.Meteorology.COAMPS
+    else:
+        raise RuntimeError("Invalid data source")
 
 
 def generate_met_field(output_format, start, end, time_step, filename, compression):
@@ -185,9 +199,16 @@ def process_message(json_message, queue, json_file=None) -> bool:
         sys.exit(1)
 
       for item in f:
-        ongoing_restore_this = db.check_initiate_restore(item[1],d.service(),item[0])
-        if ongoing_restore_this:
-          ongoing_restore = True
+        if d.service() == "coamps-tc":
+            files = item[1].split(",")
+            for ff in files:
+                ongoing_restore_this = db.check_initiate_restore(ff,d.service(),item[0])
+                if ongoing_restore_this:
+                    ongoing_restore = True
+        else:    
+          ongoing_restore_this = db.check_initiate_restore(item[1],d.service(),item[0])
+          if ongoing_restore_this:
+            ongoing_restore = True
     
     #...If restore ongoing, this is where we stop
     if ongoing_restore:
@@ -212,8 +233,15 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
       domain_data.append([])
       for item in f:
-        local_file = db.get_file(item[1],d.service(),item[0])
-        domain_data[i].append({"time":item[0],"filepath":local_file})
+        if d.service() == "coamps-tc":  
+          files = item[1].split(",")
+          local_file_list = []
+          for ff in files:
+            local_file_list.append(db.get_file(ff, d.service(), item[0]))
+          domain_data[i].append({"time":item[0],"filepath":local_file_list})
+        else:    
+          local_file = db.get_file(item[1],d.service(),item[0])
+          domain_data[i].append({"time":item[0],"filepath":local_file})
 
 
     def get_next_file_index(time, domain_data):
@@ -238,10 +266,19 @@ def process_message(json_message, queue, json_file=None) -> bool:
         t0_pmb = Input.date_to_pmb(t0)
         t1_pmb = Input.date_to_pmb(t1)
         met.set_next_file(domain_data[i][0]["filepath"])
-        domain_files_used.append(os.path.basename(domain_data[i][0]["filepath"]))
+        if d.service() == "coamps-tc":
+          for ff in domain_data[i][0]["filepath"]:
+            domain_files_used.append(os.path.basename(ff))
+        else:    
+          domain_files_used.append(os.path.basename(domain_data[i][0]["filepath"]))
 
         met.set_next_file(domain_data[i][index]["filepath"])
-        domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
+        met.process_data()
+        if d.service() == "coamps-tc":
+          for ff in domain_data[i][index]["filepath"]:
+            domain_files_used.append(os.path.basename(ff))
+        else:    
+          domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
 
         for t in datespan(start_date,end_date,datetime.timedelta(seconds=time_step)): 
             if t > t1:
@@ -249,7 +286,11 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 t0 = t1
                 t1 = domain_data[i][index]["time"]
                 met.set_next_file(domain_data[i][index]["filepath"])
-                domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
+                if d.service() == "coamps-tc":
+                  for ff in domain_data[i][index]["filepath"]:
+                    domain_files_used.append(os.path.basename(ff))
+                else:    
+                  domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
                 met.process_data()
             #print(i,index,len(domain_data[i]),t,t0,t1,end="",flush=True)
             if t < t0 or t > t1:
@@ -299,8 +340,13 @@ def cleanup_temp_files(data):
     from os.path import exists
     for domain in data:
         for f in domain:
-            if exists(f["filepath"]):
-                os.remove(f["filepath"])
+            if type(f["filepath"]) == list:
+              for ff in f["filepath"]:
+                if exists(ff):
+                  os.remove(ff)
+            else:    
+              if exists(f["filepath"]):
+                  os.remove(f["filepath"])
 
 
 def initialize_environment_variables():

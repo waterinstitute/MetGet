@@ -39,6 +39,8 @@ class Database:
             return self.generate_generic_file_list("nam_ncep", param, start, end, nowcast, multiple_forecasts)
         elif service == "hwrf":
             return self.generate_hwrf_file_list(start, end, storm)
+        elif service == "coamps-tc":
+            return self.generate_coamps_file_list(start, end, storm)
         else:
             print("ERROR: Invalid data type")
             sys.exit(1)
@@ -145,6 +147,29 @@ class Database:
             return_list.append([f[2], f[3]])
         self.cursor().execute("drop temporary table tmptbl1;")
         self.cursor().execute("drop temporary table tmptbl2;")
+        return return_list
+    
+    def generate_coamps_file_list(self, start, end, storm):
+
+       # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
+        sql_tmptable = "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from coamps_tc where stormname = '"+storm+"';"
+        sql_tmptable2 = "create temporary table tmptbl2 select * from tmptbl1;"
+        sql = "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1 " \
+             " t1 JOIN(select forecasttime, max(id) id FROM tmptbl2 group by forecasttime order by forecasttime) t2 " \
+             "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '" + start.strftime(
+             "%Y-%m-%d %H:%M:%S") + "' AND t1.forecasttime <= '" + end.strftime(
+             "%Y-%m-%d %H:%M:%S") + "';"
+
+        self.cursor().execute(sql_tmptable)
+        self.cursor().execute(sql_tmptable2)
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+        for f in rows:
+            return_list.append([f[2], f[3]])
+        self.cursor().execute("drop temporary table tmptbl1;")
+        self.cursor().execute("drop temporary table tmptbl2;")
+
         return return_list
 
     def check_archive_status(self, filepath) -> bool:
