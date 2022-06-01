@@ -31,7 +31,6 @@
 
 #include "Geometry.h"
 #include "GribHandle.h"
-#include "Kdtree.h"
 #include "Logging.h"
 #include "Triangulation.h"
 #include "Utilities.h"

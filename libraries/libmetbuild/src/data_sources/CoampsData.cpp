@@ -27,7 +27,6 @@
 
 #include <utility>
 
-#include "Kdtree.h"
 #include "Triangulation.h"
 
 using namespace MetBuild;

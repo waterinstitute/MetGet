@@ -28,7 +28,6 @@
 #include <utility>
 
 #include "Geometry.h"
-#include "Kdtree.h"
 #include "Logging.h"
 #include "Triangulation.h"
 

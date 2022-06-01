@@ -18,7 +18,6 @@
 #include "CGAL/Triangulation_face_base_with_info_2.h"
 #include "CGAL/Triangulation_vertex_base_with_info_2.h"
 #include "InterpolationWeight.h"
-#include "Kdtree.h"
 #include "Point.h"
 
 namespace MetBuild::Private {
