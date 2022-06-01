@@ -67,6 +67,8 @@ grib_handle *GribHandle::make_handle(const std::string &filename,
       close_handle(h);
     }
   }
-  if (!quiet) metbuild_throw_exception("Could not generate the eccodes handle");
+  if (!quiet)
+    metbuild_throw_exception(
+        "Could not generate the eccodes handle for variable: '" + name + "'");
   return nullptr;
 }

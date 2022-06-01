@@ -33,16 +33,41 @@ namespace MetBuild {
 class HwrfData : public Grib {
  public:
   explicit HwrfData(const std::string &filename)
-      : Grib(filename, {"longitudes", "latitudes", "prmsl", "u10", "v10",
-                        "PRATE", "RH:30-0 mb above ground",
-                        "TMP:30-0 mb above ground", "ICEC:surface"}) {
+      : Grib(filename, {"longitudes", "latitudes", "prmsl", "10u", "10v", "tp",
+                        "2r", "2t", ""}) {
     this->get_bounding_region();
     this->generate_triangulation();
   }
 
  private:
   void get_bounding_region() {
-    this->set_bounding_region(std::vector<Point>());
+    std::vector<Point> region;
+
+    const auto longitude = this->longitude1d();
+    const auto latitude = this->latitude1d();
+
+    // Bottom Left --> Bottom Right
+    for (size_t i = 0; i < ni(); ++i) {
+      region.emplace_back(longitude[i], latitude[i]);
+    }
+
+    // Bottom Right --> Top Right
+    for (size_t i = 1; i < nj(); ++i) {
+      region.emplace_back(longitude[i * ni() - 1], latitude[i * ni() - 1]);
+    }
+
+    // Top Right --> Top Left
+    for (size_t i = 0; i < ni(); ++i) {
+      region.emplace_back(longitude[nj() * ni() - 1 - i],
+                          latitude[nj() * ni() - 1 - i]);
+    }
+
+    // Top Left --> Bottom Left (note: skips last point)
+    for (long i = nj() - 1; i > 0; --i) {
+      region.emplace_back(longitude[i * ni()], latitude[i * ni()]);
+    }
+
+    this->set_bounding_region(region);
   }
 };
 }  // namespace MetBuild
