@@ -103,7 +103,7 @@ def generate_met_domain(inputData, met_object, index):
                 
         met_object.addDomain(d.grid().grid_object(), fns)
     elif output_format == "owi-netcdf":
-        group = d.service() 
+        group = d.name() 
         met_object.addDomain(d.grid().grid_object(), [group])
     elif output_format == "hec-netcdf":
         if inputData.data_type() == "wind_pressure":
