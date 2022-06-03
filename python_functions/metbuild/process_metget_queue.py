@@ -254,7 +254,8 @@ def process_message(json_message, queue, json_file=None) -> bool:
     files_used_list={}
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
-        met = pymetbuild.Meteorology(d.grid().grid_object(),data_type_key,inputData.backfill(),inputData.epsg())
+        source_key = generate_data_source_key(d.service())
+        met = pymetbuild.Meteorology(d.grid().grid_object(),source_key,data_type_key,inputData.backfill(),inputData.epsg())
 
         t0 = domain_data[i][0]["time"]
 
