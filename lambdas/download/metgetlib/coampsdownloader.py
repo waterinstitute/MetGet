@@ -60,6 +60,8 @@ class CoampsDownloader:
             temp_date_max.year, temp_date_max.month, temp_date_max.day, 0, 0, 0
         )
 
+        nfiles = 0
+
         self.__connect()
 
         for st in range(storm_min, storm_max, 1):
@@ -97,19 +99,29 @@ class CoampsDownloader:
                             for f in dd:
                                 local_file = f["filename"]
                                 cycle = f["cycle"]
-                                remote_path = "coamps_tc/"+storm_name+"/"+datetime.strftime(cycle, "%Y%m%d/%H")+"/"+os.path.basename(f["filename"])
+                                remote_path = (
+                                    "coamps_tc/"
+                                    + storm_name
+                                    + "/"
+                                    + datetime.strftime(cycle, "%Y%m%d/%H")
+                                    + "/"
+                                    + os.path.basename(f["filename"])
+                                )
                                 s3.upload_file(local_file, remote_path)
                                 if files == "":
                                     files += remote_path
                                 else:
                                     files += "," + remote_path
-                            db.add(data_pair, "coamps", files) 
+                            db.add(data_pair, "coamps", files)
+                            nfiles += 1
+
                         CoampsDownloader.wipe(temporary_folder)
                         os.remove(filename)
 
         self.__disconnect()
+        return nfiles
 
-    def __get(self, storm, date): 
+    def __get(self, storm, date):
         import os
         import ftplib
         import tempfile
