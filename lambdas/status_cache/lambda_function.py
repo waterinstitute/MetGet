@@ -46,6 +46,7 @@ class Database:
         jsondata['metget']['nam-ncep'] = self.generate_status_nam()
         jsondata['metget']['gfs-ncep'] = self.generate_status_gfs()
         jsondata['metget']['hwrf'] = self.generate_hwrf_status()
+        jsondata['metget']['coamps-tc'] = self.generate_coamps_status()
         return jsondata
 
     @staticmethod
@@ -221,6 +222,93 @@ class Database:
             })
 
         return hwrf_stat
+        
+    def generate_coamps_status(self):
+        """
+        Generates the json status object from the database for the available COAMPS-TC data
+        :return: json status object
+        """
+        from datetime import datetime
+
+        search_period, search_period_date = Database.generate_record_period()
+
+        # Use SQL to generate a distinct list of storms and then
+        # iterate over them to determine the available forecast data
+        stormlist = []
+        self.cursor().execute("SELECT DISTINCT stormname from coamps_tc WHERE FORECASTCYCLE > '" + search_period + "'")
+        rows = self.cursor().fetchall()
+        for row in rows:
+            stormlist.append({"storm": row[0]})
+
+        coamps_stat = []
+
+        # For each storm, determine the availability of data
+        for s in stormlist:
+            sql = "SELECT FORECASTTIME FROM coamps_tc WHERE stormname = '" + s[
+                "storm"] + "' AND FORECASTCYCLE >= '"+search_period+"' ORDER BY FORECASTTIME"
+            self.cursor().execute(sql)
+            rows = self.cursor().fetchall()
+            fcst_min = rows[0][0]
+            fcst_max = rows[-1][0]
+            sql = "SELECT DISTINCT FORECASTCYCLE FROM coamps_tc WHERE stormname = '" + s[
+                "storm"] + "' AND FORECASTCYCLE >= '"+search_period+"' ORDER BY FORECASTCYCLE"
+            self.cursor().execute(sql)
+            rows = self.cursor().fetchall()
+            cyc_min = rows[0][0]
+            cyc_max = rows[-1][0]
+
+            latest_complete = None
+            latest_start = None
+            latest_end = None
+            latest_length = None
+            time_since_forecast = 0
+            cycle_list = []
+
+            # Backwards loop to see the most recent complete forecast cycle
+            for f in reversed(rows):
+                sql = "SELECT MIN(FORECASTTIME) AS FIRST, MAX(FORECASTTIME) AS LAST FROM coamps_tc WHERE stormname = '" + s[
+                    "storm"] + "' AND FORECASTCYCLE = '" + datetime.strftime(f[0],
+                                                                             "%Y-%m-%d %H:%M:%S") + "' ORDER BY FORECASTTIME"
+                self.cursor().execute(sql)
+                r = self.cursor().fetchall()
+                start = r[0][0]
+                end = r[0][1]
+                avail_len = (end - start).total_seconds() / 3600
+                if avail_len >= 126 and f[0] >= search_period_date:
+                    cycle_list.append(f[0].strftime("%Y-%m-%d %H:%M:%S"), )
+                    latest_start = start.strftime("%Y-%m-%d %H:%M:%S")
+                    latest_end = end.strftime("%Y-%m-%d %H:%M:%S")
+                    latest_length = avail_len
+                    latest_complete = f[0]
+                    time_since_forecast = (datetime.now() - f[0]).total_seconds() / 86400
+                    continue
+                    
+                    
+            # Assemble a storm object
+            coamps_stat.append({
+                "storm":
+                    s["storm"],
+                "min_forecast_date":
+                    date_or_null(fcst_min),
+                "max_forecast_date":
+                    date_or_null(fcst_max),
+                "first_available_cycle":
+                    date_or_null(cyc_min),
+                "last_available_cycle":
+                    date_or_null(cyc_max),
+                "latest_complete_forecast":
+                    date_or_null(latest_complete),
+                "latest_complete_forecast_start":
+                    latest_start,
+                "latest_complete_forecast_end":
+                    latest_end,
+                "latest_complete_forecast_length":
+                    latest_length,
+                "cycle_list": cycle_list
+            })
+
+        return coamps_stat
+        
 
 
 def date_or_null(date):
