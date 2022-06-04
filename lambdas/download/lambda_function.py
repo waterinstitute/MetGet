@@ -21,9 +21,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
 def generate_default_date_range():
     from datetime import datetime
     from datetime import timedelta
+
     start = datetime.utcnow()
     start = datetime(start.year, start.month, start.day, 0, 0, 0) - timedelta(days=1)
     end = start + timedelta(days=2)
@@ -32,9 +34,16 @@ def generate_default_date_range():
 
 def nam_download():
     from metgetlib.ncepnamdownloader import NcepNamdownloader
+
     start, end = generate_default_date_range()
     nam = NcepNamdownloader(start, end)
-    print("[INFO]: Beginning to run NCEP-NAM from " + start.isoformat() + " to " + end.isoformat(), flush=True)
+    print(
+        "[INFO]: Beginning to run NCEP-NAM from "
+        + start.isoformat()
+        + " to "
+        + end.isoformat(),
+        flush=True,
+    )
     n = nam.download()
     print("[INFO]: NCEP-NAM complete. " + str(n) + " files downloaded", flush=True)
     return n
@@ -42,9 +51,16 @@ def nam_download():
 
 def gfs_download():
     from metgetlib.ncepgfsdownloader import NcepGfsdownloader
+
     start, end = generate_default_date_range()
     gfs = NcepGfsdownloader(start, end)
-    print("[INFO]: Beginning to run NCEP-GFS from " + start.isoformat() + " to " + end.isoformat(), flush=True)
+    print(
+        "[INFO]: Beginning to run NCEP-GFS from "
+        + start.isoformat()
+        + " to "
+        + end.isoformat(),
+        flush=True,
+    )
     n = gfs.download()
     print("[INFO]: NCEP-GFS complete. " + str(n) + " files downloaded", flush=True)
     return n
@@ -52,9 +68,16 @@ def gfs_download():
 
 def hwrf_download():
     from metgetlib.hwrfdownloader import HwrfDownloader
+
     start, end = generate_default_date_range()
     hwrf = HwrfDownloader(start, end)
-    print("[INFO]: Beginning to run HWRF from " + start.isoformat() + " to " + end.isoformat(), flush=True)
+    print(
+        "[INFO]: Beginning to run HWRF from "
+        + start.isoformat()
+        + " to "
+        + end.isoformat(),
+        flush=True,
+    )
     n = hwrf.download()
     print("[INFO]: HWRF complete. " + str(n) + " files downloaded", flush=True)
     return n
@@ -62,10 +85,21 @@ def hwrf_download():
 
 def nhc_download():
     from metgetlib.nhcdownloader import NhcDownloader
+
     nhc = NhcDownloader()
     print("[INFO:] Beginning downloading NHC data")
     n = nhc.download()
     print("[INFO]: NHC complete. " + str(n) + " files downloaded", flush=True)
+    return n
+
+
+def coamps_download():
+    from metgetlib.coampsdownloader import CoampsDownloader
+
+    coamps = CoampsDownloader()
+    print("[INFO]: Beginning downloading COAMPS data")
+    n = coamps.download()
+    print("[INFO]: COAMPS complete. " + str(n) + " files downloaded", flush=True)
     return n
 
 
@@ -90,16 +124,22 @@ def lambda_handler(event, context):
         n = hwrf_download()
     elif request_type == "nhc":
         n = nhc_download()
+    elif request_type == "coamps":
+        n = coamps_download()
 
     returndata = {
         "statusCode": 200,
-        "body": json.dumps({
-            "message": "download complete",
-            "service": request_type,
-            "nfiles": n
-        }),
+        "body": json.dumps(
+            {"message": "download complete", "service": request_type, "nfiles": n}
+        ),
     }
 
     print("[INFO]: Returning data: " + json.dumps(returndata, indent=2))
 
     return returndata
+
+
+if __name__ == "__main__":
+    context = ""
+    event = { "service": "coamps" }
+    lambda_handler(event, context)

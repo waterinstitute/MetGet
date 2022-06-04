@@ -28,7 +28,7 @@ class Namdownloader(NoaaDownloader):
     def __init__(self, dblocation, begin, end):
         address = "https://www.ncei.noaa.gov/data/north-american-mesoscale-model/access/forecast/"
         NoaaDownloader.__init__(self, "nam_fcst", "NAM", address, dblocation,
-                                begin, end)
+                                begin, end, use_aws_big_data=True)
         self.__downloadlocation = dblocation + "/" + self.mettype()
         self.__lastdate = self.begindate()
 

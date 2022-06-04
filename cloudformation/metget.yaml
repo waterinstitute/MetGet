@@ -1460,6 +1460,29 @@ Resources:
             MaximumEventAgeInSeconds: 900
     DependsOn:
      - LambdaGetData
+  
+  EventRunLambdaGfs:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Executes the event to get the COAMPS model data"
+      State: "ENABLED"
+      ScheduleExpression: "rate(15 minutes)"
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - "LambdaGetData"
+              - "Arn"
+          Id: !Sub "${AWS::StackName}-gfsLambdaEvent"
+          Input:
+            !Sub |
+            {
+              "service": "coamps"
+            }
+          RetryPolicy:
+            MaximumRetryAttempts: 0
+            MaximumEventAgeInSeconds: 900
+    DependsOn:
+      - LambdaGetData
 
   EventRunLambdaGfs:
     Type: "AWS::Events::Rule"
