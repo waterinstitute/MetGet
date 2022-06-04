@@ -1461,7 +1461,7 @@ Resources:
     DependsOn:
      - LambdaGetData
   
-  EventRunLambdaGfs:
+  EventRunLambdaCoamps:
     Type: "AWS::Events::Rule"
     Properties:
       Description: "Executes the event to get the COAMPS model data"
