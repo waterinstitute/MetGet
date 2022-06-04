@@ -28,7 +28,7 @@ class Gfsdownloader(NoaaDownloader):
     def __init__(self, dblocation, begin, end):
         address = "https://www.ncei.noaa.gov/data/global-forecast-system/access/grid-004-0.5-degree/forecast/"
         NoaaDownloader.__init__(self, "gfs_fcst", "GFS", address, dblocation,
-                                begin, end)
+                                begin, end,use_aws_big_data=True)
         self.__downloadlocation = dblocation + "/" + self.mettype()
 
     def download(self):
