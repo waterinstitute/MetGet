@@ -22,18 +22,22 @@
 # SOFTWARE.
 
 from metbuild.cloudwatch import CloudWatch
+
 logger = CloudWatch()
 
 # Function to genreate a date range
 def datespan(startDate, endDate, delta):
-    from datetime import datetime,timedelta
+    from datetime import datetime, timedelta
+
     currentDate = startDate
     while currentDate <= endDate:
         yield currentDate
         currentDate += delta
 
+
 def generate_datatype_key(data_type):
     import pymetbuild
+
     if data_type == "wind_pressure":
         return pymetbuild.WIND_PRESSURE
     elif data_type == "pressure":
@@ -54,6 +58,7 @@ def generate_datatype_key(data_type):
 
 def generate_data_source_key(data_source):
     import pymetbuild
+
     if data_source == "gfs-ncep":
         return pymetbuild.Meteorology.GFS
     elif data_source == "nam-ncep":
@@ -68,73 +73,83 @@ def generate_data_source_key(data_source):
 
 def generate_met_field(output_format, start, end, time_step, filename, compression):
     import pymetbuild
-    if output_format == "ascii" or output_format == "owi-ascii" or output_format == "adcirc-ascii":
-        return pymetbuild.OwiAscii(start,end,time_step,compression)
+
+    if (
+        output_format == "ascii"
+        or output_format == "owi-ascii"
+        or output_format == "adcirc-ascii"
+    ):
+        return pymetbuild.OwiAscii(start, end, time_step, compression)
     elif output_format == "owi-netcdf" or output_format == "adcirc-netcdf":
-        return pymetbuild.OwiNetcdf(start,end,time_step, filename)
+        return pymetbuild.OwiNetcdf(start, end, time_step, filename)
     elif output_format == "hec-netcdf":
-        return pymetbuild.RasNetcdf(start,end,time_step, filename)
+        return pymetbuild.RasNetcdf(start, end, time_step, filename)
     elif output_format == "delft3d":
-        return pymetbuild.DelftOutput(start,end,time_step,filename)
+        return pymetbuild.DelftOutput(start, end, time_step, filename)
     else:
-        raise RuntimeError("Invalid output format selected: "+output_format)
+        raise RuntimeError("Invalid output format selected: " + output_format)
 
 
 def generate_met_domain(inputData, met_object, index):
     import pymetbuild
+
     d = inputData.domain(index)
     output_format = inputData.format()
-    if output_format == "ascii" or output_format == "owi-ascii" or output_format == "adcirc-ascii":
+    if (
+        output_format == "ascii"
+        or output_format == "owi-ascii"
+        or output_format == "adcirc-ascii"
+    ):
         if inputData.data_type() == "wind_pressure":
-            fn1 = inputData.filename()+"_"+"{:02d}".format(index)+".pre"
-            fn2 = inputData.filename()+"_"+"{:02d}".format(index)+".wnd"
+            fn1 = inputData.filename() + "_" + "{:02d}".format(index) + ".pre"
+            fn2 = inputData.filename() + "_" + "{:02d}".format(index) + ".wnd"
             fns = [fn1, fn2]
         elif inputData.data_type() == "rain":
-            fns = [ inputData.filename()+".precip" ]
+            fns = [inputData.filename() + ".precip"]
         elif inputData.data_type() == "humidity":
-            fns = [ inputData.filename()+".humid" ]
+            fns = [inputData.filename() + ".humid"]
         elif inputData.data_type() == "ice":
-            fns = [ inputData.filename()+".ice" ]
+            fns = [inputData.filename() + ".ice"]
         else:
             raise RuntimeError("Invalid variable requested")
         if inputData.compression():
-            for i,s in enumerate(fns):
-                fns[i] = s+".gz"
-                
+            for i, s in enumerate(fns):
+                fns[i] = s + ".gz"
+
         met_object.addDomain(d.grid().grid_object(), fns)
     elif output_format == "owi-netcdf":
-        group = d.name() 
+        group = d.name()
         met_object.addDomain(d.grid().grid_object(), [group])
     elif output_format == "hec-netcdf":
         if inputData.data_type() == "wind_pressure":
-            variables = [ "wind_u", "wind_v", "mslp" ]
+            variables = ["wind_u", "wind_v", "mslp"]
         elif inputData.data_type() == "wind":
-            variables = [ "wind_u", "wind_v" ]
+            variables = ["wind_u", "wind_v"]
         elif inputData.data_type() == "rain":
-            variables = [ "rain" ]
+            variables = ["rain"]
         elif inputData.data_type() == "humidity":
-            variables = [ "humidity" ]
+            variables = ["humidity"]
         elif inputData.data_type() == "ice":
-            variables = [ "ice" ]
+            variables = ["ice"]
         else:
             raise RuntimeError("Invalid variable requested")
         met_object.addDomain(d.grid().grid_object(), variables)
     elif output_format == "delft3d":
         if inputData.data_type() == "wind_pressure":
-            variables = [ "wind_u", "wind_v", "mslp" ]
+            variables = ["wind_u", "wind_v", "mslp"]
         elif inputData.data_type() == "wind":
-            variables = [ "wind_u", "wind_v" ]
+            variables = ["wind_u", "wind_v"]
         elif inputData.data_type() == "rain":
-            variables = [ "rain" ]
+            variables = ["rain"]
         elif inputData.data_type() == "humidity":
-            variables = [ "humidity" ]
+            variables = ["humidity"]
         elif inputData.data_type() == "ice":
-            variables = [ "ice" ]
+            variables = ["ice"]
         else:
             raise RuntimeError("Invalid variable requested")
         met_object.addDomain(d.grid().grid_object(), variables)
     else:
-        raise RuntimeError("Invalid output format selected: "+output_format)
+        raise RuntimeError("Invalid output format selected: " + output_format)
 
 
 # Main function to process the message and create the output files and post to S3
@@ -153,20 +168,24 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
     filelist_name = "filelist.json"
 
-    
     db = Database()
 
     if json_file:
-        logger.info("Processing message from file: "+json_file)
+        logger.info("Processing message from file: " + json_file)
         with open(json_file) as f:
             json_data = json.load(f)
-        inputData = Input(json_data,None,None,None)
+        inputData = Input(json_data, None, None, None)
     else:
-        logger.info("Processing message with id: "+json_message["MessageId"])
+        logger.info("Processing message with id: " + json_message["MessageId"])
         messageId = json_message["MessageId"]
-        logger.info(json_message['Body'])
-        inputData = Input(json.loads(json_message['Body']), logger, queue, json_message["ReceiptHandle"])
-        
+        logger.info(json_message["Body"])
+        inputData = Input(
+            json.loads(json_message["Body"]),
+            logger,
+            queue,
+            json_message["ReceiptHandle"],
+        )
+
     start_date = inputData.start_date()
     start_date_pmb = inputData.start_date_pmb()
     end_date = inputData.end_date()
@@ -175,7 +194,14 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
     s3 = S3file(os.environ["OUTPUT_BUCKET"])
 
-    met_field = generate_met_field(inputData.format(), start_date_pmb, end_date_pmb, time_step, inputData.filename(), inputData.compression())
+    met_field = generate_met_field(
+        inputData.format(),
+        start_date_pmb,
+        end_date_pmb,
+        time_step,
+        inputData.filename(),
+        inputData.compression(),
+    )
 
     nowcast = inputData.nowcast()
     multiple_forecasts = inputData.multiple_forecasts()
@@ -185,77 +211,104 @@ def process_message(json_message, queue, json_file=None) -> bool:
     domain_data = []
     ongoing_restore = False
     db_files = []
-    #...Take a first pass on the data and check for restore status
+    # ...Take a first pass on the data and check for restore status
     for i in range(inputData.num_domains()):
-      generate_met_domain(inputData, met_field, i) 
-      d = inputData.domain(i)
-      f = db.generate_file_list(d.service(),inputData.data_type(),start_date,end_date,d.storm(),nowcast,multiple_forecasts) 
-      db_files.append(f)
-      if len(f) < 2:
-        logger.error("No data found for domain "+str(i)+". Giving up.")
-        if not json_file:
-          logger.debug("Deleting message "+message["MessageId"]+" from the queue")
-          queue.delete_message(message["ReceiptHandle"])
-        sys.exit(1)
+        generate_met_domain(inputData, met_field, i)
+        d = inputData.domain(i)
+        f = db.generate_file_list(
+            d.service(),
+            inputData.data_type(),
+            start_date,
+            end_date,
+            d.storm(),
+            nowcast,
+            multiple_forecasts,
+        )
+        db_files.append(f)
+        if len(f) < 2:
+            logger.error("No data found for domain " + str(i) + ". Giving up.")
+            if not json_file:
+                logger.debug(
+                    "Deleting message " + message["MessageId"] + " from the queue"
+                )
+                queue.delete_message(message["ReceiptHandle"])
+            sys.exit(1)
 
-      for item in f:
-        if d.service() == "coamps-tc":
-            files = item[1].split(",")
-            for ff in files:
-                ongoing_restore_this = db.check_initiate_restore(ff,d.service(),item[0])
+        for item in f:
+            if d.service() == "coamps-tc":
+                files = item[1].split(",")
+                for ff in files:
+                    ongoing_restore_this = db.check_initiate_restore(
+                        ff, d.service(), item[0]
+                    )
+                    if ongoing_restore_this:
+                        ongoing_restore = True
+            else:
+                ongoing_restore_this = db.check_initiate_restore(
+                    item[1], d.service(), item[0]
+                )
                 if ongoing_restore_this:
                     ongoing_restore = True
-        else:    
-          ongoing_restore_this = db.check_initiate_restore(item[1],d.service(),item[0])
-          if ongoing_restore_this:
-            ongoing_restore = True
-    
-    #...If restore ongoing, this is where we stop
+
+    # ...If restore ongoing, this is where we stop
     if ongoing_restore:
         if not json_file:
-            db.update_request_status(json_message["MessageId"], "restore", "Job is in archive restore status", json_message["Body"],False)
+            db.update_request_status(
+                json_message["MessageId"],
+                "restore",
+                "Job is in archive restore status",
+                json_message["Body"],
+                False,
+            )
         ff = met_field.filenames()
         for f in ff:
             os.remove(f)
         cleanup_temp_files(domain_data)
         return False
-   
-    #...Begin downloading data from s3
+
+    # ...Begin downloading data from s3
     for i in range(inputData.num_domains()):
-      d = inputData.domain(i)
-      f = db_files[i] 
-      if len(f) < 2:
-        logger.error("No data found for domain "+str(i)+". Giving up.")
-        if not json_file:
-          logger.debug("Deleting message "+message["MessageId"]+" from the queue")
-          queue.delete_message(message["ReceiptHandle"])
-        sys.exit(1)
+        d = inputData.domain(i)
+        f = db_files[i]
+        if len(f) < 2:
+            logger.error("No data found for domain " + str(i) + ". Giving up.")
+            if not json_file:
+                logger.debug(
+                    "Deleting message " + message["MessageId"] + " from the queue"
+                )
+                queue.delete_message(message["ReceiptHandle"])
+            sys.exit(1)
 
-      domain_data.append([])
-      for item in f:
-        if d.service() == "coamps-tc":  
-          files = item[1].split(",")
-          local_file_list = []
-          for ff in files:
-            local_file_list.append(db.get_file(ff, d.service(), item[0]))
-          domain_data[i].append({"time":item[0],"filepath":local_file_list})
-        else:    
-          local_file = db.get_file(item[1],d.service(),item[0])
-          domain_data[i].append({"time":item[0],"filepath":local_file})
-
+        domain_data.append([])
+        for item in f:
+            if d.service() == "coamps-tc":
+                files = item[1].split(",")
+                local_file_list = []
+                for ff in files:
+                    local_file_list.append(db.get_file(ff, d.service(), item[0]))
+                domain_data[i].append({"time": item[0], "filepath": local_file_list})
+            else:
+                local_file = db.get_file(item[1], d.service(), item[0])
+                domain_data[i].append({"time": item[0], "filepath": local_file})
 
     def get_next_file_index(time, domain_data):
         for i in range(len(domain_data)):
             if time <= domain_data[i]["time"]:
                 return i
-        return len(domain_data)-1
+        return len(domain_data) - 1
 
-    output_file_list=[]
-    files_used_list={}
+    output_file_list = []
+    files_used_list = {}
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
         source_key = generate_data_source_key(d.service())
-        met = pymetbuild.Meteorology(d.grid().grid_object(),source_key,data_type_key,inputData.backfill(),inputData.epsg())
+        met = pymetbuild.Meteorology(
+            d.grid().grid_object(),
+            source_key,
+            data_type_key,
+            inputData.backfill(),
+            inputData.epsg(),
+        )
 
         t0 = domain_data[i][0]["time"]
 
@@ -268,20 +321,22 @@ def process_message(json_message, queue, json_file=None) -> bool:
         t1_pmb = Input.date_to_pmb(t1)
         met.set_next_file(domain_data[i][0]["filepath"])
         if d.service() == "coamps-tc":
-          for ff in domain_data[i][0]["filepath"]:
-            domain_files_used.append(os.path.basename(ff))
-        else:    
-          domain_files_used.append(os.path.basename(domain_data[i][0]["filepath"]))
+            for ff in domain_data[i][0]["filepath"]:
+                domain_files_used.append(os.path.basename(ff))
+        else:
+            domain_files_used.append(os.path.basename(domain_data[i][0]["filepath"]))
 
         met.set_next_file(domain_data[i][index]["filepath"])
         met.process_data()
         if d.service() == "coamps-tc":
-          for ff in domain_data[i][index]["filepath"]:
-            domain_files_used.append(os.path.basename(ff))
-        else:    
-          domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
+            for ff in domain_data[i][index]["filepath"]:
+                domain_files_used.append(os.path.basename(ff))
+        else:
+            domain_files_used.append(
+                os.path.basename(domain_data[i][index]["filepath"])
+            )
 
-        for t in datespan(start_date,end_date,datetime.timedelta(seconds=time_step)): 
+        for t in datespan(start_date, end_date, datetime.timedelta(seconds=time_step)):
             if t > t1:
                 index = get_next_file_index(t, domain_data[i])
                 t0 = t1
@@ -289,47 +344,54 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 met.set_next_file(domain_data[i][index]["filepath"])
                 if t0 != t1:
                     if d.service() == "coamps-tc":
-                      for ff in domain_data[i][index]["filepath"]:
-                        domain_files_used.append(os.path.basename(ff))
-                    else:    
-                      domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
+                        for ff in domain_data[i][index]["filepath"]:
+                            domain_files_used.append(os.path.basename(ff))
+                    else:
+                        domain_files_used.append(
+                            os.path.basename(domain_data[i][index]["filepath"])
+                        )
                 met.process_data()
-            #print(i,index,len(domain_data[i]),t,t0,t1,end="",flush=True)
+            # print(i,index,len(domain_data[i]),t,t0,t1,end="",flush=True)
             if t < t0 or t > t1:
                 weight = -1.0
             else:
-                weight = met.generate_time_weight(Input.date_to_pmb(t0),
-                    Input.date_to_pmb(t1),Input.date_to_pmb(t))
-            #print(" -->  ",weight,flush=True)
+                weight = met.generate_time_weight(
+                    Input.date_to_pmb(t0), Input.date_to_pmb(t1), Input.date_to_pmb(t)
+                )
+            # print(" -->  ",weight,flush=True)
             if inputData.data_type() == "wind_pressure":
                 values = met.to_wind_grid(weight)
             else:
                 values = met.to_grid(weight)
-            met_field.write(Input.date_to_pmb(t),i,values)
+            met_field.write(Input.date_to_pmb(t), i, values)
 
-        files_used_list[inputData.domain(i).name()] =  domain_files_used
-        
+        files_used_list[inputData.domain(i).name()] = domain_files_used
+
     output_file_list = met_field.filenames()
-    met_field = None #...Closes all open files
+    met_field = None  # ...Closes all open files
 
-    output_file_dict = {"input": inputData.json(), "input_files":files_used_list, "output_files":output_file_list}
+    output_file_dict = {
+        "input": inputData.json(),
+        "input_files": files_used_list,
+        "output_files": output_file_list,
+    }
 
-    #...Posts the data out to the correct S3 location
+    # ...Posts the data out to the correct S3 location
     if not json_file:
         for f in output_file_list:
-            path = messageId+"/"+f
-            s3.upload_file(f,path)
+            path = messageId + "/" + f
+            s3.upload_file(f, path)
             os.remove(f)
 
-    with open(filelist_name,'w') as of:
-        of.write(json.dumps(output_file_dict,indent=2))
+    with open(filelist_name, "w") as of:
+        of.write(json.dumps(output_file_dict, indent=2))
 
     if json_file:
-        logger.info("Finished processing file: "+json_file)
+        logger.info("Finished processing file: " + json_file)
     else:
-        filelist_path = messageId+"/"+filelist_name
-        s3.upload_file(filelist_name,filelist_path)
-        logger.info("Finished processing message with id: "+json_message["MessageId"])
+        filelist_path = messageId + "/" + filelist_name
+        s3.upload_file(filelist_name, filelist_path)
+        logger.info("Finished processing message with id: " + json_message["MessageId"])
         os.remove(filelist_name)
 
     cleanup_temp_files(domain_data)
@@ -340,15 +402,16 @@ def process_message(json_message, queue, json_file=None) -> bool:
 def cleanup_temp_files(data):
     import os
     from os.path import exists
+
     for domain in data:
         for f in domain:
             if type(f["filepath"]) == list:
-              for ff in f["filepath"]:
-                if exists(ff):
-                  os.remove(ff)
-            else:    
-              if exists(f["filepath"]):
-                  os.remove(f["filepath"])
+                for ff in f["filepath"]:
+                    if exists(ff):
+                        os.remove(ff)
+            else:
+                if exists(f["filepath"]):
+                    os.remove(f["filepath"])
 
 
 def initialize_environment_variables():
@@ -356,17 +419,23 @@ def initialize_environment_variables():
     import boto3
     import requests
 
-    region = requests.get("http://169.254.169.254/latest/meta-data/placement/availability-zone").text[0:-1]
-    ec2 = boto3.client("ec2",region_name=region)
-    ssm = boto3.client("ssm",region_name=region)
-    stackname = ec2.describe_tags(Filters=[{"Name":"key","Values":["aws:cloudformation:stack-name"]}])["Tags"][0]["Value"]
-    dbpassword = ssm.get_parameter(Name=stackname+"-dbpassword")["Parameter"]["Value"]
-    dbusername = ssm.get_parameter(Name=stackname+"-dbusername")["Parameter"]["Value"]
-    dbserver = ssm.get_parameter(Name=stackname+"-dbserver")["Parameter"]["Value"]
-    dbname = ssm.get_parameter(Name=stackname+"-dbname")["Parameter"]["Value"]
-    bucket = ssm.get_parameter(Name=stackname+"-bucket")["Parameter"]["Value"]
-    outbucket = ssm.get_parameter(Name=stackname+"-outputbucket")["Parameter"]["Value"]
-    queue = ssm.get_parameter(Name=stackname+"-queue")["Parameter"]["Value"]
+    region = requests.get(
+        "http://169.254.169.254/latest/meta-data/placement/availability-zone"
+    ).text[0:-1]
+    ec2 = boto3.client("ec2", region_name=region)
+    ssm = boto3.client("ssm", region_name=region)
+    stackname = ec2.describe_tags(
+        Filters=[{"Name": "key", "Values": ["aws:cloudformation:stack-name"]}]
+    )["Tags"][0]["Value"]
+    dbpassword = ssm.get_parameter(Name=stackname + "-dbpassword")["Parameter"]["Value"]
+    dbusername = ssm.get_parameter(Name=stackname + "-dbusername")["Parameter"]["Value"]
+    dbserver = ssm.get_parameter(Name=stackname + "-dbserver")["Parameter"]["Value"]
+    dbname = ssm.get_parameter(Name=stackname + "-dbname")["Parameter"]["Value"]
+    bucket = ssm.get_parameter(Name=stackname + "-bucket")["Parameter"]["Value"]
+    outbucket = ssm.get_parameter(Name=stackname + "-outputbucket")["Parameter"][
+        "Value"
+    ]
+    queue = ssm.get_parameter(Name=stackname + "-queue")["Parameter"]["Value"]
 
     os.environ["DBPASS"] = dbpassword
     os.environ["DBUSER"] = dbusername
@@ -395,44 +464,95 @@ def main():
     instance = Instance()
     instance.enable_termination_protection()
 
-    if len(sys.argv)==2:
+    if len(sys.argv) == 2:
         jsonfile = sys.argv[1]
-        if os.path.exists(jsonfile): 
-            process_message(None,None,json_file=jsonfile)
+        if os.path.exists(jsonfile):
+            process_message(None, None, json_file=jsonfile)
         else:
-            print("[ERROR]: File "+jsonfile+" does not exist.")
+            print("[ERROR]: File " + jsonfile + " does not exist.")
             exit(1)
     else:
         queue = Queue(logger)
-        has_message,message = queue.get_next_message()
+        has_message, message = queue.get_next_message()
         if has_message:
             logger.debug("Found message in queue. Beginning to process")
-            try: 
+            try:
                 db = Database()
                 request_status = db.query_request_status(message["MessageId"])
                 if request_status["try"] > 4:
-                    db.update_request_status(message["MessageId"], "error", "Removed due to multiple failures", message["Body"],False)
-                    queue.delete_message(message["ReceiptHandle"])  
-                    logger.debug("Message "+message["MessageId"]+" has had multiple failures. It has been deleted from the queue")
+                    db.update_request_status(
+                        message["MessageId"],
+                        "error",
+                        "Removed due to multiple failures",
+                        message["Body"],
+                        False,
+                    )
+                    queue.delete_message(message["ReceiptHandle"])
+                    logger.debug(
+                        "Message "
+                        + message["MessageId"]
+                        + " has had multiple failures. It has been deleted from the queue"
+                    )
                 elif request_status["status"] == "error":
-                    queue.delete_message(message["ReceiptHandle"])  
-                    db.update_request_status(message["MessageId"], "error", "Job exited with error", message["Body"],False)
-                    logger.debug("Message "+message["MessageId"]+" has had an error. It has been deleted from the queue")
+                    queue.delete_message(message["ReceiptHandle"])
+                    db.update_request_status(
+                        message["MessageId"],
+                        "error",
+                        "Job exited with error",
+                        message["Body"],
+                        False,
+                    )
+                    logger.debug(
+                        "Message "
+                        + message["MessageId"]
+                        + " has had an error. It has been deleted from the queue"
+                    )
                 else:
-                    db.update_request_status(message["MessageId"], "running", "Job has begun running", message["Body"],True)
+                    db.update_request_status(
+                        message["MessageId"],
+                        "running",
+                        "Job has begun running",
+                        message["Body"],
+                        True,
+                    )
                     remove_message = process_message(message, queue)
                     if remove_message:
-                        db.update_request_status(message["MessageId"], "completed", "Job has completed successfully", message["Body"],False)
-                        logger.debug("Deleting message "+message["MessageId"]+" from the queue")
+                        db.update_request_status(
+                            message["MessageId"],
+                            "completed",
+                            "Job has completed successfully",
+                            message["Body"],
+                            False,
+                        )
+                        logger.debug(
+                            "Deleting message "
+                            + message["MessageId"]
+                            + " from the queue"
+                        )
                         queue.delete_message(message["ReceiptHandle"])
                     else:
-                        db.update_request_status(message["MessageId"], "restore", "Job is in archive restore status", message["Body"],False,True)
+                        db.update_request_status(
+                            message["MessageId"],
+                            "restore",
+                            "Job is in archive restore status",
+                            message["Body"],
+                            False,
+                            True,
+                        )
                         queue.release_message(message["ReceiptHandle"])
             except Exception as e:
-                logger.debug("Deleting message "+message["MessageId"]+" from the queue")
-                logger.debug("ERROR: "+str(e))
-                queue.delete_message(message["ReceiptHandle"])  
-                db.update_request_status(message["MessageId"], "error", "Job exited with uncaught error", message["Body"],False)
+                logger.debug(
+                    "Deleting message " + message["MessageId"] + " from the queue"
+                )
+                logger.debug("ERROR: " + str(e))
+                queue.delete_message(message["ReceiptHandle"])
+                db.update_request_status(
+                    message["MessageId"],
+                    "error",
+                    "Job exited with uncaught error",
+                    message["Body"],
+                    False,
+                )
                 print(str(e))
         else:
             logger.info("No message available in queue. Shutting down.")
