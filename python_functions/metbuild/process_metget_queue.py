@@ -287,11 +287,12 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 t0 = t1
                 t1 = domain_data[i][index]["time"]
                 met.set_next_file(domain_data[i][index]["filepath"])
-                if d.service() == "coamps-tc":
-                  for ff in domain_data[i][index]["filepath"]:
-                    domain_files_used.append(os.path.basename(ff))
-                else:    
-                  domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
+                if t0 != t1:
+                    if d.service() == "coamps-tc":
+                      for ff in domain_data[i][index]["filepath"]:
+                        domain_files_used.append(os.path.basename(ff))
+                    else:    
+                      domain_files_used.append(os.path.basename(domain_data[i][index]["filepath"]))
                 met.process_data()
             #print(i,index,len(domain_data[i]),t,t0,t1,end="",flush=True)
             if t < t0 or t > t1:
