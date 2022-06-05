@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 class Instance:
-
     def __init__(self):
         self.__instance_name = self.__get_instance_data("instanceId")
         self.__region = self.__get_instance_data("region")
@@ -37,16 +36,20 @@ class Instance:
 
     def disable_termination_protection(self):
         self.__termination_protection(False)
-    
-    def __termination_protection(self,value):
+
+    def __termination_protection(self, value):
         import boto3
+
         if not self.__is_spot_instance():
-            ec2 = boto3.resource('ec2',region_name=self.__region)
-            ec2.Instance(self.__instance_name).modify_attribute(DisableApiTermination={'Value': value})
+            ec2 = boto3.resource("ec2", region_name=self.__region)
+            ec2.Instance(self.__instance_name).modify_attribute(
+                DisableApiTermination={"Value": value}
+            )
 
     def __is_spot_instance(self):
         import boto3
-        ec2 = boto3.resource('ec2',region_name=self.__region)
+
+        ec2 = boto3.resource("ec2", region_name=self.__region)
         if ec2.Instance(self.__instance_name).spot_instance_request_id is None:
             return False
         else:
@@ -56,11 +59,12 @@ class Instance:
     def __get_instance_data(key):
         import requests
         import json
-        response = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
+
+        response = requests.get(
+            "http://169.254.169.254/latest/dynamic/instance-identity/document"
+        )
         data = json.loads(response.text)
         if key in data:
             return data[key]
         else:
-            raise "Could not find key "+key+" in instance metadata"
-
-
+            raise "Could not find key " + key + " in instance metadata"

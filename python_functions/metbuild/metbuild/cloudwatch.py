@@ -22,66 +22,79 @@
 # SOFTWARE.
 import boto3
 
+
 class CloudWatch:
     def __init__(self):
         from .instance import Instance
         from datetime import datetime
+
         inst = Instance()
         self.__region = inst.region()
-        self.__client = boto3.client("logs",region_name=self.__region)
+        self.__client = boto3.client("logs", region_name=self.__region)
         self.__instance = inst.name()
         self.__logGroup = "metget-stack01-loggroup"
-        self.__logStream = "metbuild_log_"+self.__instance
-        self.__epoch = datetime(1970,1,1,0,0,0)
+        self.__logStream = "metbuild_log_" + self.__instance
+        self.__epoch = datetime(1970, 1, 1, 0, 0, 0)
 
-        response = self.__client.describe_log_streams(logGroupName=self.__logGroup,logStreamNamePrefix=self.__logStream)
+        response = self.__client.describe_log_streams(
+            logGroupName=self.__logGroup, logStreamNamePrefix=self.__logStream
+        )
         if len(response["logStreams"]) == 0:
-            self.__client.create_log_stream(logGroupName=self.__logGroup,logStreamName=self.__logStream)
-
+            self.__client.create_log_stream(
+                logGroupName=self.__logGroup, logStreamName=self.__logStream
+            )
 
     def __get_sequence_token(self):
-        response = self.__client.describe_log_streams(logGroupName=self.__logGroup,logStreamNamePrefix=self.__logStream)
+        response = self.__client.describe_log_streams(
+            logGroupName=self.__logGroup, logStreamNamePrefix=self.__logStream
+        )
         if len(response["logStreams"]) > 0:
             if "uploadSequenceToken" in response["logStreams"][0]:
                 return response["logStreams"][0]["uploadSequenceToken"]
         return None
 
-
-    def __log(self,level,message):
+    def __log(self, level, message):
         from datetime import datetime
         import json
+
         event = [
-                    { 
-                        'timestamp': int((datetime.utcnow()-self.__epoch).total_seconds()*1000), 
-                        'message': json.dumps({ "instance": self.__instance, "level": level, "body": message })
-                    }
-                ]
+            {
+                "timestamp": int(
+                    (datetime.utcnow() - self.__epoch).total_seconds() * 1000
+                ),
+                "message": json.dumps(
+                    {"instance": self.__instance, "level": level, "body": message}
+                ),
+            }
+        ]
         for i in range(20):
             try:
                 token = self.__get_sequence_token()
                 if token:
-                   response = self.__client.put_log_events(logGroupName=self.__logGroup,
-                       logStreamName=self.__logStream,logEvents=event,sequenceToken=token)
+                    response = self.__client.put_log_events(
+                        logGroupName=self.__logGroup,
+                        logStreamName=self.__logStream,
+                        logEvents=event,
+                        sequenceToken=token,
+                    )
                 else:
-                   response = self.__client.put_log_events(logGroupName=self.__logGroup,
-                       logStreamName=self.__logStream,logEvents=event)
+                    response = self.__client.put_log_events(
+                        logGroupName=self.__logGroup,
+                        logStreamName=self.__logStream,
+                        logEvents=event,
+                    )
                 break
             except:
                 continue
 
+    def info(self, message):
+        self.__log("INFO", message)
 
-    
+    def error(self, message):
+        self.__log("ERROR", message)
 
-    def info(self,message):
-        self.__log("INFO",message)
+    def warning(self, message):
+        self.__log("WARNING", message)
 
-    def error(self,message):
-        self.__log("ERROR",message)
-
-    def warning(self,message):
-        self.__log("WARNING",message)
-
-    def debug(self,message):
-        self.__log("DEBUG",message)
-
-        
+    def debug(self, message):
+        self.__log("DEBUG", message)

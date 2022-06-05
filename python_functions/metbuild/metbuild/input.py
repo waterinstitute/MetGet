@@ -1,8 +1,10 @@
-VALID_DATA_TYPES = ["wind_pressure", "rain", "ice", "humidity", "temperature" ]
+VALID_DATA_TYPES = ["wind_pressure", "rain", "ice", "humidity", "temperature"]
+
 
 class Input:
     def __init__(self, json_data, log, queue, messageid):
         import uuid
+
         self.__json = json_data
         self.__data_type = "wind_pressure"
         self.__start_date = None
@@ -52,14 +54,15 @@ class Input:
     def date_to_pmb(date):
         from datetime import datetime
         import pymetbuild
-        return pymetbuild.Date(date.year,date.month,date.day,date.hour,date.minute)
+
+        return pymetbuild.Date(date.year, date.month, date.day, date.hour, date.minute)
 
     def start_date_pmb(self):
         return Input.date_to_pmb(self.__start_date)
-    
+
     def end_date(self):
         return self.__end_date
-    
+
     def end_date_pmb(self):
         return Input.date_to_pmb(self.__end_date)
 
@@ -92,6 +95,7 @@ class Input:
         import dateutil.parser
         from metbuild.domain import Domain
         from metbuild.cloudwatch import CloudWatch
+
         try:
             self.__version = self.__json["version"]
             self.__operator = self.__json["creator"]
@@ -133,15 +137,15 @@ class Input:
             for i in range(ndomain):
                 name = self.__json["domains"][i]["name"]
                 service = self.__json["domains"][i]["service"]
-                self.__domains.append(
-                    Domain(name, service, self.__json["domains"][i]))
+                self.__domains.append(Domain(name, service, self.__json["domains"][i]))
         except KeyError as e:
             if self.__log:
-                self.__log.error("Could not parse the input json data: ",e)
-                self.__log.debug("Deleting message "+self.__message+" from the queue")
+                self.__log.error("Could not parse the input json data: ", e)
+                self.__log.debug(
+                    "Deleting message " + self.__message + " from the queue"
+                )
             else:
-                print("[ERROR]: Could not parse the input json dataset: ",e)
+                print("[ERROR]: Could not parse the input json dataset: ", e)
             if self.__queue:
                 self.__queue.delete_message(self.__message)
             sys.exit(1)
-

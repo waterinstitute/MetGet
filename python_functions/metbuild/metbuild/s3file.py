@@ -29,8 +29,8 @@ from botocore.exceptions import ClientError
 class S3file:
     def __init__(self, bucket_name="metgetdata"):
         self.__bucket = bucket_name
-        self.__client = boto3.client('s3')
-        self.__resource = boto3.resource('s3')
+        self.__client = boto3.client("s3")
+        self.__resource = boto3.resource("s3")
 
     def upload_file(self, local_file, remote_path):
         """Upload a file to an S3 bucket
@@ -51,7 +51,7 @@ class S3file:
         try:
             self.__resource.Object(self.__bucket, path).load()
         except botocore.exceptions.ClientError as e:
-            if e.response['Error']['Code'] == "404":
+            if e.response["Error"]["Code"] == "404":
                 return False
             else:
                 # Something else has gone wrong.

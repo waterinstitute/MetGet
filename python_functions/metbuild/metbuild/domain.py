@@ -1,6 +1,7 @@
 class Domain:
     def __init__(self, name, service, json):
         from metbuild.windgrid import WindGrid
+
         self.__name = name
         self.__service = service
         self.__json = json
@@ -28,8 +29,7 @@ class Domain:
         if self.service() == "hwrf" or self.service() == "coamps-tc":
             if "storm" in self.__json:
                 self.__storm = self.__json["storm"]
-            else: 
+            else:
                 self.__valid = False
         else:
             self.__storm = None
-
