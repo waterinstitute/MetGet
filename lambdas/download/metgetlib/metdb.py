@@ -701,7 +701,9 @@ class Metdb:
         fdate = str(pair["forecastdate"])
         name = pair["name"]
         sqlhas = "SELECT Count(*) FROM coamps_tc where stormname = '{}' and forecastcycle = '{}' and forecasttime = '{}';".format(
-            name, cdate, fdate,
+            name,
+            cdate,
+            fdate,
         )
         sqlinsert = "INSERT INTO coamps_tc(stormname, forecastcycle, forecasttime, filepath, accessed) VALUES('{}', '{}', '{}', '{}', now());".format(
             name, cdate, fdate, filepath

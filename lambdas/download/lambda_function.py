@@ -141,5 +141,5 @@ def lambda_handler(event, context):
 
 if __name__ == "__main__":
     context = ""
-    event = { "service": "coamps" }
+    event = {"service": "coamps"}
     lambda_handler(event, context)

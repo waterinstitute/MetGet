@@ -29,8 +29,8 @@ from botocore.exceptions import ClientError
 class S3file:
     def __init__(self, bucket_name="metgetdata"):
         self.__bucket = bucket_name
-        self.__client = boto3.client('s3')
-        self.__resource = boto3.resource('s3')
+        self.__client = boto3.client("s3")
+        self.__resource = boto3.resource("s3")
 
     def upload_file(self, local_file, remote_path):
         """Upload a file to an S3 bucket
@@ -40,29 +40,33 @@ class S3file:
         """
         # Upload the file
         try:
-            response = self.__client.upload_file(local_file, self.__bucket, remote_path,
-                                                 ExtraArgs={'StorageClass': 'INTELLIGENT_TIERING'})
+            response = self.__client.upload_file(
+                local_file,
+                self.__bucket,
+                remote_path,
+                ExtraArgs={"StorageClass": "INTELLIGENT_TIERING"},
+            )
         except ClientError as e:
             print("[ERROR]: ", e, flush=True)
             return False
 
         return True
 
-
     def download_file(self, remote_path, local_path):
         try:
-            response = self.__client.download_file(self.__bucket,remote_path,local_path)
+            response = self.__client.download_file(
+                self.__bucket, remote_path, local_path
+            )
         except ClientError as e:
-            print("[ERROR]: ",e,flush=True)
+            print("[ERROR]: ", e, flush=True)
             return False
         return True
-
 
     def exists(self, path):
         try:
             self.__resource.Object(self.__bucket, path).load()
         except botocore.exceptions.ClientError as e:
-            if e.response['Error']['Code'] == "404":
+            if e.response["Error"]["Code"] == "404":
                 return False
             else:
                 # Something else has gone wrong.

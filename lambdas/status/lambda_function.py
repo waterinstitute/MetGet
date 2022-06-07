@@ -25,13 +25,20 @@ def query_database():
     import os
     import sys
     import json
+
     dbhost = os.environ["DBSERVER"]
     dbpassword = os.environ["DBPASS"]
     dbusername = os.environ["DBUSER"]
     dbname = "lambda_cache"
 
     try:
-        db = pymysql.connect(host=dbhost, user=dbusername, passwd=dbpassword, db=dbname, connect_timeout=5)
+        db = pymysql.connect(
+            host=dbhost,
+            user=dbusername,
+            passwd=dbpassword,
+            db=dbname,
+            connect_timeout=5,
+        )
         cursor = db.cursor()
     except:
         print("[ERROR]: Could not connect to MySQL database")
@@ -42,6 +49,7 @@ def query_database():
     query = cursor.fetchall()[0][0]
 
     return json.loads(query)
+
 
 def lambda_handler(event, context):
     import uuid
@@ -60,6 +68,6 @@ def lambda_handler(event, context):
             "request": rid,
             "response_time": ((datetime.now() - fn_start).total_seconds() * 1000.0),
             "accessed": str(datetime.now().isoformat()),
-            "data": data
+            "data": data,
         },
     }

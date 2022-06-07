@@ -1,6 +1,7 @@
 class Input:
     def __init__(self, json_data, log, queue, messageid, no_construct=False):
         import uuid
+
         self.__json = json_data
         self.__start_date = None
         self.__end_date = None
@@ -26,7 +27,7 @@ class Input:
 
     def valid(self):
         return self.__valid
-        
+
     def dry_run(self):
         return self.__dry_run
 
@@ -57,6 +58,7 @@ class Input:
     @staticmethod
     def date_to_pmb(date):
         import pymetbuild
+
         return pymetbuild.Date(date.year, date.month, date.day, date.hour, date.minute)
 
     def start_date_pmb(self):
@@ -93,6 +95,7 @@ class Input:
         import sys
         import dateutil.parser
         from metbuild.domain import Domain
+
         try:
             self.__version = self.__json["version"]
             self.__operator = self.__json["creator"]
@@ -103,7 +106,7 @@ class Input:
             self.__time_step = self.__json["time_step"]
             self.__filename = self.__json["filename"]
             self.__format = self.__json["format"]
-            
+
             if "dry_run" in self.__json.keys():
                 self.__dry_run = self.__json["dry_run"]
 
@@ -130,20 +133,21 @@ class Input:
             for i in range(ndomain):
                 name = self.__json["domains"][i]["name"]
                 service = self.__json["domains"][i]["service"]
-                d = Domain(name, service, self.__json["domains"][i], self.__no_construct)
+                d = Domain(
+                    name, service, self.__json["domains"][i], self.__no_construct
+                )
                 if d.valid():
                     self.__domains.append(d)
                 else:
                     if self.__log:
                         self.__log.error("Could not parse domain " + str(i))
                     self.__valid = False
-                    self.__error("Could not generate domain "+str(i))
+                    self.__error("Could not generate domain " + str(i))
 
         except Exception as e:
             if self.__log:
-                self.__log.error("Could not parse the input json data: "+str(e))
+                self.__log.error("Could not parse the input json data: " + str(e))
             else:
-                print("[ERROR]: Could not parse the input json dataset: "+str(e))
+                print("[ERROR]: Could not parse the input json dataset: " + str(e))
             self.__valid = False
-            self.__error.append("Could not parse the input json dataset: "+str(e))
-
+            self.__error.append("Could not parse the input json dataset: " + str(e))

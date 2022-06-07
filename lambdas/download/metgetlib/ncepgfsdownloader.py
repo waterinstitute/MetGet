@@ -27,8 +27,9 @@ from .noaadownloader import NoaaDownloader
 class NcepGfsdownloader(NoaaDownloader):
     def __init__(self, begin, end):
         address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/"
-        NoaaDownloader.__init__(self, "gfs_ncep", "GFS-NCEP", address,
-                                begin, end, use_aws_big_data=True)
+        NoaaDownloader.__init__(
+            self, "gfs_ncep", "GFS-NCEP", address, begin, end, use_aws_big_data=True
+        )
         self.add_download_variable("ICEC:surface", "ice")
         self.add_download_variable("PRATE", "precip_rate")
         self.add_download_variable("RH:30-0 mb above ground", "humidity")
@@ -38,7 +39,11 @@ class NcepGfsdownloader(NoaaDownloader):
 
     @staticmethod
     def _generate_prefix(date, hour) -> str:
-        return "gfs." + date.strftime("%Y%m%d") + "/{:02d}/atmos/gfs.t{:02d}z.pgrb2.0p25.f".format(hour, hour)
+        return (
+            "gfs."
+            + date.strftime("%Y%m%d")
+            + "/{:02d}/atmos/gfs.t{:02d}z.pgrb2.0p25.f".format(hour, hour)
+        )
 
     @staticmethod
     def _filename_to_hour(filename) -> int:

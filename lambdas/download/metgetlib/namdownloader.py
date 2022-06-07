@@ -27,8 +27,16 @@ from .noaadownloader import NoaaDownloader
 class Namdownloader(NoaaDownloader):
     def __init__(self, dblocation, begin, end):
         address = "https://www.ncei.noaa.gov/data/north-american-mesoscale-model/access/forecast/"
-        NoaaDownloader.__init__(self, "nam_fcst", "NAM", address, dblocation,
-                                begin, end, use_aws_big_data=True)
+        NoaaDownloader.__init__(
+            self,
+            "nam_fcst",
+            "NAM",
+            address,
+            dblocation,
+            begin,
+            end,
+            use_aws_big_data=True,
+        )
         self.__downloadlocation = dblocation + "/" + self.mettype()
         self.__lastdate = self.begindate()
 
@@ -36,6 +44,7 @@ class Namdownloader(NoaaDownloader):
         from .spyder import Spyder
         from datetime import datetime
         from .metdb import Metdb
+
         num_download = 0
         s = Spyder(self.address())
         db = Metdb(self.dblocation())
@@ -44,28 +53,35 @@ class Namdownloader(NoaaDownloader):
 
         month_links = s.filelist()
         for l in month_links:
-            dmin2 = datetime(self.begindate().year,
-                             self.begindate().month, 1, 0, 0, 0)
+            dmin2 = datetime(self.begindate().year, self.begindate().month, 1, 0, 0, 0)
             t = self.linkToTime(l)
             if t >= dmin2:
-                print("Processing directory for month: ", t.year, '-', t.month)
+                print("Processing directory for month: ", t.year, "-", t.month)
                 s2 = Spyder(l)
                 day_links = s2.filelist()
                 for ll in day_links:
                     t2 = self.linkToTime(ll)
 
-                    if (t2 < self.begindate() or t2 > self.enddate()) and t2 < self.__lastdate:
+                    if (
+                        t2 < self.begindate() or t2 > self.enddate()
+                    ) and t2 < self.__lastdate:
                         continue
 
-                    print("    Processing directory for day: ", t2.year, '-',
-                          t2.month, '-', t2.day)
+                    print(
+                        "    Processing directory for day: ",
+                        t2.year,
+                        "-",
+                        t2.month,
+                        "-",
+                        t2.day,
+                    )
                     lastdate = t2
                     s3 = Spyder(ll)
                     tmp_links = s3.filelist()
 
                     file_links = []
                     for f in tmp_links:
-                        dstr = f.rsplit('/', 1)[-1]
+                        dstr = f.rsplit("/", 1)[-1]
                         if "nam" not in dstr:
                             continue
                         file_links.append(f)
@@ -87,6 +103,7 @@ class Namdownloader(NoaaDownloader):
     def generateGrbInvPairs(glist):
         from datetime import datetime
         from datetime import timedelta
+
         pairs = []
         for i in range(0, len(glist), 2):
             v2 = glist[i].rsplit("/", 1)[-1]
@@ -98,10 +115,12 @@ class Namdownloader(NoaaDownloader):
             cdate = datetime(cyear, cmon, cday, chour, 0, 0)
             fdate = cdate + timedelta(hours=fhour)
             if len(glist) >= i + 2:
-                pairs.append({
-                    "grb": glist[i],
-                    "inv": glist[i + 1],
-                    "cycledate": cdate,
-                    "forecastdate": fdate
-                })
+                pairs.append(
+                    {
+                        "grb": glist[i],
+                        "inv": glist[i + 1],
+                        "cycledate": cdate,
+                        "forecastdate": fdate,
+                    }
+                )
         return pairs

@@ -45,6 +45,10 @@ class Isotach:
     def print(self, n=0):
         isoline = "Isotach".rjust(n)
         line = "{:d}: {:.1f} {:.1f} {:.1f} {:.1f}".format(
-            self.__speed, self.__distance[0], self.__distance[1],
-            self.__distance[2], self.__distance[3])
+            self.__speed,
+            self.__distance[0],
+            self.__distance[1],
+            self.__distance[2],
+            self.__distance[3],
+        )
         print(isoline, line)

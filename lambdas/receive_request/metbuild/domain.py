@@ -4,6 +4,7 @@ VALID_SERVICES = ["gfs-ncep", "nam-ncep", "hwrf"]
 class Domain:
     def __init__(self, name, service, json, no_construct=False):
         from metbuild.windgrid import WindGrid
+
         self.__valid = True
         self.__name = name
         self.__service = service
@@ -46,4 +47,3 @@ class Domain:
                 self.__valid = False
         else:
             self.__storm = None
-
