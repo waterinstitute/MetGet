@@ -35,6 +35,7 @@ class HwrfDownloader(NoaaDownloader):
     def download(self):
         from .spyder import Spyder
         from .metdb import Metdb
+
         num_download = 0
         s = Spyder(self.address())
         db = Metdb()
@@ -62,6 +63,7 @@ class HwrfDownloader(NoaaDownloader):
     def generateGrbInvPairs(glist):
         from datetime import datetime
         from datetime import timedelta
+
         pairs = []
         for i in range(0, len(glist)):
             v2 = glist[i].rsplit("/", 1)[-1]
@@ -75,11 +77,13 @@ class HwrfDownloader(NoaaDownloader):
             fhour = int(v4)
             cdate = datetime(cyear, cmon, cday, chour, 0, 0)
             fdate = cdate + timedelta(hours=fhour)
-            pairs.append({
-                "name": name,
-                "grb": glist[i],
-                "inv": glist[i] + ".idx",
-                "cycledate": cdate,
-                "forecastdate": fdate
-            })
+            pairs.append(
+                {
+                    "name": name,
+                    "grb": glist[i],
+                    "inv": glist[i] + ".idx",
+                    "cycledate": cdate,
+                    "forecastdate": fdate,
+                }
+            )
         return pairs

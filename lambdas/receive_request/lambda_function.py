@@ -26,11 +26,13 @@
 #
 def queue_name():
     import os
+
     return os.environ["QUEUE_NAME"]
 
 
 def region():
     import os
+
     return os.environ["AWS_REGION"]
 
 
@@ -73,16 +75,22 @@ def validate(json_data):
     db = Database()
     for i in range(input_data.num_domains()):
         d = input_data.domain(i)
-        lookup = db.generate_file_list(d.service(), input_data.start_date(), input_data.end_date(), d.storm(),
-                                       input_data.nowcast(), input_data.multiple_forecasts())
-                                       
-        if len(lookup)<2:
-            error.append("Insufficient data was available for domain "+str(i))
+        lookup = db.generate_file_list(
+            d.service(),
+            input_data.start_date(),
+            input_data.end_date(),
+            d.storm(),
+            input_data.nowcast(),
+            input_data.multiple_forecasts(),
+        )
+
+        if len(lookup) < 2:
+            error.append("Insufficient data was available for domain " + str(i))
             return False, error
             if input_data.strict():
                 return False, error
             continue
-                                       
+
         n_forecasts = count_forecasts(lookup)
         dt = check_time_step(lookup)
         forecast_hours = check_forecast_hours(lookup)
@@ -90,17 +98,25 @@ def validate(json_data):
         end_data_time = lookup[-1][0]
 
         if input_data.start_date() < start_data_time:
-            error.append("Specified start date is before the beginning of available data, domain " + str(i))
+            error.append(
+                "Specified start date is before the beginning of available data, domain "
+                + str(i)
+            )
             if input_data.strict():
                 return False, error
         if input_data.end_date() > end_data_time:
-            error.append("Specified end date is after the end of available data, domain " + str(i))
+            error.append(
+                "Specified end date is after the end of available data, domain "
+                + str(i)
+            )
             if input_data.strict():
                 return False, error
 
         if not input_data.multiple_forecasts():
             if n_forecasts > 1:
-                error.append("Did not satisfy request for a single forecast, domain " + str(i))
+                error.append(
+                    "Did not satisfy request for a single forecast, domain " + str(i)
+                )
                 if not input_data.strict():
                     return False, error
         elif input_data.nowcast():
@@ -123,17 +139,17 @@ def lambda_handler(event, context):
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    
+
     json_request = event["body-json"]
     json_request["api-key"] = event["context"]["api-key"]
     json_request["source-ip"] = event["context"]["source-ip"]
-    
+
     valid, error = validate(json_request)
 
     if valid:
-        
+
         input_data = Input(json_request, None, None, None, True)
-        
+
         msg = None
         status = 500
 
@@ -142,49 +158,52 @@ def lambda_handler(event, context):
                 msg = {"MessageId": "DRY-RUN"}
                 status = 200
             else:
-                client = boto3.client('sqs', region_name=region())
-                queue_url = client.get_queue_url(QueueName=queue_name())['QueueUrl']
+                client = boto3.client("sqs", region_name=region())
+                queue_url = client.get_queue_url(QueueName=queue_name())["QueueUrl"]
                 db = Database()
-                msg = client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(json_request))
+                msg = client.send_message(
+                    QueueUrl=queue_url, MessageBody=json.dumps(json_request)
+                )
                 db.add_request_to_queue(msg["MessageId"], json_request)
                 status = 200
         except Exception as e:
             error_message = str(e)
-            logger.error("Could not send the message to the queue. Message has been rejected")
+            logger.error(
+                "Could not send the message to the queue. Message has been rejected"
+            )
             status = 500
 
         if status == 200:
             return {
-                'statusCode': 200,
-                'body': {
+                "statusCode": 200,
+                "body": {
                     "status": "success",
                     "message": "Message received and added to queue",
                     "request_id": msg["MessageId"],
-                    "request_url": "https://metget-output.s3.amazonaws.com/" + msg["MessageId"],
-                    "error_text": "n/a"
-                }
+                    "request_url": "https://metget-output.s3.amazonaws.com/"
+                    + msg["MessageId"],
+                    "error_text": "n/a",
+                },
             }
         else:
             return {
-                'statusCode': 500,
-                'body': {
+                "statusCode": 500,
+                "body": {
                     "status": "error",
                     "message": "Message could not be added to the queue, system error",
                     "request_id": "n/a",
                     "request_url": "n/a",
-                    "error_text": error_message
-                }
+                    "error_text": error_message,
+                },
             }
     else:
         return {
-            'statusCode': 400,
-            'body': {
+            "statusCode": 400,
+            "body": {
                 "status": "error",
                 "message": "Input data contained an error",
                 "request_id": "n/a",
                 "request_url": "n/a",
-                "error_text": error
-            }
+                "error_text": error,
+            },
         }
-
-

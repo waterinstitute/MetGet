@@ -25,6 +25,7 @@
 class ForecastData:
     def __init__(self, pressure_method):
         from datetime import datetime
+
         self.__x = 0.0
         self.__y = 0.0
         self.__maxwind = 0.0
@@ -92,10 +93,12 @@ class ForecastData:
             self.__pressure = self.compute_pressure_ah77(self.__maxwind)
         elif self.__pressureMethod == "asgs2012":
             self.__pressure = self.compute_pressure_asgs2012(
-                self.__maxwind, vmax_global, last_vmax, last_pressure)
+                self.__maxwind, vmax_global, last_vmax, last_pressure
+            )
         elif self.__pressureMethod == "twoslope":
             self.__pressure = self.compute_pressure_twoslope(
-                self.__maxwind, last_vmax, last_pressure)
+                self.__maxwind, last_vmax, last_pressure
+            )
         else:
             raise RuntimeError("No valid pressure method found")
 
@@ -105,8 +108,7 @@ class ForecastData:
 
     @staticmethod
     def compute_pressure_dvorak(wind):
-        return ForecastData.compute_pressure_curvefit(wind, 1015.0, 3.92,
-                                                      0.644)
+        return ForecastData.compute_pressure_curvefit(wind, 1015.0, 3.92, 0.644)
 
     @staticmethod
     def compute_pressure_ah77(wind):
@@ -121,9 +123,11 @@ class ForecastData:
         background_pressure = 1013.0
 
         # Below from Courtney and Knaff 2009
-        vsrm1 = wind_speed * 1.5 * forward_speed ** 0.63
+        vsrm1 = wind_speed * 1.5 * forward_speed**0.63
 
-        rmax = 66.785 - 0.09102 * wind_speed + 1.0619 * (eye_latitude - 25.0)  # Knaff and Zehr 2007
+        rmax = (
+            66.785 - 0.09102 * wind_speed + 1.0619 * (eye_latitude - 25.0)
+        )  # Knaff and Zehr 2007
 
         # Two options for v500 ... I assume that vmax is
         # potentially more broadly applicable than r34
@@ -131,11 +135,14 @@ class ForecastData:
         # v500 = r34 / 9.0 - 3.0
 
         # option 2
-        v500 = wind_speed * ((66.785 - 0.09102 * wind_speed + 1.0619 * (eye_latitude - 25)) / 500) ** (
-                0.1147 + 0.0055 * wind_speed - 0.001 * (eye_latitude - 25))
+        v500 = wind_speed * (
+            (66.785 - 0.09102 * wind_speed + 1.0619 * (eye_latitude - 25)) / 500
+        ) ** (0.1147 + 0.0055 * wind_speed - 0.001 * (eye_latitude - 25))
 
         # Knaff and Zehr computes v500c
-        v500c = wind_speed * (rmax / 500) ** (0.1147 + 0.0055 * wind_speed - 0.001 * (eye_latitude - 25.0))
+        v500c = wind_speed * (rmax / 500) ** (
+            0.1147 + 0.0055 * wind_speed - 0.001 * (eye_latitude - 25.0)
+        )
 
         # Storm size parameter
         S = max(v500 / v500c, 0.4)
@@ -143,7 +150,13 @@ class ForecastData:
         if eye_latitude < 18.0:
             dp = 5.962 - 0.267 * vsrm1 - (vsrm1 / 18.26) ** 2.0 - 6.8 * S
         else:
-            dp = 23.286 - 0.483 * vsrm1 - (vsrm1 / 24.254) ** 2.0 - 12.587 * S - 0.483 * eye_latitude
+            dp = (
+                23.286
+                - 0.483 * vsrm1
+                - (vsrm1 / 24.254) ** 2.0
+                - 12.587 * S
+                - 0.483 * eye_latitude
+            )
 
         return dp + background_pressure
 
@@ -173,7 +186,8 @@ class ForecastData:
     @staticmethod
     def compute_pressure_asgs2012(wind, vmax_global, last_vmax, last_pressure):
         p = ForecastData.compute_initial_pressure_estimate_asgs(
-            wind, last_vmax, last_pressure)
+            wind, last_vmax, last_pressure
+        )
         if wind <= 35:
             if vmax_global > 39:
                 p = ForecastData.compute_pressure_dvorak(wind)
@@ -185,7 +199,8 @@ class ForecastData:
     @staticmethod
     def compute_pressure_twoslope(wind, last_vmax, last_pressure):
         p = ForecastData.compute_initial_pressure_estimate_asgs(
-            wind, last_vmax, last_pressure)
+            wind, last_vmax, last_pressure
+        )
         if wind < 30:
             p = last_pressure
 
@@ -196,6 +211,7 @@ class ForecastData:
 
     def set_isotach(self, speed, d1, d2, d3, d4):
         from .isotach import Isotach
+
         self.__isotach[speed] = Isotach(speed, d1, d2, d3, d4)
 
     def isotach(self, speed):
@@ -212,16 +228,13 @@ class ForecastData:
 
     def print(self):
         print("Forecast Data for: " + self.__time.strftime("%Y-%m-%d %HZ"))
-        print("          Storm Center: ",
-              "{:.2f}, {:.2f}".format(self.__x, self.__y))
+        print("          Storm Center: ", "{:.2f}, {:.2f}".format(self.__x, self.__y))
         print("              Max Wind: ", "{:.1f}".format(self.__maxwind))
         print("              Max Gust: ", "{:.1f}".format(self.__maxgust))
         print("              Pressure: ", "{:.1f}".format(self.__pressure))
-        print("         Forecast Hour: ",
-              "{:.1f}".format(self.__forecastHours))
+        print("         Forecast Hour: ", "{:.1f}".format(self.__forecastHours))
         if not self.__forward_speed == -999:
-            print("         Forward Speed: ",
-                  "{:.1f}".format(self.__forward_speed))
+            print("         Forward Speed: ", "{:.1f}".format(self.__forward_speed))
         if not self.__heading == -999:
             print("               Heading: ", "{:.1f}".format(self.__heading))
         print("    Number of Isotachs: ", self.nisotachs())

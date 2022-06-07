@@ -25,14 +25,20 @@ class Database:
         import sys
         import os
         import pymysql
+
         self.__dbhost = os.environ["DBSERVER"]
         self.__dbpassword = os.environ["DBPASS"]
         self.__dbusername = os.environ["DBUSER"]
         self.__dbname = os.environ["DBNAME"]
 
         try:
-            self.__db = pymysql.connect(host=self.__dbhost, user=self.__dbusername,
-                                        passwd=self.__dbpassword, db=self.__dbname, connect_timeout=5)
+            self.__db = pymysql.connect(
+                host=self.__dbhost,
+                user=self.__dbusername,
+                passwd=self.__dbpassword,
+                db=self.__dbname,
+                connect_timeout=5,
+            )
             self.__cursor = self.__db.cursor()
         except:
             print("[ERROR]: Could not connect to MySQL database")
@@ -42,20 +48,23 @@ class Database:
         return self.__cursor
 
     def generate_status(self):
-        jsondata = {'metget': {}}
-        jsondata['metget']['nam-ncep'] = self.generate_status_nam()
-        jsondata['metget']['gfs-ncep'] = self.generate_status_gfs()
-        jsondata['metget']['hwrf'] = self.generate_hwrf_status()
-        jsondata['metget']['coamps-tc'] = self.generate_coamps_status()
+        jsondata = {"metget": {}}
+        jsondata["metget"]["nam-ncep"] = self.generate_status_nam()
+        jsondata["metget"]["gfs-ncep"] = self.generate_status_gfs()
+        jsondata["metget"]["hwrf"] = self.generate_hwrf_status()
+        jsondata["metget"]["coamps-tc"] = self.generate_coamps_status()
         return jsondata
 
     @staticmethod
     def generate_record_period():
         from datetime import datetime
         from datetime import timedelta
+
         now = datetime.now()
         prev_month = now - timedelta(days=31)
-        prev_month = datetime(prev_month.year, prev_month.month, prev_month.day, 0, 0, 0)
+        prev_month = datetime(
+            prev_month.year, prev_month.month, prev_month.day, 0, 0, 0
+        )
         return str(prev_month), prev_month
 
     def generate_status_generic(self, table, desired_len):
@@ -64,7 +73,12 @@ class Database:
         search_period, search_period_date = Database.generate_record_period()
 
         self.cursor().execute(
-            "SELECT DISTINCT FORECASTCYCLE FROM " + table + " WHERE FORECASTCYCLE > '" + search_period + "' ORDER BY FORECASTCYCLE")
+            "SELECT DISTINCT FORECASTCYCLE FROM "
+            + table
+            + " WHERE FORECASTCYCLE > '"
+            + search_period
+            + "' ORDER BY FORECASTCYCLE"
+        )
 
         rows = self.cursor().fetchall()
         if len(rows) < 1:
@@ -77,7 +91,7 @@ class Database:
                 "latest_complete_forecast": None,
                 "latest_complete_forecast_start": None,
                 "latest_complete_forecast_end": None,
-                "latest_complete_forecast_length": None
+                "latest_complete_forecast_length": None,
             }
 
         cyc_min = rows[0][0]
@@ -93,8 +107,13 @@ class Database:
         last_available_length = None
         cycle_list = []
         for r in reversed(rows):
-            sql = "SELECT MIN(FORECASTTIME) AS FIRST, MAX(FORECASTTIME) AS LAST FROM " + table + " WHERE FORECASTCYCLE = '" + datetime.strftime(
-                r[0], "%Y-%m-%d %H:%M:%S") + "'"
+            sql = (
+                "SELECT MIN(FORECASTTIME) AS FIRST, MAX(FORECASTTIME) AS LAST FROM "
+                + table
+                + " WHERE FORECASTCYCLE = '"
+                + datetime.strftime(r[0], "%Y-%m-%d %H:%M:%S")
+                + "'"
+            )
             self.cursor().execute(sql)
             rr = self.cursor().fetchall()
             start = rr[0][0]
@@ -112,7 +131,9 @@ class Database:
                     latest_end = end.strftime("%Y-%m-%d %H:%M:%S")
                     latest_length = avail_len
 
-        sql = "SELECT MIN(FORECASTTIME) AS FIRST, MAX(FORECASTTIME) AS LAST FROM " + table
+        sql = (
+            "SELECT MIN(FORECASTTIME) AS FIRST, MAX(FORECASTTIME) AS LAST FROM " + table
+        )
         self.cursor().execute(sql)
         rows = self.cursor().fetchall()
         fcst_min = rows[0][0]
@@ -128,7 +149,7 @@ class Database:
             "latest_complete_forecast_start": latest_start,
             "latest_complete_forecast_end": latest_end,
             "latest_complete_forecast_length": latest_length,
-            "cycle_list": cycle_list
+            "cycle_list": cycle_list,
         }
 
     def generate_status_nam(self):
@@ -149,7 +170,11 @@ class Database:
         # Use SQL to generate a distinct list of storms and then
         # iterate over them to determine the available forecast data
         stormlist = []
-        self.cursor().execute("SELECT DISTINCT stormname from hwrf WHERE FORECASTCYCLE > '" + search_period + "'")
+        self.cursor().execute(
+            "SELECT DISTINCT stormname from hwrf WHERE FORECASTCYCLE > '"
+            + search_period
+            + "'"
+        )
         rows = self.cursor().fetchall()
         for row in rows:
             stormlist.append({"storm": row[0]})
@@ -158,14 +183,24 @@ class Database:
 
         # For each storm, determine the availability of data
         for s in stormlist:
-            sql = "SELECT FORECASTTIME FROM hwrf WHERE stormname = '" + s[
-                "storm"] + "' AND FORECASTCYCLE >= '"+search_period+"' ORDER BY FORECASTTIME"
+            sql = (
+                "SELECT FORECASTTIME FROM hwrf WHERE stormname = '"
+                + s["storm"]
+                + "' AND FORECASTCYCLE >= '"
+                + search_period
+                + "' ORDER BY FORECASTTIME"
+            )
             self.cursor().execute(sql)
             rows = self.cursor().fetchall()
             fcst_min = rows[0][0]
             fcst_max = rows[-1][0]
-            sql = "SELECT DISTINCT FORECASTCYCLE FROM hwrf WHERE stormname = '" + s[
-                "storm"] + "' AND FORECASTCYCLE >= '"+search_period+"' ORDER BY FORECASTCYCLE"
+            sql = (
+                "SELECT DISTINCT FORECASTCYCLE FROM hwrf WHERE stormname = '"
+                + s["storm"]
+                + "' AND FORECASTCYCLE >= '"
+                + search_period
+                + "' ORDER BY FORECASTCYCLE"
+            )
             self.cursor().execute(sql)
             rows = self.cursor().fetchall()
             cyc_min = rows[0][0]
@@ -180,52 +215,52 @@ class Database:
 
             # Backwards loop to see the most recent complete forecast cycle
             for f in reversed(rows):
-                sql = "SELECT MIN(FORECASTTIME) AS FIRST, MAX(FORECASTTIME) AS LAST FROM hwrf WHERE stormname = '" + s[
-                    "storm"] + "' AND FORECASTCYCLE = '" + datetime.strftime(f[0],
-                                                                             "%Y-%m-%d %H:%M:%S") + "' ORDER BY FORECASTTIME"
+                sql = (
+                    "SELECT MIN(FORECASTTIME) AS FIRST, MAX(FORECASTTIME) AS LAST FROM hwrf WHERE stormname = '"
+                    + s["storm"]
+                    + "' AND FORECASTCYCLE = '"
+                    + datetime.strftime(f[0], "%Y-%m-%d %H:%M:%S")
+                    + "' ORDER BY FORECASTTIME"
+                )
                 self.cursor().execute(sql)
                 r = self.cursor().fetchall()
                 start = r[0][0]
                 end = r[0][1]
                 avail_len = (end - start).total_seconds() / 3600
                 if avail_len >= 126 and f[0] >= search_period_date:
-                    cycle_list.append(f[0].strftime("%Y-%m-%d %H:%M:%S"), )
+                    cycle_list.append(
+                        f[0].strftime("%Y-%m-%d %H:%M:%S"),
+                    )
                     latest_start = start.strftime("%Y-%m-%d %H:%M:%S")
                     latest_end = end.strftime("%Y-%m-%d %H:%M:%S")
                     latest_length = avail_len
-                    time_since_forecast = (datetime.now() - f[0]).total_seconds() / 86400
+                    time_since_forecast = (
+                        datetime.now() - f[0]
+                    ).total_seconds() / 86400
                     if latest_complete == None:
                         latest_complete = f[0]
                         latest_complete_forecast_start = latest_start
                         latest_complete_forecast_end = latest_end
                         latest_complete_forecast_length = latest_length
-                    
-                    
+
             # Assemble a storm object
-            hwrf_stat.append({
-                "storm":
-                    s["storm"],
-                "min_forecast_date":
-                    date_or_null(fcst_min),
-                "max_forecast_date":
-                    date_or_null(fcst_max),
-                "first_available_cycle":
-                    date_or_null(cyc_min),
-                "last_available_cycle":
-                    date_or_null(cyc_max),
-                "latest_complete_forecast":
-                    date_or_null(latest_complete),
-                "latest_complete_forecast_start":
-                    latest_complete_forecast_start,
-                "latest_complete_forecast_end":
-                    latest_complete_forecast_end,
-                "latest_complete_forecast_length":
-                    latest_complete_forecast_length,
-                "cycle_list": cycle_list
-            })
+            hwrf_stat.append(
+                {
+                    "storm": s["storm"],
+                    "min_forecast_date": date_or_null(fcst_min),
+                    "max_forecast_date": date_or_null(fcst_max),
+                    "first_available_cycle": date_or_null(cyc_min),
+                    "last_available_cycle": date_or_null(cyc_max),
+                    "latest_complete_forecast": date_or_null(latest_complete),
+                    "latest_complete_forecast_start": latest_complete_forecast_start,
+                    "latest_complete_forecast_end": latest_complete_forecast_end,
+                    "latest_complete_forecast_length": latest_complete_forecast_length,
+                    "cycle_list": cycle_list,
+                }
+            )
 
         return hwrf_stat
-        
+
     def generate_coamps_status(self):
         """
         Generates the json status object from the database for the available COAMPS-TC data
@@ -238,7 +273,11 @@ class Database:
         # Use SQL to generate a distinct list of storms and then
         # iterate over them to determine the available forecast data
         stormlist = []
-        self.cursor().execute("SELECT DISTINCT stormname from coamps_tc WHERE FORECASTCYCLE > '" + search_period + "'")
+        self.cursor().execute(
+            "SELECT DISTINCT stormname from coamps_tc WHERE FORECASTCYCLE > '"
+            + search_period
+            + "'"
+        )
         rows = self.cursor().fetchall()
         for row in rows:
             stormlist.append({"storm": row[0]})
@@ -247,14 +286,24 @@ class Database:
 
         # For each storm, determine the availability of data
         for s in stormlist:
-            sql = "SELECT FORECASTTIME FROM coamps_tc WHERE stormname = '" + s[
-                "storm"] + "' AND FORECASTCYCLE >= '"+search_period+"' ORDER BY FORECASTTIME"
+            sql = (
+                "SELECT FORECASTTIME FROM coamps_tc WHERE stormname = '"
+                + s["storm"]
+                + "' AND FORECASTCYCLE >= '"
+                + search_period
+                + "' ORDER BY FORECASTTIME"
+            )
             self.cursor().execute(sql)
             rows = self.cursor().fetchall()
             fcst_min = rows[0][0]
             fcst_max = rows[-1][0]
-            sql = "SELECT DISTINCT FORECASTCYCLE FROM coamps_tc WHERE stormname = '" + s[
-                "storm"] + "' AND FORECASTCYCLE >= '"+search_period+"' ORDER BY FORECASTCYCLE"
+            sql = (
+                "SELECT DISTINCT FORECASTCYCLE FROM coamps_tc WHERE stormname = '"
+                + s["storm"]
+                + "' AND FORECASTCYCLE >= '"
+                + search_period
+                + "' ORDER BY FORECASTCYCLE"
+            )
             self.cursor().execute(sql)
             rows = self.cursor().fetchall()
             cyc_min = rows[0][0]
@@ -269,57 +318,56 @@ class Database:
 
             # Backwards loop to see the most recent complete forecast cycle
             for f in reversed(rows):
-                sql = "SELECT MIN(FORECASTTIME) AS FIRST, MAX(FORECASTTIME) AS LAST FROM coamps_tc WHERE stormname = '" + s[
-                    "storm"] + "' AND FORECASTCYCLE = '" + datetime.strftime(f[0],
-                                                                             "%Y-%m-%d %H:%M:%S") + "' ORDER BY FORECASTTIME"
+                sql = (
+                    "SELECT MIN(FORECASTTIME) AS FIRST, MAX(FORECASTTIME) AS LAST FROM coamps_tc WHERE stormname = '"
+                    + s["storm"]
+                    + "' AND FORECASTCYCLE = '"
+                    + datetime.strftime(f[0], "%Y-%m-%d %H:%M:%S")
+                    + "' ORDER BY FORECASTTIME"
+                )
                 self.cursor().execute(sql)
                 r = self.cursor().fetchall()
                 start = r[0][0]
                 end = r[0][1]
                 avail_len = (end - start).total_seconds() / 3600
                 if avail_len >= 126 and f[0] >= search_period_date:
-                    cycle_list.append(f[0].strftime("%Y-%m-%d %H:%M:%S"), )
+                    cycle_list.append(
+                        f[0].strftime("%Y-%m-%d %H:%M:%S"),
+                    )
                     latest_start = start.strftime("%Y-%m-%d %H:%M:%S")
                     latest_end = end.strftime("%Y-%m-%d %H:%M:%S")
                     latest_length = avail_len
-                    time_since_forecast = (datetime.now() - f[0]).total_seconds() / 86400
+                    time_since_forecast = (
+                        datetime.now() - f[0]
+                    ).total_seconds() / 86400
                     if latest_complete == None:
                         latest_complete = f[0]
                         latest_complete_forecast_start = latest_start
                         latest_complete_forecast_end = latest_end
                         latest_complete_forecast_length = latest_length
 
-                    
-                    
             # Assemble a storm object
-            coamps_stat.append({
-                "storm":
-                    s["storm"],
-                "min_forecast_date":
-                    date_or_null(fcst_min),
-                "max_forecast_date":
-                    date_or_null(fcst_max),
-                "first_available_cycle":
-                    date_or_null(cyc_min),
-                "last_available_cycle":
-                    date_or_null(cyc_max),
-                "latest_complete_forecast":
-                    date_or_null(latest_complete),
-                "latest_complete_forecast_start":
-                    latest_complete_forecast_start,
-                "latest_complete_forecast_end":
-                    latest_complete_forecast_end,
-                "latest_complete_forecast_length":
-                    latest_complete_forecast_length,
-                "cycle_list": cycle_list
-            })
+            coamps_stat.append(
+                {
+                    "storm": s["storm"],
+                    "min_forecast_date": date_or_null(fcst_min),
+                    "max_forecast_date": date_or_null(fcst_max),
+                    "first_available_cycle": date_or_null(cyc_min),
+                    "last_available_cycle": date_or_null(cyc_max),
+                    "latest_complete_forecast": date_or_null(latest_complete),
+                    "latest_complete_forecast_start": latest_complete_forecast_start,
+                    "latest_complete_forecast_end": latest_complete_forecast_end,
+                    "latest_complete_forecast_length": latest_complete_forecast_length,
+                    "cycle_list": cycle_list,
+                }
+            )
 
         return coamps_stat
-        
 
 
 def date_or_null(date):
     from datetime import datetime
+
     if not isinstance(date, datetime):
         return None
     else:
@@ -331,13 +379,20 @@ def write_to_cache(json_data):
     import os
     import sys
     import json
+
     dbhost = os.environ["DBSERVER"]
     dbpassword = os.environ["DBPASS"]
     dbusername = os.environ["DBUSER"]
     dbname = "lambda_cache"
 
     try:
-        db = pymysql.connect(host=dbhost, user=dbusername, passwd=dbpassword, db=dbname, connect_timeout=5)
+        db = pymysql.connect(
+            host=dbhost,
+            user=dbusername,
+            passwd=dbpassword,
+            db=dbname,
+            connect_timeout=5,
+        )
         cursor = db.cursor()
     except:
         print("[ERROR]: Could not connect to MySQL database")
@@ -355,4 +410,3 @@ def lambda_handler(event, context):
     s = db.generate_status()
     write_to_cache(s)
     return {"statusCode": 200}
-

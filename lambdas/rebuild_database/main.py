@@ -41,7 +41,9 @@ def rebuild_database():
         if next_marker == "":
             response = client.list_objects_v2(Bucket=bucket)
         else:
-            response = client.list_objects_v2(Bucket=bucket, ContinuationToken=next_marker)
+            response = client.list_objects_v2(
+                Bucket=bucket, ContinuationToken=next_marker
+            )
 
         has_next = response["IsTruncated"]
         if has_next:
@@ -60,7 +62,11 @@ def rebuild_database():
                 forecast_hour = int(fn[4][1:])
                 cycle_date = datetime(cycle_year, cycle_month, cycle_day, cycle_hour)
                 forecast_date = cycle_date + timedelta(hours=forecast_hour)
-                pair = {"cycledate": cycle_date, "forecastdate": forecast_date, "grb": "n/a"}
+                pair = {
+                    "cycledate": cycle_date,
+                    "forecastdate": forecast_date,
+                    "grb": "n/a",
+                }
             elif datatype == "nam_ncep":
                 cycle_year = int(split_path[1])
                 cycle_month = int(split_path[2])
@@ -70,7 +76,11 @@ def rebuild_database():
                 forecast_hour = int(fn[2][6:])
                 cycle_date = datetime(cycle_year, cycle_month, cycle_day, cycle_hour)
                 forecast_date = cycle_date + timedelta(hours=forecast_hour)
-                pair = {"cycledate": cycle_date, "forecastdate": forecast_date, "grb": "n/a"}
+                pair = {
+                    "cycledate": cycle_date,
+                    "forecastdate": forecast_date,
+                    "grb": "n/a",
+                }
             elif datatype == "hwrf":
                 cycle_year = int(split_path[1])
                 cycle_month = int(split_path[2])
@@ -81,12 +91,17 @@ def rebuild_database():
                 forecast_hour = int(fn[5][1:])
                 cycle_date = datetime(cycle_year, cycle_month, cycle_day, cycle_hour)
                 forecast_date = cycle_date + timedelta(hours=forecast_hour)
-                pair = {"cycledate": cycle_date, "forecastdate": forecast_date, "grb": "n/a", "name": storm_name}
+                pair = {
+                    "cycledate": cycle_date,
+                    "forecastdate": forecast_date,
+                    "grb": "n/a",
+                    "name": storm_name,
+                }
 
             db.add(pair, datatype, file["Key"])
 
     db.disconnect()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     rebuild_database()

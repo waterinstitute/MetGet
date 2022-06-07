@@ -40,25 +40,34 @@ class Spyder:
         """
         import requests
         from bs4 import BeautifulSoup
+
         try:
             r = requests.get(self.__url, timeout=30)
             if r.ok:
                 response_text = r.text
             else:
-                print("[WARNING]: Error contacting server: " + self.__url + ", Status:" + str(r.status_code),
-                      flush=True)
+                print(
+                    "[WARNING]: Error contacting server: "
+                    + self.__url
+                    + ", Status:"
+                    + str(r.status_code),
+                    flush=True,
+                )
                 return []
         except KeyboardInterrupt:
             raise
         except:
-            print("[WARNING]: Exception occured while contacting server: " + self.__url, flush=True)
+            print(
+                "[WARNING]: Exception occured while contacting server: " + self.__url,
+                flush=True,
+            )
             raise
 
-        soup = BeautifulSoup(response_text, 'html.parser')
+        soup = BeautifulSoup(response_text, "html.parser")
 
         links = []
-        for node in soup.find_all('a'):
-            linkaddr = node.get('href')
+        for node in soup.find_all("a"):
+            linkaddr = node.get("href")
             if not ("?" in linkaddr or not (linkaddr not in self.__url)):
                 links.append(self.__url + linkaddr)
         return links

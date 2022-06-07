@@ -30,66 +30,68 @@ def lambda_handler(event, context):
     from pymysql import MySQLError
     import boto3
     import os
+
     dbhost = os.environ["DBSERVER"]
     dbpassword = os.environ["DBPASS"]
     dbusername = os.environ["DBUSER"]
     dbname = os.environ["DBNAME"]
     bucket = os.environ["BUCKET_NAME"]
     try:
-        db = pymysql.connect(host=dbhost,
-                            user=dbusername,
-                            passwd=dbpassword,
-                            db=dbname,
-                            connect_timeout=5)
+        db = pymysql.connect(
+            host=dbhost,
+            user=dbusername,
+            passwd=dbpassword,
+            db=dbname,
+            connect_timeout=5,
+        )
         cursor = db.cursor()
     except MySQLError as e:
         return {
-            'statusCode': 500,
-            'body': {
+            "statusCode": 500,
+            "body": {
                 "status": "internal error",
-                "message": "The system could not connect to the database"
-            }
+                "message": "The system could not connect to the database",
+            },
         }
-        
-    try: 
+
+    try:
         request = event["request"]
-        sql = "select * from requests where request_id = '"+request+"';"
+        sql = "select * from requests where request_id = '" + request + "';"
         cursor.execute(sql)
         record = cursor.fetchone()
-    
+
         if record:
             tries = record[2]
             status = record[3]
             message = record[4]
             start = record[5]
             last = record[6]
-            destination = "https://"+bucket+".s3.amazonaws.com/" + request
+            destination = "https://" + bucket + ".s3.amazonaws.com/" + request
             return {
-                'statusCode': 200,
-                'body': {
+                "statusCode": 200,
+                "body": {
                     "status": status,
                     "message": message,
                     "tries": tries,
                     "start": str(start),
                     "last_update": str(last),
-                    "destination": destination
-                }
-            } 
+                    "destination": destination,
+                },
+            }
 
         else:
             return {
-                'statusCode': 400,
-                'body': {
+                "statusCode": 400,
+                "body": {
                     "status": "error",
-                    "message": "The requested record '"+request+"' was not found"
-                }
+                    "message": "The requested record '" + request + "' was not found",
+                },
             }
     except Exception as e:
         return {
-            'statusCode': 400,
-            'body': {
+            "statusCode": 400,
+            "body": {
                 "status": "error",
-                "error": "Could not process request, error was: "+str(e)
-            }
+                "error": "Could not process request, error was: " + str(e),
+            },
         }
-

@@ -84,13 +84,16 @@ class WindGrid:
                 ny = self.__json["nj"]
             if "predefined_domain" in self.__json.keys():
                 xinit, yinit, xend, yend, dx, dy = self.predefined_domain(
-                    self.__json["predefined_domain"])
+                    self.__json["predefined_domain"]
+                )
 
         if xinit is None or yinit is None:
             raise RuntimeError("Lower left corner not specified")
         if (xend is None or yend is None) and (nx is None or ny is None):
             raise RuntimeError("Must specify xur/yur or nx/ny")
-        if (xend is not None or yend is not None) and (nx is not None or ny is not None):
+        if (xend is not None or yend is not None) and (
+            nx is not None or ny is not None
+        ):
             raise RuntimeError("Cannot specify both xur/yur and nx/ny")
         if (xend is not None and yend is None) or (yend is not None and xend is None):
             raise RuntimeError("Must specify both of xur/yur")
@@ -103,15 +106,26 @@ class WindGrid:
         if dx is None or dy is None:
             raise RuntimeError("Must specify dx/dy")
 
-        if xinit is not None and yinit is not None and xend is not None and yend is not None:
+        if (
+            xinit is not None
+            and yinit is not None
+            and xend is not None
+            and yend is not None
+        ):
             if xend - xinit <= 0:
                 raise RuntimeError("x-init/x-end pair must be logical")
             if yend - yinit <= 0:
                 raise RuntimeError("y-init/y-end pair must be logical")
             if not self.__no_construct:
                 import pymetbuild
+
                 self.__wg = pymetbuild.WindGrid(xinit, yinit, xend, yend, dx, dy)
-        elif xinit is not None and yinit is not None and nx is not None and ny is not None:
+        elif (
+            xinit is not None
+            and yinit is not None
+            and nx is not None
+            and ny is not None
+        ):
             if nx <= 0:
                 raise RuntimeError("nx must be greater than 0")
             if ny <= 0:
@@ -120,5 +134,5 @@ class WindGrid:
                 rotation = 0.0
             if not self.__no_construct:
                 import pymetbuild
-                self.__wg = pymetbuild.WindGrid(xinit, yinit, nx, ny, dx, dy, rotation)
 
+                self.__wg = pymetbuild.WindGrid(xinit, yinit, nx, ny, dx, dy, rotation)

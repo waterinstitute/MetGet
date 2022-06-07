@@ -27,8 +27,16 @@ from .noaadownloader import NoaaDownloader
 class Gfsdownloader(NoaaDownloader):
     def __init__(self, dblocation, begin, end):
         address = "https://www.ncei.noaa.gov/data/global-forecast-system/access/grid-004-0.5-degree/forecast/"
-        NoaaDownloader.__init__(self, "gfs_fcst", "GFS", address, dblocation,
-                                begin, end,use_aws_big_data=True)
+        NoaaDownloader.__init__(
+            self,
+            "gfs_fcst",
+            "GFS",
+            address,
+            dblocation,
+            begin,
+            end,
+            use_aws_big_data=True,
+        )
         self.__downloadlocation = dblocation + "/" + self.mettype()
 
     def download(self):
@@ -36,17 +44,17 @@ class Gfsdownloader(NoaaDownloader):
         from datetime import datetime
         from .metdb import Metdb
         import os.path
+
         num_download = 0
         s = Spyder(self.address())
         db = Metdb(self.dblocation())
 
         month_links = s.filelist()
         for l in month_links:
-            dmin2 = datetime(self.begindate().year,
-                             self.begindate().month, 1, 0, 0, 0)
+            dmin2 = datetime(self.begindate().year, self.begindate().month, 1, 0, 0, 0)
             t = self.linkToTime(l)
             if t >= dmin2:
-                print("Processing directory for month: ", t.year, '-', t.month)
+                print("Processing directory for month: ", t.year, "-", t.month)
                 s2 = Spyder(l)
                 day_links = s2.filelist()
                 for ll in day_links:
@@ -55,8 +63,14 @@ class Gfsdownloader(NoaaDownloader):
                     if t2 < self.begindate() or t2 > self.enddate():
                         continue
 
-                    print("    Processing directory for day: ", t2.year, '-',
-                          t2.month, '-', t2.day)
+                    print(
+                        "    Processing directory for day: ",
+                        t2.year,
+                        "-",
+                        t2.month,
+                        "-",
+                        t2.day,
+                    )
                     s3 = Spyder(ll)
                     file_links = s3.filelist()
                     pairs = self.generateGrbInvPairs(file_links)
@@ -71,6 +85,7 @@ class Gfsdownloader(NoaaDownloader):
     def generateGrbInvPairs(glist):
         from datetime import datetime
         from datetime import timedelta
+
         pairs = []
         for i in range(0, len(glist), 2):
             v2 = glist[i].rsplit("/", 1)[-1]
@@ -83,10 +98,12 @@ class Gfsdownloader(NoaaDownloader):
             fdate = cdate + timedelta(hours=fhour)
 
             if len(glist) >= i + 2:
-                pairs.append({
-                    "grb": glist[i],
-                    "inv": glist[i + 1],
-                    "cycledate": cdate,
-                    "forecastdate": fdate
-                })
+                pairs.append(
+                    {
+                        "grb": glist[i],
+                        "inv": glist[i + 1],
+                        "cycledate": cdate,
+                        "forecastdate": fdate,
+                    }
+                )
         return pairs
