@@ -193,9 +193,12 @@ class Database:
                     latest_start = start.strftime("%Y-%m-%d %H:%M:%S")
                     latest_end = end.strftime("%Y-%m-%d %H:%M:%S")
                     latest_length = avail_len
-                    latest_complete = f[0]
                     time_since_forecast = (datetime.now() - f[0]).total_seconds() / 86400
-                    continue
+                    if latest_complete == None:
+                        latest_complete = f[0]
+                        latest_complete_forecast_start = latest_start
+                        latest_complete_forecast_end = latest_end
+                        latest_complete_forecast_length = latest_length
                     
                     
             # Assemble a storm object
@@ -213,11 +216,11 @@ class Database:
                 "latest_complete_forecast":
                     date_or_null(latest_complete),
                 "latest_complete_forecast_start":
-                    latest_start,
+                    latest_complete_forecast_start,
                 "latest_complete_forecast_end":
-                    latest_end,
+                    latest_complete_forecast_end,
                 "latest_complete_forecast_length":
-                    latest_length,
+                    latest_complete_forecast_length,
                 "cycle_list": cycle_list
             })
 
@@ -279,9 +282,13 @@ class Database:
                     latest_start = start.strftime("%Y-%m-%d %H:%M:%S")
                     latest_end = end.strftime("%Y-%m-%d %H:%M:%S")
                     latest_length = avail_len
-                    latest_complete = f[0]
                     time_since_forecast = (datetime.now() - f[0]).total_seconds() / 86400
-                    continue
+                    if latest_complete == None:
+                        latest_complete = f[0]
+                        latest_complete_forecast_start = latest_start
+                        latest_complete_forecast_end = latest_end
+                        latest_complete_forecast_length = latest_length
+
                     
                     
             # Assemble a storm object
@@ -299,11 +306,11 @@ class Database:
                 "latest_complete_forecast":
                     date_or_null(latest_complete),
                 "latest_complete_forecast_start":
-                    latest_start,
+                    latest_complete_forecast_start,
                 "latest_complete_forecast_end":
-                    latest_end,
+                    latest_complete_forecast_end,
                 "latest_complete_forecast_length":
-                    latest_length,
+                    latest_complete_forecast_length,
                 "cycle_list": cycle_list
             })
 
