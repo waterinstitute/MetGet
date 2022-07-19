@@ -26,7 +26,7 @@ from .noaadownloader import NoaaDownloader
 
 class HwrfDownloader(NoaaDownloader):
     def __init__(self, begin, end):
-        address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hur/prod/"
+        address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hwrf/prod/"
         NoaaDownloader.__init__(self, "hwrf", "HWRF", address, begin, end)
         self.add_download_variable("APCP", "accumulated_precip")
         self.add_download_variable("RH:2 m above ground", "humidity")
@@ -47,9 +47,12 @@ class HwrfDownloader(NoaaDownloader):
                 s2 = Spyder(l)
                 l2 = s2.filelist()
                 for ll in l2:
-                    if "hwrfprs.storm" in ll:
-                        if "idx" not in ll:
-                            files.append(ll)
+                    s3 = Spyder(ll)
+                    l3 = s3.filelist()
+                    for lll in l3:
+                        if "hwrfprs.storm" in lll:
+                            if "idx" not in lll:
+                                files.append(lll)
         pairs = self.generateGrbInvPairs(files)
         for p in pairs:
             fpath, n, _ = self.getgrib(p, p["cycledate"])
