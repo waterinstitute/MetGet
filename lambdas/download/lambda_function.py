@@ -65,6 +65,21 @@ def gfs_download():
     print("[INFO]: NCEP-GFS complete. " + str(n) + " files downloaded", flush=True)
     return n
 
+def gefs_download():
+    from metgetlib.ncepgefsdownloader import NcepGefsdownloader
+
+    start, end = generate_default_date_range()
+    gefs = NcepGefsdownloader(start, end)
+    print(
+        "[INFO]: Beginning to run NCEP-GEFS from "
+        + start.isoformat()
+        + " to "
+        + end.isoformat(),
+        flush=True,
+    )
+    n = gefs.download()
+    print("[INFO]: NCEP-GEFS complete. " + str(n) + " files downloaded", flush=True)
+    return n
 
 def hwrf_download():
     from metgetlib.hwrfdownloader import HwrfDownloader
@@ -120,6 +135,8 @@ def lambda_handler(event, context):
         n = nam_download()
     elif request_type == "gfs":
         n = gfs_download()
+    elif request_type == "gefs":
+        n = gefs_download()
     elif request_type == "hwrf":
         n = hwrf_download()
     elif request_type == "nhc":

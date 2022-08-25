@@ -73,6 +73,13 @@ class Metdb:
             "accessed DATETIME NOT NULL);"
         )
         cur.execute(
+            "CREATE TABLE IF NOT EXISTS gefs_fcst(id INTEGER PRIMARY KEY "
+            "AUTO_INCREMENT, forecastcycle DATETIME "
+            "NOT NULL, forecasttime DATETIME NOT NULL, ensemble_member VARCHAR(32) NOT NULL, "
+            "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, "
+            "accessed DATETIME NOT NULL);"
+        )
+        cur.execute(
             "CREATE TABLE IF NOT EXISTS nam_fcst(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, forecastcycle DATETIME "
             "NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, "
@@ -206,6 +213,14 @@ class Metdb:
         nrows = cur.fetchone()[0]
         return nrows > 0
 
+    def __has_gefs(self, pair):
+        sql = self.__generate_sql_gefs_ncep("None", pair)
+        db = self.connect()
+        cur = db.cursor()
+        cur.execute(sql["has"])
+        nrows = cur.fetchone()[0]
+        return nrows > 0
+
     def __has_generic(self, datatype, pair):
         sql = self.__generate_sql_generic(datatype, pair)
         db = self.connect()
@@ -230,6 +245,8 @@ class Metdb:
             sql = self.__generate_sql_nhc_fcst(filepath, pair)
         elif datatype == "nhc_btk":
             sql = self.__generate_sql_nhc_btk(filepath, pair)
+        elif datatype == "gefs_ncep":
+            sql = self.__generate_sql_gefs_ncep(filepath, pair)
         else:
             sql = self.__generate_sql_generic(datatype, filepath, pair)
 
@@ -524,6 +541,43 @@ class Metdb:
             + cdate
             + "','"
             + fdate
+            + "','"
+            + filepath
+            + "','"
+            + url
+            + "',now());"
+        )
+        sqlupdate = ""
+        return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
+
+    @staticmethod
+    def __generate_sql_gefs_ncep(filepath, pair):
+        cdate = str(pair["cycledate"])
+        fdate = str(pair["forecastdate"])
+        member = str(pair["ensemble_member"])
+        url = pair["grb"]
+        sqlhas = (
+            "SELECT Count(*) FROM "
+            + "gefs_fcst"
+            + " WHERE FORECASTCYCLE = '"
+            + cdate
+            + "' AND FORECASTTIME = '"
+            + fdate
+            + "' AND ENSEMBLE_MEMBER = '"
+            + member
+            + "' AND FILEPATH = '"
+            + filepath
+            + "';"
+        )
+        sqlinsert = (
+            "INSERT INTO "
+            + "gefs_fcst"
+            + " (FORECASTCYCLE,FORECASTTIME,ENSEMBLE_MEMBER,FILEPATH,URL,ACCESSED) VALUES('"
+            + cdate
+            + "','"
+            + fdate
+            + "','"
+            + member
             + "','"
             + filepath
             + "','"

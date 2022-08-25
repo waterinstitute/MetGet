@@ -139,12 +139,20 @@ class NoaaDownloader:
         for i in range(len(inventory_data)):
             if variable["long_name"] in inventory_data[i]:
                 start_bits = inventory_data[i].split(":")[1]
-                end_bits = inventory_data[i + 1].split(":")[1]
+                if i + 1 == len(inventory_data):
+                    end_bits = ""
+                else:
+                    end_bits = inventory_data[i + 1].split(":")[1]
                 return {"name": variable["name"], "start": start_bits, "end": end_bits}
+        return None
 
     def __get_inventory_big_data(self, info, client):
         inv_obj = client.get_object(Bucket=self.__big_data_bucket, Key=info["inv"])
-        inv_data = str(inv_obj["Body"].read().decode("utf-8")).split("\n")
+        inv_data_tmp = str(inv_obj["Body"].read().decode("utf-8")).split("\n")
+        inv_data = []
+        for line in inv_data_tmp:
+            if not line == "":
+                inv_data.append(line)
         byte_list = []
         for v in self.variables():
             byte_list.append(NoaaDownloader.__get_inventory_byte_list(inv_data, v))
@@ -190,11 +198,14 @@ class NoaaDownloader:
             grb_key = info["grb"]
             with open(local_file, "wb") as fid:
                 for r in byte_list:
-                    return_range = "bytes=" + r["start"] + "-" + r["end"]
-                    grb_obj = s3_client.get_object(
-                        Bucket=self.__big_data_bucket, Key=grb_key, Range=return_range
-                    )
-                    fid.write(grb_obj["Body"].read())
+                    if r:
+                        return_range = "bytes=" + r["start"] + "-" + r["end"]
+                        grb_obj = s3_client.get_object(
+                            Bucket=self.__big_data_bucket,
+                            Key=grb_key,
+                            Range=return_range,
+                        )
+                        fid.write(grb_obj["Body"].read())
             if self.use_aws():
                 self.s3file().upload_file(local_file, destination_folder + "/" + fn)
                 os.remove(local_file)
@@ -342,7 +353,7 @@ class NoaaDownloader:
     def _filename_to_hour(filename) -> int:
         raise RuntimeError("Override method not implemented")
 
-    def __download_aws_big_data(self):
+    def _download_aws_big_data(self):
         import boto3
         from .metdb import Metdb
         from datetime import datetime
@@ -394,7 +405,7 @@ class NoaaDownloader:
 
     def download(self):
         if self.__use_aws_big_data:
-            return self.__download_aws_big_data()
+            return self._download_aws_big_data()
         else:
             raise RuntimeError("Override method not implemented")
 
