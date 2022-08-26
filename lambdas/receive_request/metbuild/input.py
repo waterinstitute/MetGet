@@ -142,12 +142,15 @@ class Input:
                     if self.__log:
                         self.__log.error("Could not parse domain " + str(i))
                     self.__valid = False
-                    self.__error("Could not generate domain " + str(i))
+                    self.__error.append("Could not generate domain " + str(i))
 
         except Exception as e:
             if self.__log:
                 self.__log.error("Could not parse the input json data: " + str(e))
             else:
+                import traceback
+
+                print(traceback.format_exc())
                 print("[ERROR]: Could not parse the input json dataset: " + str(e))
             self.__valid = False
             self.__error.append("Could not parse the input json dataset: " + str(e))

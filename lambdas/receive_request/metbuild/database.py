@@ -35,29 +35,45 @@ class Database:
         return self.__bucket
 
     def generate_file_list(
-        self, service, start, end, storm, nowcast, multiple_forecasts
+        self,
+        service,
+        param,
+        start,
+        end,
+        storm,
+        nowcast,
+        multiple_forecasts,
+        ensemble_member,
     ):
         import sys
 
         if service == "gfs-ncep":
             return self.generate_generic_file_list(
-                "gfs_ncep", start, end, nowcast, multiple_forecasts
+                "gfs_ncep", param, start, end, nowcast, multiple_forecasts
             )
         elif service == "nam-ncep":
             return self.generate_generic_file_list(
-                "nam_ncep", start, end, nowcast, multiple_forecasts
+                "nam_ncep", param, start, end, nowcast, multiple_forecasts
             )
         elif service == "hwrf":
-            return self.generate_hwrf_file_list(start, end, storm)
+            return self.generate_storm_file_list(
+                "hwrf", start, end, storm, nowcast, multiple_forecasts
+            )
+        elif service == "coamps-tc":
+            return self.generate_storm_file_list(
+                "coamps_tc", start, end, storm, nowcast, multiple_forecasts
+            )
+        elif service == "gefs-ncep":
+            return self.generate_gefs_file_list(
+                ensemble_member, start, end, nowcast, multiple_forecasts
+            )
         else:
             print("ERROR: Invalid data type")
             sys.exit(1)
 
     def generate_generic_file_list(
-        self, table, start, end, nowcast, multiple_forecasts
+        self, table, param, start, end, nowcast, multiple_forecasts
     ):
-        from datetime import timedelta
-
         if nowcast:
             return self.generate_generic_file_list_nowcast(table, start, end)
         else:
@@ -146,17 +162,66 @@ class Database:
             return_list.append([f[2], f[3], f[1]])
         return return_list
 
-    def generate_hwrf_file_list(self, start, end, storm):
+    def generate_storm_file_list(
+        self, data_type, start, end, storm, nowcast, multiple_forecasts
+    ):
+        if nowcast:
+            return self.generate_storm_file_list_nowcast(data_type, start, end, storm)
+        else:
+            if multiple_forecasts:
+                return self.generate_storm_file_list_multiple_forecasts(
+                    data_type, start, end, storm
+                )
+            else:
+                return self.generate_storm_file_list_single_forecast(
+                    data_type, start, end, storm
+                )
 
+    def generate_storm_file_list_nowcast(self, data_type, start, end, storm):
         # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
         sql_tmptable = (
-            "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from hwrf where stormname = '"
+            "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
+            + data_type
+            + " where stormname = '"
             + storm
             + "';"
         )
         sql_tmptable2 = "create temporary table tmptbl2 select * from tmptbl1;"
         sql = (
-            "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1 "
+            "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1"
+            " t1 JOIN(select forecasttime, max(id) id FROM tmptbl2 group by forecasttime order by forecasttime) t2 "
+            "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecastcycle >= '"
+            + start.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND t1.forecastcycle <= '"
+            + end.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND t1.forecastcycle = t1.forecasttime;"
+        )
+        self.cursor().execute(sql_tmptable)
+        self.cursor().execute(sql_tmptable2)
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+
+        if rows:
+            for f in rows:
+                return_list.append([f[2], f[3], f[1]])
+
+        self.cursor().execute("drop temporary table tmptbl1;")
+        self.cursor().execute("drop temporary table tmptbl2;")
+        return return_list
+
+    def generate_storm_file_list_single_forecast(self, data_type, start, end, storm):
+        # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
+        sql_tmptable = (
+            "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
+            + data_type
+            + " where stormname = '"
+            + storm
+            + "';"
+        )
+        sql_tmptable2 = "create temporary table tmptbl2 select * from tmptbl1;"
+        sql = (
+            "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1"
             " t1 JOIN(select forecasttime, max(id) id FROM tmptbl2 group by forecasttime order by forecasttime) t2 "
             "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '"
             + start.strftime("%Y-%m-%d %H:%M:%S")
@@ -164,14 +229,70 @@ class Database:
             + end.strftime("%Y-%m-%d %H:%M:%S")
             + "';"
         )
+        self.cursor().execute(sql_tmptable)
+        self.cursor().execute(sql_tmptable2)
+        self.cursor().execute(sql)
+        row = self.cursor().fetchone()
 
+        if row:
+            first_time = row[1]
+        else:
+            self.cursor().execute("drop temporary table tmptbl1;")
+            self.cursor().execute("drop temporary table tmptbl2;")
+            return []
+
+        sql = (
+            "select id,forecastcycle,forecasttime,filepath from tmptbl1"
+            " where forecastcycle = '"
+            + first_time.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND forecasttime >= '"
+            + start.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND forecasttime <= '"
+            + end.strftime("%Y-%m-%d %H:%M:%S")
+            + "' order by forecasttime;"
+        )
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+
+        if rows:
+            for f in rows:
+                return_list.append([f[2], f[3], f[1]])
+
+        self.cursor().execute("drop temporary table tmptbl1;")
+        self.cursor().execute("drop temporary table tmptbl2;")
+        return return_list
+
+    def generate_storm_file_list_multiple_forecasts(self, data_type, start, end, storm):
+        # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
+        sql_tmptable = (
+            "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
+            + data_type
+            + " where stormname = '"
+            + storm
+            + "';"
+        )
+        sql_tmptable2 = "create temporary table tmptbl2 select * from tmptbl1;"
+        sql = (
+            "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1"
+            " t1 JOIN(select forecasttime, max(id) id FROM tmptbl2 group by forecasttime order by forecasttime) t2 "
+            "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '"
+            + start.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND t1.forecasttime <= '"
+            + end.strftime("%Y-%m-%d %H:%M:%S")
+            + "';"
+        )
         self.cursor().execute(sql_tmptable)
         self.cursor().execute(sql_tmptable2)
         self.cursor().execute(sql)
         rows = self.cursor().fetchall()
         return_list = []
-        for f in rows:
-            return_list.append([f[2], f[3], f[1]])
+
+        if rows:
+            for f in rows:
+                return_list.append([f[2], f[3], f[1]])
+        self.cursor().execute("drop temporary table tmptbl1;")
+        self.cursor().execute("drop temporary table tmptbl2;")
         return return_list
 
     def get_file(self, db_path, service, time, dry_run=False):
@@ -223,3 +344,131 @@ class Database:
         )
         self.cursor().execute(sql)
         self.__db.commit()
+
+    def check_apikey_authorized(self, key, service) -> bool:
+        service_dict = {"gfs-ncep": 3, "nam-ncep": 4, "hwrf": 5, "coamps-tc": 6}
+        sql = "select * from apikey_authorization where apikey = '{}';".format(key)
+        self.cursor().execute(sql)
+        row = self.cursor().fetchone()
+
+        if not row:
+            return True
+
+        if row[2] == 1:
+            return True
+
+        if service not in service_dict.keys():
+            return True
+
+        index = service_dict[service]
+        print(index)
+        if row[index] == 1:
+            return True
+        else:
+            return False
+
+    def generate_gefs_file_list(
+        self, ensemble_member, start, end, nowcast, multiple_forecasts
+    ):
+        table = "gefs-fcst"
+        if nowcast:
+            return self.generate_gefs_file_list_nowcast(
+                table, ensemble_member, start, end
+            )
+        else:
+            if multiple_forecasts:
+                return self.generate_gefs_file_list_multiple_forecasts(
+                    table, ensemble_member, start, end
+                )
+            else:
+                return self.generate_gefs_file_list_single_forecast(
+                    table, ensemble_member, start, end
+                )
+
+    def generate_gefs_file_list_nowcast(self, table, ensemble_member, start, end):
+        sql = (
+            "select t1.id,t1.ensemble_member,t1.forecastcycle,t1.forecasttime,t1.filepath from "
+            + table
+            + " t1 JOIN(select forecasttime, max(id) id FROM "
+            + table
+            + " group by forecasttime order by forecasttime) t2 "
+            "ON t1.id = t2.id AND t1.ensemble_member = '"
+            + ensemble_member
+            + "' AND t1.forecasttime = t2.forecasttime AND t1.forecastcycle >= '"
+            + start.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND t1.forecastcycle <= '"
+            + end.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND t1.forecastcycle = t1.forecasttime;"
+        )
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+        for f in rows:
+            return_list.append([f[2], f[3], f[1]])
+        return return_list
+
+    def generate_gefs_file_list_multiple_forecasts(
+        self, table, ensemble_member, start, end
+    ):
+        sql = (
+            "select t1.id,t1.ensemble_member,t1.forecastcycle,t1.forecasttime,t1.filepath from "
+            + table
+            + " t1 JOIN(select forecasttime, max(id) id FROM "
+            + table
+            + " group by forecasttime order by forecasttime) t2 "
+            "ON t1.id = t2.id AND t1.ensemble_member = '"
+            + ensemble_member
+            + "' AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '"
+            + start.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND t1.forecasttime <= '"
+            + end.strftime("%Y-%m-%d %H:%M:%S")
+            + "';"
+        )
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+        for f in rows:
+            return_list.append([f[2], f[3], f[1]])
+        return return_list
+
+    def generate_gefs_file_list_single_forecast(
+        self, table, ensemble_member, start, end
+    ):
+        sql = (
+            "select t1.id,t1.ensemble_member,t1.forecastcycle,t1.forecasttime,t1.filepath from "
+            + table
+            + " t1 JOIN(select forecasttime, max(id) id FROM "
+            + table
+            + " group by forecasttime order by forecasttime) t2 "
+            "ON t1.id = t2.id AND t1.ensemble_member = '"
+            + ensemble_member
+            + "' AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '"
+            + start.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND t1.forecasttime <= '"
+            + end.strftime("%Y-%m-%d %H:%M:%S")
+            + "';"
+        )
+        self.cursor().execute(sql)
+        row = self.cursor().fetchone()
+
+        first_time = row[1]
+
+        sql = (
+            "select id,ensemble_member,forecastcycle,forecasttime,filepath from "
+            + table
+            + " where ensemble_member = '"
+            + ensemble_member
+            + "' AND forecastcycle = '"
+            + first_time.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND forecasttime >= '"
+            + start.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND forecasttime <= '"
+            + end.strftime("%Y-%m-%d %H:%M:%S")
+            + "' order by forecasttime;"
+        )
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+        for f in rows:
+            return_list.append([f[2], f[3], f[1]])
+        return return_list

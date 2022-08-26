@@ -1,4 +1,4 @@
-VALID_SERVICES = ["gfs-ncep", "nam-ncep", "hwrf"]
+VALID_SERVICES = ["gfs-ncep", "gefs-ncep", "nam-ncep", "hwrf", "coamps-tc"]
 
 
 class Domain:
@@ -20,9 +20,13 @@ class Domain:
             raise
         self.__storm = None
         self.__get_storm()
+        self.__get_ensemble_member()
 
     def storm(self):
         return self.__storm
+
+    def ensemble_member(self):
+        return self.__ensemble_member
 
     def name(self):
         return self.__name
@@ -40,10 +44,19 @@ class Domain:
         return self.__valid
 
     def __get_storm(self):
-        if self.service() == "hwrf":
+        if self.service() == "hwrf" or self.service() == "coamps-tc":
             if "storm" in self.__json:
                 self.__storm = self.__json["storm"]
             else:
                 self.__valid = False
         else:
             self.__storm = None
+
+    def __get_ensemble_member(self):
+        if self.service() == "gefs-ncep":
+            if "ensemble_member" in self.__json:
+                self.__ensemble_member = self.__json["ensemble_member"]
+            else:
+                self.__valid = False
+        else:
+            self.__ensemble_member = None

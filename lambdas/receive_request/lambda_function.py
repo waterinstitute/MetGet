@@ -75,13 +75,26 @@ def validate(json_data):
     db = Database()
     for i in range(input_data.num_domains()):
         d = input_data.domain(i)
+
+        # ...Check if a user is authorized for a specific model request
+        is_authorized = db.check_apikey_authorized(json_data["api-key"], d.service())
+        if not is_authorized:
+            error.append("Specified api key not authorized for the requested model")
+            return False, error
+
+        if d.service() == "gefs-ncep" and not d.ensemble_member():
+            error.append("Must specify an ensemble member to use gefs")
+            return False, error
+
         lookup = db.generate_file_list(
             d.service(),
+            "none",
             input_data.start_date(),
             input_data.end_date(),
             d.storm(),
             input_data.nowcast(),
             input_data.multiple_forecasts(),
+            d.ensemble_member(),
         )
 
         if len(lookup) < 2:
