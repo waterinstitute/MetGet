@@ -35,7 +35,16 @@ class Metdb:
         self.__dbpassword = os.environ["DBPASS"]
         self.__dbusername = os.environ["DBUSER"]
         self.__dbname = os.environ["DBNAME"]
+        self.__gefs_cache = None
+        self.__persistent_connection = self.connect()
+        self.__persistent_cursor = self.__persistent_connection.cursor()
         self.__initdatabase()
+
+    def persistent_connection(self): 
+        return self.__persistent_connection
+
+    def persistent_cursor(self):
+        return self.__persistent_cursor
 
     def connect(self):
         import sys
@@ -52,70 +61,68 @@ class Metdb:
         except:
             print("[ERROR]: Could not connect to MySQL database")
             sys.exit(1)
+        
 
     def __initdatabase(self):
         """
         Initializes the database with the appropriate tables
         :return:
         """
-        db = self.connect()
-        cur = db.cursor()
-
-        cur.execute(
+        
+        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS gfs_ncep(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
             "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
         )
-        cur.execute(
+        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS gfs_fcst(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, forecastcycle DATETIME "
             "NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, "
             "accessed DATETIME NOT NULL);"
         )
-        cur.execute(
+        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS gefs_fcst(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, forecastcycle DATETIME "
             "NOT NULL, forecasttime DATETIME NOT NULL, ensemble_member VARCHAR(32) NOT NULL, "
             "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, "
             "accessed DATETIME NOT NULL);"
         )
-        cur.execute(
+        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS nam_fcst(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, forecastcycle DATETIME "
             "NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, "
             "accessed DATETIME NOT NULL);"
         )
-        cur.execute(
+        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS hwrf(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, stormname VARCHAR(256) NOT NULL, forecastcycle DATETIME "
             "NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, "
             "url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
         )
-        cur.execute(
+        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS nam_ncep(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
             "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
         )
-        cur.execute(
+        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS nhc_btk(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, storm_year INTEGER NOT NULL, basin VARCHAR(256) NOT NULL, storm INTEGER NOT NULL, "
             "advisory_start DATETIME NOT NULL, advisory_end DATETIME NOT NULL, "
             "advisory_duration_hr INT NOT NULL, filepath VARCHAR(256) NOT NULL, md5 VARCHAR(32) NOT NULL, "
             "accessed DATETIME NOT NULL);"
         )
-        cur.execute(
+        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS nhc_fcst(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, storm_year INTEGER NOT NULL, basin VARCHAR(256) NOT NULL, storm INTEGER NOT NULL, "
             "advisory VARCHAR(256) NOT NULL, advisory_start DATETIME NOT NULL, advisory_end DATETIME NOT NULL, "
             "advisory_duration_hr INT NOT NULL, filepath VARCHAR(256) NOT NULL, md5 VARCHAR(32) NOT NULL, "
             "accessed DATETIME NOT NULL);"
         )
-        cur.execute(
+        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS coamps_tc(id INTEGER PRIMARY KEY AUTO_INCREMENT, "
             "stormname VARCHAR(256) NOT NULL, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
             "filepath VARCHAR(512) NOT NULL, accessed DATETIME NOT NULL);"
         )
-        db.close()
 
     def get_nhc_md5(self, mettype, year, basin, storm, advisory=0):
         if mettype == "nhc_btk":
@@ -135,15 +142,12 @@ class Metdb:
             + str(storm)
             + ";"
         )
-        db = self.connect()
-        cur = db.cursor()
-        cur.execute(sql)
-        dat = cur.fetchone()
+        self.persistent_cursor().execute(sql)
+        dat = self.persistent_cursor().fetchone()
         if dat:
             md5 = dat[0]
         else:
             md5 = 0
-        db.close()
         return md5
 
     def get_nhc_fcst_md5(self, year, basin, storm, advisory):
@@ -158,18 +162,15 @@ class Metdb:
             + str(storm)
             + ";"
         )
-        db = self.connect()
-        cur = db.cursor()
-        cur.execute(sql)
-        dat = cur.fetchone()
+        self.persistent_cursor().execute(sql)
+        dat = self.persistent_cursor().fetchone()
         if dat:
             md5 = dat[0]
         else:
             md5 = 0
-        db.close()
         return md5
 
-    def has(self, datatype, pair):
+    def has(self, datatype, pair) -> bool:
         if datatype == "hwrf":
             return self.__has_hwrf(pair)
         elif datatype == "coamps":
@@ -178,55 +179,45 @@ class Metdb:
             return self.__has_nhc_fcst(pair)
         elif datatype == "nhc_btk":
             return self.__has_nhc_btk(pair)
+        elif datatype == "gefs_ncep":
+            return self.__has_gefs(pair)
         else:
             return self.__has_generic(datatype, pair)
 
-    def __has_hwrf(self, pair):
+    def __has_hwrf(self, pair) -> bool:
         sql = self.__generate_sql_hwrf("None", pair)
-        db = self.connect()
-        cur = db.cursor()
-        cur.execute(sql["has"])
-        nrows = cur.fetchone()[0]
+        self.persistent_cursor().execute(sql["has"])
+        nrows = self.persistent_cursor().fetchone()[0]
         return nrows > 0
 
-    def __has_coamps(self, pair):
+    def __has_coamps(self, pair) -> bool:
         sql = self.__generate_sql_coamps("None", pair)
-        db = self.connect()
-        cur = db.cursor()
-        cur.execute(sql["has"])
-        nrows = cur.fetchone()[0]
+        self.persistent_cursor().execute(sql["has"])
+        nrows = self.persistent_cursor().fetchone()[0]
         return nrows > 0
 
-    def __has_nhc_fcst(self, pair):
+    def __has_nhc_fcst(self, pair) -> bool:
         sql = self.__generate_sql_nhc_fcst("None", pair)
-        db = self.connect()
-        cur = db.cursor()
-        cur.execute(sql["has"])
-        nrows = cur.fetchone()[0]
+        self.persistent_cursor().execute(sql["has"])
+        nrows = self.persistent_cursor().fetchone()[0]
         return nrows > 0
 
-    def __has_nhc_btk(self, pair):
+    def __has_nhc_btk(self, pair) -> bool:
         sql = self.__generate_sql_nhc_btk(pair)
-        db = self.connect()
-        cur = db.cursor()
-        cur.execute(sql["has"])
-        nrows = cur.fetchone()[0]
+        self.persistent_cursor().execute(sql["has"])
+        nrows = self.persistent_cursor().fetchone()[0]
         return nrows > 0
 
-    def __has_gefs(self, pair):
+    def __has_gefs(self, pair) -> bool:
         sql = self.__generate_sql_gefs_ncep("None", pair)
-        db = self.connect()
-        cur = db.cursor()
-        cur.execute(sql["has"])
-        nrows = cur.fetchone()[0]
+        self.persistent_cursor().execute(sql["has"])
+        nrows = self.persistent_cursor().fetchone()[0]
         return nrows > 0
 
-    def __has_generic(self, datatype, pair):
+    def __has_generic(self, datatype, pair) -> bool:
         sql = self.__generate_sql_generic(datatype, pair)
-        db = self.connect()
-        cur = db.cursor()
-        cur.execute(sql["has"])
-        nrows = cur.fetchone()[0]
+        self.persistent_cursor().execute(sql["has"])
+        nrows = self.persistent_cursor().fetchone()[0]
         return nrows > 0
 
     def add(self, pair, datatype, filepath):
@@ -250,17 +241,14 @@ class Metdb:
         else:
             sql = self.__generate_sql_generic(datatype, filepath, pair)
 
-        db = self.connect()
-        cur = db.cursor()
-        cur.execute(sql["has"])
-        nrows = cur.fetchone()[0]
+        self.persistent_cursor().execute(sql["has"])
+        nrows = self.persistent_cursor().fetchone()[0]
         if nrows == 0:
-            cur.execute(sql["insert"])
+            self.persistent_cursor().execute(sql["insert"])
         elif nrows > 0 and datatype == "nhc_btk":
-            cur.execute(sql["update"])
+            self.persistent_cursor().execute(sql["update"])
 
-        db.commit()
-        db.close()
+        self.persistent_connection().commit()
 
     def status(self, jsonfile):
         """
@@ -298,7 +286,7 @@ class Metdb:
         db = self.connect()
 
         sql = "SELECT DISTINCT FORECASTCYCLE FROM " + table + " ORDER BY FORECASTCYCLE"
-        rows = db.execute(sql).fetchall()
+        rows = self.persistent_cursor().execute(sql).fetchall()
 
         if len(rows) < 1:
             return {
@@ -330,7 +318,7 @@ class Metdb:
                 + r[0]
                 + "')"
             )
-            rr = db.execute(sql).fetchall()
+            rr = self.persistent_cursor().execute(sql).fetchall()
             start = datetime.strptime(rr[0][0], "%Y-%m-%d %H:%M:%S")
             end = datetime.strptime(rr[0][1], "%Y-%m-%d %H:%M:%S")
             avail_len = (end - start).total_seconds() / 3600
@@ -343,7 +331,7 @@ class Metdb:
                 break
 
         sql = "SELECT MIN(DATE) AS FIRST, MAX(DATE) AS LAST FROM " + table
-        rows = db.execute(sql).fetchall()
+        rows = self.persistent_cursor().execute(sql).fetchall()
         fcst_min = rows[0][0]
         fcst_max = rows[0][1]
 
@@ -373,7 +361,7 @@ class Metdb:
         # iterate over them to determine the available forecast data
         sql = "SELECT DISTINCT stormname FROM hwrf"
         stormlist = []
-        rows = db.execute(sql).fetchall()
+        rows = self.persistent_cursor().execute(sql).fetchall()
         for row in rows:
             stormlist.append({"storm": row[0]})
 
@@ -386,7 +374,7 @@ class Metdb:
                 + s["storm"]
                 + "' ORDER BY DATE"
             )
-            rows = db.execute(sql).fetchall()
+            rows = self.persistent_cursor().execute(sql).fetchall()
             fcst_min = rows[0][0]
             fcst_max = rows[-1][0]
             sql = (
@@ -394,7 +382,7 @@ class Metdb:
                 + s["storm"]
                 + "' ORDER BY FORECASTCYCLE"
             )
-            rows = db.execute(sql).fetchall()
+            rows = self.persistent_cursor().execute(sql).fetchall()
             cyc_min = rows[0][0]
             cyc_max = rows[-1][0]
 
@@ -414,7 +402,7 @@ class Metdb:
                     + f[0]
                     + "') ORDER BY DATE"
                 )
-                r = db.execute(sql).fetchall()
+                r = self.persistent_cursor().execute(sql).fetchall()
                 start = datetime.strptime(r[0][0], "%Y-%m-%d %H:%M:%S")
                 end = datetime.strptime(r[0][1], "%Y-%m-%d %H:%M:%S")
                 avail_len = (end - start).total_seconds() / 3600
@@ -453,15 +441,12 @@ class Metdb:
         import sqlite3
         from .nhcdownloader import basin2string
 
-        db = sqlite3.connect(self.__db)
-
         nhc_btk_stat = []
         nhc_fcst_stat = []
         latest_forecast_advisory = 0
 
         sql = "SELECT DISTINCT year, basin, storm FROM nhc_fcst ORDER BY year, basin, storm, advisory;"
-        crsr = db.execute(sql)
-        for f in crsr:
+        for f in self.persistent_cursor().execute(sql):
             forecast_advisory_list = []
             yr = f[0]
             bs = f[1]
@@ -501,8 +486,7 @@ class Metdb:
             "SELECT DISTINCT year, basin, storm, advisory_start, advisory_end, advisory_duration_hr, accessed "
             "FROM nhc_btk ORDER BY year, basin, storm;"
         )
-        crsr = db.execute(sql)
-        for f in crsr:
+        for f in self.persistent_cursor().execute(sql):
             nhc_btk_stat.append(
                 {
                     "year": f[0],
@@ -556,6 +540,19 @@ class Metdb:
         fdate = str(pair["forecastdate"])
         member = str(pair["ensemble_member"])
         url = pair["grb"]
+        #sqlhas = (
+        #    "SELECT Count(*) FROM "
+        #    + "gefs_fcst"
+        #    + " WHERE FORECASTCYCLE = '"
+        #    + cdate
+        #    + "' AND FORECASTTIME = '"
+        #    + fdate
+        #    + "' AND ENSEMBLE_MEMBER = '"
+        #    + member
+        #    + "' AND FILEPATH = '"
+        #    + filepath
+        #    + "';"
+        #)
         sqlhas = (
             "SELECT Count(*) FROM "
             + "gefs_fcst"
@@ -565,8 +562,6 @@ class Metdb:
             + fdate
             + "' AND ENSEMBLE_MEMBER = '"
             + member
-            + "' AND FILEPATH = '"
-            + filepath
             + "';"
         )
         sqlinsert = (

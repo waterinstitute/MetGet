@@ -162,13 +162,6 @@ class NoaaDownloader:
         import tempfile
         import os
 
-        byte_list = self.__get_inventory_big_data(info, s3_client)
-        if not len(byte_list) == len(self.variables()):
-            print(
-                "[ERROR]: Could not gather the inventory or missing variables detected. Trying again later."
-            )
-            return None, 0, 1
-
         time = info["cycledate"]
         fn = info["grb"].rsplit("/")[-1]
         year = "{0:04d}".format(time.year)
@@ -179,12 +172,21 @@ class NoaaDownloader:
         local_file = tempfile.gettempdir() + "/" + fn
 
         if self.use_aws():
-            path_found = self.s3file().exists(destination_folder + "/" + fn)
+            path_found = self.__database.has(self.mettype(), info)
         else:
             path_found = os.path.exists(fn)
 
         if not path_found:
+            
+            #...Get the inventory data
+            byte_list = self.__get_inventory_big_data(info, s3_client)
+            if not len(byte_list) == len(self.variables()):
+                print(
+                    "[ERROR]: Could not gather the inventory or missing variables detected. Trying again later."
+                )
+                return None, 0, 1
             n = 1
+
             print(
                 "     Downloading File: "
                 + fn
@@ -355,9 +357,9 @@ class NoaaDownloader:
 
     def _download_aws_big_data(self):
         import boto3
-        from .metdb import Metdb
         from datetime import datetime
         from datetime import timedelta
+        from tqdm import tqdm
 
         s3 = boto3.resource("s3")
         client = boto3.client("s3")
@@ -392,9 +394,8 @@ class NoaaDownloader:
 
         nerror = 0
         num_download = 0
-        db = Metdb()
 
-        for p in pairs:
+        for p in tqdm(pairs):
             file_path, n, err = self.getgrib(p, client)
             nerror += err
             if file_path:
