@@ -56,9 +56,9 @@ void RasNetcdfDomain::initialize() {
   auto nx = this->grid()->ni();
   auto ny = this->grid()->nj();
 
-  const auto grid_unit = this->guessGridUnits(); 
+  const auto grid_unit = this->guessGridUnits();
 
-  if(grid_unit == "deg"){
+  if (grid_unit == "deg") {
     ncCheck(nc_def_dim(m_ncid, "lon", nx, &m_dimid_x));
     ncCheck(nc_def_dim(m_ncid, "lat", ny, &m_dimid_y));
   } else {
@@ -71,45 +71,49 @@ void RasNetcdfDomain::initialize() {
   const int twod[] = {m_dimid_y, m_dimid_x};
   const int threed[] = {m_dimid_time, m_dimid_y, m_dimid_x};
   const float float_fill = MeteorologicalData<1>::flag_value();
-  //const double double_fill = MeteorologicalData<1>::flag_value();
+  // const double double_fill = MeteorologicalData<1>::flag_value();
 
-  if(grid_unit == "deg"){
+  if (grid_unit == "deg") {
     // X
     ncCheck(nc_def_var(m_ncid, "lon", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));
-    //ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "longitude"));
+    // ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9,
+    // "longitude"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "long_name", 9, "Longitude"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", 12, "degrees_east"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "X"));
-    //ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
+    // ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_x, 1, 1, 2));
 
     // Y
     ncCheck(nc_def_var(m_ncid, "lat", NC_DOUBLE, 1, &m_dimid_y, &m_varid_y));
-    ////ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "latitude"));
+    ////ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8,
+    ///"latitude"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "long_name", 8, "Latitude"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", 13, "degrees_north"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "Y"));
-    //ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
+    // ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_y, 1, 1, 2));
   } else {
     // X
     ncCheck(nc_def_var(m_ncid, "x", NC_DOUBLE, 1, &m_dimid_x, &m_varid_x));
-    //ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "x"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "long_name", 34,
-                            "x coordinate"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", grid_unit.size(), &grid_unit[0]));
+    // ncCheck(nc_put_att_text(m_ncid, m_varid_x, "standard_name", 9, "x"));
+    ncCheck(
+        nc_put_att_text(m_ncid, m_varid_x, "long_name", 34, "x coordinate"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_x, "units", grid_unit.size(),
+                            &grid_unit[0]));
     ncCheck(nc_put_att_text(m_ncid, m_varid_x, "axis", 1, "X"));
-    //ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
+    // ncCheck(nc_def_var_fill(m_ncid, m_varid_x, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_x, 1, 1, 2));
 
     // Y
     ncCheck(nc_def_var(m_ncid, "y", NC_DOUBLE, 1, &m_dimid_y, &m_varid_y));
-    //ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "y"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "long_name", 34,
-                            "y coordinate"));
-    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", grid_unit.size(), &grid_unit[0]));
+    // ncCheck(nc_put_att_text(m_ncid, m_varid_y, "standard_name", 8, "y"));
+    ncCheck(
+        nc_put_att_text(m_ncid, m_varid_y, "long_name", 34, "y coordinate"));
+    ncCheck(nc_put_att_text(m_ncid, m_varid_y, "units", grid_unit.size(),
+                            &grid_unit[0]));
     ncCheck(nc_put_att_text(m_ncid, m_varid_y, "axis", 1, "Y"));
-    //ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
+    // ncCheck(nc_def_var_fill(m_ncid, m_varid_y, NC_FILL, &double_fill));
     ncCheck(nc_def_var_deflate(m_ncid, m_varid_y, 1, 1, 2));
   }
 
@@ -118,7 +122,7 @@ void RasNetcdfDomain::initialize() {
   ncCheck(nc_put_att_text(m_ncid, m_varid_z, "units", 6, "meters"));
   ncCheck(nc_put_att_text(m_ncid, m_varid_z, "long_name", 27,
                           "height above mean sea level"));
-  //ncCheck(nc_def_var_fill(m_ncid, m_varid_z, NC_FILL, &double_fill));
+  // ncCheck(nc_def_var_fill(m_ncid, m_varid_z, NC_FILL, &double_fill));
   ncCheck(nc_def_var_deflate(m_ncid, m_varid_z, 1, 1, 2));
 
   // TIME
@@ -126,24 +130,25 @@ void RasNetcdfDomain::initialize() {
       "minutes since " + this->startDate().toString("%F %T");
   ncCheck(
       nc_def_var(m_ncid, "time", NC_DOUBLE, 1, &m_dimid_time, &m_varid_time));
-  //ncCheck(nc_put_att_text(m_ncid, m_varid_time, "standard_name", 4, "time"));
+  // ncCheck(nc_put_att_text(m_ncid, m_varid_time, "standard_name", 4, "time"));
   ncCheck(nc_put_att_text(m_ncid, m_varid_time, "long_name", 4, "time"));
   ncCheck(nc_put_att_text(m_ncid, m_varid_time, "units",
                           referenceTimeString.size(), &referenceTimeString[0]));
   ncCheck(nc_put_att_text(m_ncid, m_varid_time, "axis", 1, "T"));
-  //ncCheck(nc_def_var_fill(m_ncid, m_varid_time, NC_FILL, &double_fill));
+  // ncCheck(nc_def_var_fill(m_ncid, m_varid_time, NC_FILL, &double_fill));
   ncCheck(nc_def_var_deflate(m_ncid, m_varid_time, 1, 1, 2));
 
   // CRS
-  if(grid_unit == "deg"){
+  if (grid_unit == "deg") {
     ncCheck(nc_def_var(m_ncid, "crs", NC_INT, 0, one, &m_varid_crs));
     ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "long_name", 27,
                             "coordinate reference system"));
     ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "grid_mapping_name", 18,
                             "latitude_longitude"));
     constexpr double zero = 0.0;
-    ncCheck(nc_put_att_double(m_ncid, m_varid_crs, "longitude_of_prime_meridian",
-                              NC_DOUBLE, 1, &zero));
+    ncCheck(nc_put_att_double(m_ncid, m_varid_crs,
+                              "longitude_of_prime_meridian", NC_DOUBLE, 1,
+                              &zero));
     constexpr double semi_major_axis = 6378137.0;
     ncCheck(nc_put_att_double(m_ncid, m_varid_crs, "semi_major_axis", NC_DOUBLE,
                               1, &semi_major_axis));
@@ -153,17 +158,18 @@ void RasNetcdfDomain::initialize() {
     constexpr std::string_view wkt =
         "GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS "
         "84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY["
-        "\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]]"
+        "\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\","
+        "\"8901\"]]"
         ",UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],"
         "AUTHORITY[\"EPSG\",\"4326\"]]";
-    ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "crs_wkt", wkt.size(), &wkt[0]));
+    ncCheck(
+        nc_put_att_text(m_ncid, m_varid_crs, "crs_wkt", wkt.size(), &wkt[0]));
     constexpr std::string_view proj4 =
         "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs";
     ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "proj4_params", proj4.size(),
                             &proj4[0]));
     ncCheck(nc_put_att_text(m_ncid, m_varid_crs, "epsg_code", 9, "EPSG:4326"));
   }
-
 
   this->m_varids.reserve(m_variables.size());
   for (const auto &v : m_variables) {
@@ -184,7 +190,7 @@ void RasNetcdfDomain::initialize() {
       units = "mb";
     } else if (v == "rain") {
       standard_name = "rainfall_rate";
-      long_name = "Total rainfall accumulation over 1 minute";
+      long_name = "Total rainfall accumulation over 1 hour";
       units = "mm";
     } else if (v == "humidity") {
       standard_name = "relative_humidity";
@@ -204,8 +210,8 @@ void RasNetcdfDomain::initialize() {
     ncCheck(nc_def_var(m_ncid, &v[0], NC_DOUBLE, 3, threed, &varid));
     ncCheck(nc_def_var_fill(m_ncid, varid, NC_FILL, &double_fill));
 #endif
-    //ncCheck(nc_put_att_text(m_ncid, varid, "standard_name",
-    //                        standard_name.size(), &standard_name[0]));
+    // ncCheck(nc_put_att_text(m_ncid, varid, "standard_name",
+    //                         standard_name.size(), &standard_name[0]));
     ncCheck(nc_put_att_text(m_ncid, varid, "long_name", long_name.size(),
                             &long_name[0]));
     ncCheck(nc_put_att_text(m_ncid, varid, "units", units.size(), &units[0]));
@@ -234,16 +240,15 @@ int RasNetcdfDomain::write(const MetBuild::Date &date,
   const size_t start_scalar[] = {m_counter};
   const size_t count_scalar[] = {1};
 
-
   ncCheck(nc_put_vara_double(m_ncid, m_varid_time, start_scalar, count_scalar,
                              minutes));
 
   const auto array = data.toVector(0);
   std::vector<MeteorologicalDataType> out_data;
   out_data.reserve(array.size());
-  if(m_variables[0] == "rain"){
-    for(const auto &v : array){
-      out_data.push_back(v*60.0);
+  if (m_variables[0] == "rain") {
+    for (const auto &v : array) {
+      out_data.push_back(v * static_cast<MeteorologicalDataType>(3600.0));
     }
   } else {
     out_data = array;

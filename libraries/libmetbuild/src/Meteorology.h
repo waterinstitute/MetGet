@@ -74,9 +74,13 @@ class Meteorology {
 
   static std::unique_ptr<GriddedData> gridded_data_factory(
       const std::vector<std::string> &filenames,
-      const Meteorology::SOURCE source);
+      Meteorology::SOURCE source);
 
-  MetBuild::Grid::grid reproject_grid(MetBuild::Grid::grid g) const;
+  [[nodiscard]] MetBuild::Grid::grid reproject_grid(
+      MetBuild::Grid::grid g) const;
+
+  [[nodiscard]] std::tuple<double, double> getScalingRates(
+      const GriddedDataTypes::VARIABLES &variable) const;
 
   constexpr static size_t c_idw_depth = 6;
 

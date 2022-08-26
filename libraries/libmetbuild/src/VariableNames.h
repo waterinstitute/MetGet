@@ -29,6 +29,9 @@
 #include <string>
 #include <utility>
 
+#include "Logging.h"
+#include "data_sources/GriddedDataTypes.h"
+
 namespace MetBuild {
 
 class VariableNames {
@@ -49,15 +52,38 @@ class VariableNames {
         m_temperature(std::move(temperature)),
         m_ice(std::move(ice)){};
 
-  std::string longitude() const { return m_longitude; }
-  std::string latitude() const { return m_latitude; }
-  std::string pressure() const { return m_pressure; }
-  std::string u10() const { return m_u10; }
-  std::string v10() const { return m_v10; }
-  std::string temperature() const { return m_temperature; }
-  std::string humidity() const { return m_humidity; }
-  std::string ice() const { return m_ice; }
-  std::string precipitation() const { return m_precipitation; }
+  [[nodiscard]] std::string longitude() const { return m_longitude; }
+  [[nodiscard]] std::string latitude() const { return m_latitude; }
+  [[nodiscard]] std::string pressure() const { return m_pressure; }
+  [[nodiscard]] std::string u10() const { return m_u10; }
+  [[nodiscard]] std::string v10() const { return m_v10; }
+  [[nodiscard]] std::string temperature() const { return m_temperature; }
+  [[nodiscard]] std::string humidity() const { return m_humidity; }
+  [[nodiscard]] std::string ice() const { return m_ice; }
+  [[nodiscard]] std::string precipitation() const { return m_precipitation; }
+
+  [[nodiscard]] std::string find_variable(
+      const GriddedDataTypes::VARIABLES &variable) const {
+    switch (variable) {
+      case GriddedDataTypes::VARIABLES::VAR_U10:
+        return u10();
+      case GriddedDataTypes::VARIABLES::VAR_V10:
+        return v10();
+      case GriddedDataTypes::VARIABLES::VAR_PRESSURE:
+        return pressure();
+      case GriddedDataTypes::VARIABLES::VAR_TEMPERATURE:
+        return temperature();
+      case GriddedDataTypes::VARIABLES::VAR_HUMIDITY:
+        return humidity();
+      case GriddedDataTypes::VARIABLES::VAR_ICE:
+        return ice();
+      case GriddedDataTypes::VARIABLES::VAR_RAINFALL:
+        return precipitation();
+      default:
+        Logging::throwError("Invalid variable type specified");
+        return "none";
+    }
+  }
 
  private:
   std::string m_longitude;

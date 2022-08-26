@@ -158,18 +158,8 @@ MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
     return r;
   }
 
-  // TODO: Need to reintroduce scaling value
-  //  m_scalarVariableName_1 = this->findScalarVariableName(m_file1);
-  //  if (m_scalarVariableName_1 == "apcp" || m_scalarVariableName_1 == "tp") {
-  //    m_rate_scaling_1 = 1.0 / static_cast<double>(Grib::getStepLength(
-  //                                 m_file1, m_scalarVariableName_1));
-  //  }
-  //
-  //  m_scalarVariableName_2 = this->findScalarVariableName(m_file2);
-  //  if (m_scalarVariableName_2 == "apcp" || m_scalarVariableName_2 == "tp") {
-  //    m_rate_scaling_2 = 1.0 / static_cast<double>(Grib::getStepLength(
-  //                                 m_file2, m_scalarVariableName_2));
-  //  }
+  std::tie(m_rate_scaling_1, m_rate_scaling_2) =
+      Meteorology::getScalingRates(m_variables[0]);
 
   this->process_data();
 
@@ -214,6 +204,20 @@ MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
   }
 
   return r;
+}
+
+std::tuple<double, double> Meteorology::getScalingRates(
+    const GriddedDataTypes::VARIABLES &variable) const {
+  const auto scalarVariableName =
+      m_gridded1->variableNames().find_variable(m_variables[0]);
+  if (scalarVariableName == "apcp" || scalarVariableName == "tp") {
+    return {1.0 / static_cast<double>(
+                      Grib::getStepLength(m_file1[0], scalarVariableName)),
+            1.0 / static_cast<double>(
+                      Grib::getStepLength(m_file2[0], scalarVariableName))};
+  } else {
+    return {1.0, 1.0};
+  }
 }
 
 MetBuild::MeteorologicalData<1, MetBuild::MeteorologicalDataType>
