@@ -215,7 +215,7 @@ class Metdb:
         return nrows > 0
 
     def __has_generic(self, datatype, pair) -> bool:
-        sql = self.__generate_sql_generic(datatype, pair)
+        sql = self.__generate_sql_generic(datatype, "None", pair)
         self.persistent_cursor().execute(sql["has"])
         nrows = self.persistent_cursor().fetchone()[0]
         return nrows > 0

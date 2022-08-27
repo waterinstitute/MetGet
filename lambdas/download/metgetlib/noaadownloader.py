@@ -172,7 +172,11 @@ class NoaaDownloader:
         local_file = tempfile.gettempdir() + "/" + fn
 
         if self.use_aws():
-            path_found = self.__database.has(self.mettype(), info)
+            if self.mettype() == "gefs_ncep":
+                path_found = self.__database.has(self.mettype(), info)
+            else:
+                path_found = self.s3file().exists(destination_folder + "/" + fn)
+
         else:
             path_found = os.path.exists(fn)
 
@@ -359,7 +363,6 @@ class NoaaDownloader:
         import boto3
         from datetime import datetime
         from datetime import timedelta
-        from tqdm import tqdm
 
         s3 = boto3.resource("s3")
         client = boto3.client("s3")
@@ -395,7 +398,7 @@ class NoaaDownloader:
         nerror = 0
         num_download = 0
 
-        for p in tqdm(pairs):
+        for p in pairs:
             file_path, n, err = self.getgrib(p, client)
             nerror += err
             if file_path:
