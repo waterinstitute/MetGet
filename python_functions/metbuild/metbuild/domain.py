@@ -18,6 +18,7 @@ class Domain:
             self.__valid = False
             raise
         self.__storm = None
+        self.__ensemble_member = None
         self.__get_storm()
         self.__get_ensemble_member()
 

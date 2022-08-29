@@ -61,6 +61,7 @@ set(METBUILD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GriddedData.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GriddedData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GfsData.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/GefsData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/NamData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/HwrfData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/data_sources/CoampsData.cpp

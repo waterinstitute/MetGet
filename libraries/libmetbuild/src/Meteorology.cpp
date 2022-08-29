@@ -37,6 +37,7 @@
 #include "Utilities.h"
 #include "data_sources/CoampsData.h"
 #include "data_sources/GfsData.h"
+#include "data_sources/GefsData.h"
 #include "data_sources/Grib.h"
 #include "data_sources/HwrfData.h"
 #include "data_sources/NamData.h"
@@ -386,6 +387,8 @@ std::unique_ptr<GriddedData> Meteorology::gridded_data_factory(
   switch (source) {
     case GFS:
       return std::make_unique<MetBuild::GfsData>(filenames[0]);
+    case GEFS:
+      return std::make_unique<MetBuild::GefsData>(filenames[0]);
     case NAM:
       return std::make_unique<MetBuild::NamData>(filenames[0]);
     case HWRF:

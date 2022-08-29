@@ -59,8 +59,10 @@ def generate_datatype_key(data_type):
 def generate_data_source_key(data_source):
     import pymetbuild
 
-    if data_source == "gfs-ncep" or data_source == "gefs-ncep":
+    if data_source == "gfs-ncep":
         return pymetbuild.Meteorology.GFS
+    elif data_source == "gefs-ncep":
+        return pymetbuild.Meteorology.GEFS
     elif data_source == "nam-ncep":
         return pymetbuild.Meteorology.NAM
     elif data_source == "hwrf":

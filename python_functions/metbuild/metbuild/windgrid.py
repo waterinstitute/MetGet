@@ -1,10 +1,18 @@
 class WindGrid:
-    def __init__(self, json=None):
+    def __init__(self, json=None,no_construct=None):
         import pymetbuild
 
         self.__json = json
         self.__wg = None
-        self.__construct()
+        self.__valid = True
+
+        try:
+            self.__construct()
+        except:
+            self.__valid = False
+
+    def valid(self):
+        return self.__valid
 
     def grid_object(self):
         return self.__wg
@@ -35,6 +43,9 @@ class WindGrid:
 
     def ny(self):
         return self.__wg.ny()
+
+    def valid(self):
+        return self.__valid
 
     @staticmethod
     def predefined_domain(predefined_domain_name):
