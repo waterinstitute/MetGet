@@ -59,7 +59,7 @@ def generate_datatype_key(data_type):
 def generate_data_source_key(data_source):
     import pymetbuild
 
-    if data_source == "gfs-ncep":
+    if data_source == "gfs-ncep" or data_source == "gefs-ncep":
         return pymetbuild.Meteorology.GFS
     elif data_source == "nam-ncep":
         return pymetbuild.Meteorology.NAM
@@ -215,6 +215,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
     for i in range(inputData.num_domains()):
         generate_met_domain(inputData, met_field, i)
         d = inputData.domain(i)
+        ensemble_member = inputData.domain(i).ensemble_member()
         f = db.generate_file_list(
             d.service(),
             inputData.data_type(),
@@ -223,6 +224,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
             d.storm(),
             nowcast,
             multiple_forecasts,
+            ensemble_member,
         )
         db_files.append(f)
         if len(f) < 2:

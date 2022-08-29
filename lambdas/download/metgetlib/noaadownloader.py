@@ -402,7 +402,7 @@ class NoaaDownloader:
             file_path, n, err = self.getgrib(p, client)
             nerror += err
             if file_path:
-                db.add(p, self.mettype(), file_path)
+                self.__database.add(p, self.mettype(), file_path)
                 num_download += n
 
         return num_download

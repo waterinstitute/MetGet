@@ -27,10 +27,8 @@ def generate_default_date_range():
     from datetime import timedelta
 
     start = datetime.utcnow()
-    #start = datetime(start.year, start.month, start.day, 0, 0, 0) - timedelta(days=1)
-    #end = start + timedelta(days=2)
-    start = datetime(start.year, start.month, start.day, 0, 0, 0) - timedelta(days=0)
-    end = start + timedelta(days=1)
+    start = datetime(start.year, start.month, start.day, 0, 0, 0) - timedelta(days=1)
+    end = start + timedelta(days=2)
     return start, end
 
 
