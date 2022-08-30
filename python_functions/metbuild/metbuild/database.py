@@ -258,8 +258,7 @@ class Database:
         self.cursor().execute(sql_tmptbl2)
         sql = (
             "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1"
-            + " t1 JOIN(select forecasttime, max(id) id FROM "
-            + table
+            + " t1 JOIN(select forecasttime, max(id) id FROM tmptbl2"
             + " group by forecasttime order by forecasttime) t2 "
             "ON t1.id = t2.id"
             + " AND t1.forecasttime = t2.forecasttime AND t1.forecastcycle >= '"
@@ -313,7 +312,7 @@ class Database:
         self.cursor().execute(sql_tmptbl2)
         sql = (
             "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1"
-            + " t1 JOIN(select forecasttime, max(id) id FROM tmptbl1"
+            + " t1 JOIN(select forecasttime, max(id) id FROM tmptbl2"
             + " group by forecasttime order by forecasttime) t2 "
             "ON t1.id = t2.id"
             + " AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '"
