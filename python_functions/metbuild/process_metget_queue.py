@@ -88,6 +88,8 @@ def generate_met_field(output_format, start, end, time_step, filename, compressi
         return pymetbuild.RasNetcdf(start, end, time_step, filename)
     elif output_format == "delft3d":
         return pymetbuild.DelftOutput(start, end, time_step, filename)
+    elif output_format == "raw":
+        return None
     else:
         raise RuntimeError("Invalid output format selected: " + output_format)
 
@@ -215,7 +217,8 @@ def process_message(json_message, queue, json_file=None) -> bool:
     db_files = []
     # ...Take a first pass on the data and check for restore status
     for i in range(inputData.num_domains()):
-        generate_met_domain(inputData, met_field, i)
+        if met_field:
+            generate_met_domain(inputData, met_field, i)
         d = inputData.domain(i)
         ensemble_member = inputData.domain(i).ensemble_member()
         f = db.generate_file_list(
@@ -264,10 +267,11 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 json_message["Body"],
                 False,
             )
-        ff = met_field.filenames()
-        for f in ff:
-            os.remove(f)
-        cleanup_temp_files(domain_data)
+        if met_field:
+            ff = met_field.filenames()
+            for f in ff:
+                os.remove(f)
+            cleanup_temp_files(domain_data)
         return False
 
     # ...Begin downloading data from s3
@@ -289,10 +293,19 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 files = item[1].split(",")
                 local_file_list = []
                 for ff in files:
-                    local_file_list.append(db.get_file(ff, d.service(), item[0]))
+                    local_file = db.get_file(ff, d.service(), item[0])
+                    if not met_field:
+                        new_file = os.path.basename(local_file)
+                        os.rename(local_file, new_file)
+                        local_file = new_file
+                    local_file_list.append(local_file)
                 domain_data[i].append({"time": item[0], "filepath": local_file_list})
             else:
                 local_file = db.get_file(item[1], d.service(), item[0])
+                if not met_field:
+                    new_file = os.path.basename(local_file)
+                    os.rename(local_file, new_file)
+                    local_file = new_file
                 domain_data[i].append({"time": item[0], "filepath": local_file})
 
     def get_next_file_index(time, domain_data):
@@ -303,76 +316,83 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
     output_file_list = []
     files_used_list = {}
-    for i in range(inputData.num_domains()):
-        d = inputData.domain(i)
-        source_key = generate_data_source_key(d.service())
-        met = pymetbuild.Meteorology(
-            d.grid().grid_object(),
-            source_key,
-            data_type_key,
-            inputData.backfill(),
-            inputData.epsg(),
-        )
 
-        t0 = domain_data[i][0]["time"]
-
-        domain_files_used = []
-        next_time = start_date + datetime.timedelta(seconds=time_step)
-        index = get_next_file_index(next_time, domain_data[i])
-
-        t1 = domain_data[i][index]["time"]
-        t0_pmb = Input.date_to_pmb(t0)
-        t1_pmb = Input.date_to_pmb(t1)
-        met.set_next_file(domain_data[i][0]["filepath"])
-        if d.service() == "coamps-tc":
-            for ff in domain_data[i][0]["filepath"]:
-                domain_files_used.append(os.path.basename(ff))
-        else:
-            domain_files_used.append(os.path.basename(domain_data[i][0]["filepath"]))
-
-        met.set_next_file(domain_data[i][index]["filepath"])
-        met.process_data()
-        if d.service() == "coamps-tc":
-            for ff in domain_data[i][index]["filepath"]:
-                domain_files_used.append(os.path.basename(ff))
-        else:
-            domain_files_used.append(
-                os.path.basename(domain_data[i][index]["filepath"])
+    if not met_field:
+        for i in range(inputData.num_domains()):
+            for pr in domain_data[i]:
+                output_file_list.append(pr["filepath"])
+        files_used_list = output_file_list
+    else:
+        for i in range(inputData.num_domains()):
+            d = inputData.domain(i)
+            source_key = generate_data_source_key(d.service())
+            met = pymetbuild.Meteorology(
+                d.grid().grid_object(),
+                source_key,
+                data_type_key,
+                inputData.backfill(),
+                inputData.epsg(),
             )
-
-        for t in datespan(start_date, end_date, datetime.timedelta(seconds=time_step)):
-            if t > t1:
-                index = get_next_file_index(t, domain_data[i])
-                t0 = t1
-                t1 = domain_data[i][index]["time"]
-                met.set_next_file(domain_data[i][index]["filepath"])
-                if t0 != t1:
-                    if d.service() == "coamps-tc":
-                        for ff in domain_data[i][index]["filepath"]:
-                            domain_files_used.append(os.path.basename(ff))
-                    else:
-                        domain_files_used.append(
-                            os.path.basename(domain_data[i][index]["filepath"])
-                        )
-                met.process_data()
-            # print(i,index,len(domain_data[i]),t,t0,t1,end="",flush=True)
-            if t < t0 or t > t1:
-                weight = -1.0
+    
+            t0 = domain_data[i][0]["time"]
+    
+            domain_files_used = []
+            next_time = start_date + datetime.timedelta(seconds=time_step)
+            index = get_next_file_index(next_time, domain_data[i])
+    
+            t1 = domain_data[i][index]["time"]
+            t0_pmb = Input.date_to_pmb(t0)
+            t1_pmb = Input.date_to_pmb(t1)
+            met.set_next_file(domain_data[i][0]["filepath"])
+            if d.service() == "coamps-tc":
+                for ff in domain_data[i][0]["filepath"]:
+                    domain_files_used.append(os.path.basename(ff))
             else:
-                weight = met.generate_time_weight(
-                    Input.date_to_pmb(t0), Input.date_to_pmb(t1), Input.date_to_pmb(t)
+                domain_files_used.append(os.path.basename(domain_data[i][0]["filepath"]))
+    
+            met.set_next_file(domain_data[i][index]["filepath"])
+            met.process_data()
+            if d.service() == "coamps-tc":
+                for ff in domain_data[i][index]["filepath"]:
+                    domain_files_used.append(os.path.basename(ff))
+            else:
+                domain_files_used.append(
+                    os.path.basename(domain_data[i][index]["filepath"])
                 )
-            # print(" -->  ",weight,flush=True)
-            if inputData.data_type() == "wind_pressure":
-                values = met.to_wind_grid(weight)
-            else:
-                values = met.to_grid(weight)
-            met_field.write(Input.date_to_pmb(t), i, values)
+    
+            for t in datespan(start_date, end_date, datetime.timedelta(seconds=time_step)):
+                if t > t1:
+                    index = get_next_file_index(t, domain_data[i])
+                    t0 = t1
+                    t1 = domain_data[i][index]["time"]
+                    met.set_next_file(domain_data[i][index]["filepath"])
+                    if t0 != t1:
+                        if d.service() == "coamps-tc":
+                            for ff in domain_data[i][index]["filepath"]:
+                                domain_files_used.append(os.path.basename(ff))
+                        else:
+                            domain_files_used.append(
+                                os.path.basename(domain_data[i][index]["filepath"])
+                            )
+                    met.process_data()
+    
+                if t < t0 or t > t1:
+                    weight = -1.0
+                else:
+                    weight = met.generate_time_weight(
+                        Input.date_to_pmb(t0), Input.date_to_pmb(t1), Input.date_to_pmb(t)
+                    )
+    
+                if inputData.data_type() == "wind_pressure":
+                    values = met.to_wind_grid(weight)
+                else:
+                    values = met.to_grid(weight)
+                met_field.write(Input.date_to_pmb(t), i, values)
+    
+            files_used_list[inputData.domain(i).name()] = domain_files_used
 
-        files_used_list[inputData.domain(i).name()] = domain_files_used
-
-    output_file_list = met_field.filenames()
-    met_field = None  # ...Closes all open files
+        output_file_list = met_field.filenames()
+        met_field = None  # ...Closes all open files
 
     output_file_dict = {
         "input": inputData.json(),
