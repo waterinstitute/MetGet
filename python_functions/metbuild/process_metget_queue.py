@@ -155,6 +155,48 @@ def generate_met_domain(inputData, met_object, index):
     else:
         raise RuntimeError("Invalid output format selected: " + output_format)
 
+def merge_nhc_tracks(besttrack_file, forecast_file, output_file) -> str:
+    from datetime import datetime, timedelta
+
+    btk_lines = []
+    fcst_lines = []
+
+    with open(besttrack_file) as btk:
+        for line in btk:
+            btk_lines.append({"line": line.rstrip(), "date": datetime.strptime(line.split(",")[2], " %Y%m%d%H")})
+    
+    with open(forecast_file) as fcst:
+        for line in fcst:
+            fcst_basetime = datetime.strptime(line.split(",")[2], " %Y%m%d%H")
+            fcst_time = int(line.split(",")[5])
+            fcst_lines.append({"line": line.rstrip(), "date": fcst_basetime + timedelta(hours=fcst_time)})
+
+    start_date = btk_lines[0]["date"]
+    start_date_str = datetime.strftime(start_date, "%Y%m%d%H")
+
+    with open(output_file, "w") as merge:
+        for line in btk_lines:
+            if line["date"] < fcst_lines[0]["date"]:
+                dt = int((line["date"] - start_date).total_seconds()/3600.0)
+                dt_str = "{:4d}".format(dt)
+                sub1 = line["line"][:8]
+                sub2 = line["line"][18:29]
+                sub3 = line["line"][33:]
+                line_new = sub1 + start_date_str + sub2 + dt_str + sub3
+                merge.write(line_new+"\n")
+
+        for line in fcst_lines:
+            dt = int((line["date"] - start_date).total_seconds()/3600.0)
+            dt_str = "{:4d}".format(dt)
+            sub1 = line["line"][:8]
+            sub2 = line["line"][18:29]
+            sub3 = line["line"][33:]
+            line_new = sub1 + start_date_str + sub2 + dt_str + sub3
+            merge.write(line_new+"\n")
+
+    return output_file
+
+
 
 # Main function to process the message and create the output files and post to S3
 def process_message(json_message, queue, json_file=None) -> bool:
@@ -214,6 +256,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
     domain_data = []
     ongoing_restore = False
+    nhc_data = {}
     db_files = []
     # ...Take a first pass on the data and check for restore status
     for i in range(inputData.num_domains()):
@@ -227,35 +270,41 @@ def process_message(json_message, queue, json_file=None) -> bool:
             start_date,
             end_date,
             d.storm(),
+            d.basin(),
+            d.advisory(),
             nowcast,
             multiple_forecasts,
             ensemble_member,
         )
-        db_files.append(f)
-        if len(f) < 2:
-            logger.error("No data found for domain " + str(i) + ". Giving up.")
-            if not json_file:
-                logger.debug(
-                    "Deleting message " + message["MessageId"] + " from the queue"
-                )
-                queue.delete_message(message["ReceiptHandle"])
-            sys.exit(1)
 
-        for item in f:
-            if d.service() == "coamps-tc":
-                files = item[1].split(",")
-                for ff in files:
+        if d.service() == "nhc":
+            nhc_data[i] = f
+        else:
+            db_files.append(f)
+            if len(f) < 2:
+                logger.error("No data found for domain " + str(i) + ". Giving up.")
+                if not json_file:
+                    logger.debug(
+                        "Deleting message " + message["MessageId"] + " from the queue"
+                    )
+                    queue.delete_message(message["ReceiptHandle"])
+                sys.exit(1)
+
+            for item in f:
+                if d.service() == "coamps-tc":
+                    files = item[1].split(",")
+                    for ff in files:
+                        ongoing_restore_this = db.check_initiate_restore(
+                            ff, d.service(), item[0]
+                        )
+                        if ongoing_restore_this:
+                            ongoing_restore = True
+                else:
                     ongoing_restore_this = db.check_initiate_restore(
-                        ff, d.service(), item[0]
+                        item[1], d.service(), item[0]
                     )
                     if ongoing_restore_this:
                         ongoing_restore = True
-            else:
-                ongoing_restore_this = db.check_initiate_restore(
-                    item[1], d.service(), item[0]
-                )
-                if ongoing_restore_this:
-                    ongoing_restore = True
 
     # ...If restore ongoing, this is where we stop
     if ongoing_restore:
@@ -273,40 +322,77 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 os.remove(f)
             cleanup_temp_files(domain_data)
         return False
+    
+    output_file_list = []
+    files_used_list = {}
 
     # ...Begin downloading data from s3
     for i in range(inputData.num_domains()):
         d = inputData.domain(i)
-        f = db_files[i]
-        if len(f) < 2:
-            logger.error("No data found for domain " + str(i) + ". Giving up.")
-            if not json_file:
-                logger.debug(
-                    "Deleting message " + message["MessageId"] + " from the queue"
-                )
-                queue.delete_message(message["ReceiptHandle"])
-            sys.exit(1)
-
         domain_data.append([])
-        for item in f:
-            if d.service() == "coamps-tc":
-                files = item[1].split(",")
-                local_file_list = []
-                for ff in files:
-                    local_file = db.get_file(ff, d.service(), item[0])
+
+        if d.service() == "nhc":
+
+            if not nhc_data[i]["best_track"] and not nhc_data[i]["forecast_track"]:
+                logger.error("No data found for domain "+str(i)+". Giving up.")
+                if not json_file:
+                    logger.debug(
+                        "Deleting message " + message["MessageId"] + " from the queue"
+                    )
+                    queue.delete_message(message["ReceiptHandle"])
+                sys.exit(1)
+
+            if nhc_data[i]["best_track"]:
+                local_file_besttrack = db.get_file(nhc_data[i]["best_track"]["filepath"], "nhc")
+                if not met_field:
+                    new_file = os.path.basename(local_file_besttrack)
+                    os.rename(local_file_besttrack, new_file)
+                    local_file_besttrack = new_file
+                domain_data[i].append({"time": nhc_data[i]["best_track"]["start"], "filepath": local_file_besttrack})
+
+            if nhc_data[i]["forecast_track"]:
+                local_file_forecast = db.get_file(nhc_data[i]["forecast_track"]["filepath"], "nhc")
+                if not met_field:
+                    new_file = os.path.basename(local_file_forecast)
+                    os.rename(local_file_forecast, new_file)
+                    local_file_forecast = new_file
+                domain_data[i].append({"time": nhc_data[i]["forecast_track"]["start"], "filepath": local_file_forecast})
+
+            if nhc_data[i]["best_track"] and nhc_data[i]["forecast_track"]:
+                merge_file = "nhc_merge_{:04d}_{:s}_{:s}_{:s}.trk".format(nhc_data[i]["best_track"]["start"].year, d.basin(), d.storm(), d.advisory())
+                local_file_merged = merge_nhc_tracks(local_file_besttrack, local_file_forecast, merge_file)
+                domain_data[i].append({"time": nhc_data[i]["best_track"]["start"], "filepath": local_file_merged})
+
+        else:
+            f = db_files[i]
+            if len(f) < 2:
+                logger.error("No data found for domain " + str(i) + ". Giving up.")
+                if not json_file:
+                    logger.debug(
+                        "Deleting message " + message["MessageId"] + " from the queue"
+                    )
+                    queue.delete_message(message["ReceiptHandle"])
+                sys.exit(1)
+
+            for item in f:
+                if d.service() == "coamps-tc":
+                    files = item[1].split(",")
+                    local_file_list = []
+                    for ff in files:
+                        local_file = db.get_file(ff, d.service(), item[0])
+                        if not met_field:
+                            new_file = os.path.basename(local_file)
+                            os.rename(local_file, new_file)
+                            local_file = new_file
+                        local_file_list.append(local_file)
+                    domain_data[i].append({"time": item[0], "filepath": local_file_list})
+                else:
+                    local_file = db.get_file(item[1], d.service(), item[0])
                     if not met_field:
                         new_file = os.path.basename(local_file)
                         os.rename(local_file, new_file)
                         local_file = new_file
-                    local_file_list.append(local_file)
-                domain_data[i].append({"time": item[0], "filepath": local_file_list})
-            else:
-                local_file = db.get_file(item[1], d.service(), item[0])
-                if not met_field:
-                    new_file = os.path.basename(local_file)
-                    os.rename(local_file, new_file)
-                    local_file = new_file
-                domain_data[i].append({"time": item[0], "filepath": local_file})
+                    domain_data[i].append({"time": item[0], "filepath": local_file})
 
     def get_next_file_index(time, domain_data):
         for i in range(len(domain_data)):
@@ -314,17 +400,24 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 return i
         return len(domain_data) - 1
 
-    output_file_list = []
-    files_used_list = {}
-
     if not met_field:
         for i in range(inputData.num_domains()):
             for pr in domain_data[i]:
                 output_file_list.append(pr["filepath"])
-        files_used_list = output_file_list
+        files_used_list[inputData.domain(i).name()] = output_file_list
     else:
         for i in range(inputData.num_domains()):
             d = inputData.domain(i)
+
+            if d.service() == "nhc":
+                logger.error("NHC to gridded data not implemented")
+                if not json_file:
+                    logger.debug(
+                        "Deleting message " + message["MessageId"] + " from the queue"
+                    )
+                    queue.delete_message(message["ReceiptHandle"])
+                sys.exit(1)
+
             source_key = generate_data_source_key(d.service())
             met = pymetbuild.Meteorology(
                 d.grid().grid_object(),

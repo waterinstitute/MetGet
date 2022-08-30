@@ -41,6 +41,8 @@ class Database:
         start,
         end,
         storm,
+        basin,
+        advisory,
         nowcast,
         multiple_forecasts,
         ensemble_member=None,
@@ -65,13 +67,49 @@ class Database:
             )
         elif service == "gefs-ncep":
             if not ensemble_member:
-                raise ("ERROR: No ensemble member specified")
+                raise RuntimeError("ERROR: No ensemble member specified")
             return self.generate_gefs_file_list(
                 ensemble_member, start, end, nowcast, multiple_forecasts
             )
+        elif service == "nhc":
+            if not basin:
+                raise RuntimeError("ERROR: Must specify basin")
+            if not storm:
+                raise RuntimeError("ERROR: Must specify storm")
+            if not advisory:
+                raise RuntimeError("ERROR: Must specify advisory")
+            year = start.year
+            return self.generate_nhc_file_list(year, basin, storm, advisory)
         else:
             print("ERROR: Invalid data type")
             sys.exit(1)
+
+    def generate_nhc_file_list(self, year: int, basin:str, storm: str, advisory: int):
+        best_track_table = "nhc_btk"
+        best_track_sql = "select * from {:s} where storm_year = '{:04d}' and basin = '{:s}' and storm = '{:s}';".format(best_track_table, year, basin, storm)
+
+        self.cursor().execute(best_track_sql)
+        rows = self.cursor().fetchone()
+        btk_filepath = rows[7]
+        btk_start = rows[4]
+        btk_end = rows[5]
+        btk_duration = rows[6]
+        best_track = { "start": btk_start, "end": btk_end, "duration": btk_duration, "filepath": btk_filepath }
+
+        if not advisory == 0:
+            forecast_table = "nhc_fcst"
+            forecast_sql = "select * from {:s} where storm_year = '{:04d}' and basin = '{:s}' and storm = '{:s}' and advisory = '{:s}';".format(forecast_table, year, basin, storm, advisory)
+            self.cursor().execute(forecast_sql)
+            rows = self.cursor().fetchone()
+            fcst_filepath = rows[8]
+            fcst_duration = rows[7]
+            fcst_start = rows[5]
+            fcst_end = rows[6]
+            fcst_track = { "start": fcst_start, "end": fcst_end, "duration": fcst_duration, "filepath": fcst_filepath }
+        else:
+            fcst_track = None
+
+        return {"best_track": best_track, "forecast_track": fcst_track}
 
     def generate_generic_file_list(
         self, table, param_type, start, end, nowcast, multiple_forecasts
@@ -470,20 +508,27 @@ class Database:
             return True
         return False
 
-    def get_file(self, db_path, service, time, dry_run=False):
+    def get_file(self, db_path, service, time=None, dry_run=False):
         import tempfile
         import os
 
         fn = db_path.split("/")[-1]
-        local_path = (
-            tempfile.gettempdir()
-            + "/"
-            + service
-            + "."
-            + time.strftime("%Y%m%d%H%M")
-            + "."
-            + fn
-        )
+        if time:
+            local_path = (
+                tempfile.gettempdir()
+                + "/"
+                + service
+                + "."
+                + time.strftime("%Y%m%d%H%M")
+                + "."
+                + fn
+            )
+        else:
+            local_path = (
+                tempfile.gettempdir()
+                + "/"
+                + fn
+            )
         if not dry_run:
             if not os.path.exists(local_path):
                 self.s3client().download_file(self.bucket(), db_path, local_path)

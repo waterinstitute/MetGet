@@ -19,34 +19,43 @@ class Domain:
             raise
         self.__storm = None
         self.__ensemble_member = None
+        self.__advisory = None
+        self.__basin = None
         self.__get_storm()
         self.__get_ensemble_member()
+        self.__get_advisory()
 
-    def storm(self):
+    def storm(self) -> str:
         return self.__storm
 
-    def ensemble_member(self):
+    def ensemble_member(self) -> str:
         return self.__ensemble_member
 
-    def name(self):
+    def basin(self) -> str:
+        return self.__basin
+
+    def advisory(self) -> str:
+        return self.__advisory
+
+    def name(self) -> str:
         return self.__name
 
-    def service(self):
+    def service(self) -> str:
         return self.__service
 
     def grid(self):
         return self.__grid
 
-    def json(self):
+    def json(self) -> str:
         return self.__json
 
-    def valid(self):
+    def valid(self) -> bool:
         return self.__valid
 
     def __get_storm(self):
-        if self.service() == "hwrf" or self.service() == "coamps-tc":
+        if self.service() == "hwrf" or self.service() == "coamps-tc" or self.service() == "nhc":
             if "storm" in self.__json:
-                self.__storm = self.__json["storm"]
+                self.__storm = str(self.__json["storm"])
             else:
                 self.__valid = False
         else:
@@ -60,3 +69,22 @@ class Domain:
                 self.__valid = False
         else:
             self.__ensemble_member = None
+
+    def __get_advisory(self):
+        if self.service() == "nhc":
+            if "advisory" in self.__json:
+                adv = self.__json["advisory"]
+                if type(adv) is int:
+                    self.__advisory = "{:03d}".format(adv)
+                else:
+                    self.__advisory = adv
+            else:
+                self.__valid = False
+
+            if "basin" in self.__json:
+                self.__basin = self.__json["basin"]
+            else:
+                self.__valid = False
+        else:
+            self.__advisory = None
+            self.__basin = None
