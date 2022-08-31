@@ -77,7 +77,11 @@ class Domain:
                 if type(adv) is int:
                     self.__advisory = "{:03d}".format(adv)
                 else:
-                    self.__advisory = adv
+                    try: 
+                        adv_int = int(adv)
+                        self.__advisory = "{:03d}".format(adv_int)
+                    except:
+                        self.__advisory = adv
             else:
                 self.__valid = False
 

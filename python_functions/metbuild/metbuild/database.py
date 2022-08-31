@@ -90,22 +90,28 @@ class Database:
 
         self.cursor().execute(best_track_sql)
         rows = self.cursor().fetchone()
-        btk_filepath = rows[7]
-        btk_start = rows[4]
-        btk_end = rows[5]
-        btk_duration = rows[6]
-        best_track = { "start": btk_start, "end": btk_end, "duration": btk_duration, "filepath": btk_filepath }
+        if rows:
+            btk_filepath = rows[7]
+            btk_start = rows[4]
+            btk_end = rows[5]
+            btk_duration = rows[6]
+            best_track = { "start": btk_start, "end": btk_end, "duration": btk_duration, "filepath": btk_filepath }
+        else:
+            best_track = None
 
         if not advisory == 0:
             forecast_table = "nhc_fcst"
             forecast_sql = "select * from {:s} where storm_year = '{:04d}' and basin = '{:s}' and storm = '{:s}' and advisory = '{:s}';".format(forecast_table, year, basin, storm, advisory)
             self.cursor().execute(forecast_sql)
             rows = self.cursor().fetchone()
-            fcst_filepath = rows[8]
-            fcst_duration = rows[7]
-            fcst_start = rows[5]
-            fcst_end = rows[6]
-            fcst_track = { "start": fcst_start, "end": fcst_end, "duration": fcst_duration, "filepath": fcst_filepath }
+            if rows:
+                fcst_filepath = rows[8]
+                fcst_duration = rows[7]
+                fcst_start = rows[5]
+                fcst_end = rows[6]
+                fcst_track = { "start": fcst_start, "end": fcst_end, "duration": fcst_duration, "filepath": fcst_filepath }
+            else:
+                fcst_track = None
         else:
             fcst_track = None
 
