@@ -652,7 +652,9 @@ class Metdb:
         )
         sqlupdate = (
             "UPDATE nhc_btk SET ACCESSED = now(), MD5 = '"
-            + md5
+            + md5 
+            + "', ADVISORY_START = '" + start, 
+            + "', ADVISORY_END = '" + end, 
             + "' WHERE storm_year = "
             + str(year)
             + " AND BASIN = '"
