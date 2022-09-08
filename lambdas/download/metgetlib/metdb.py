@@ -40,7 +40,7 @@ class Metdb:
         self.__persistent_cursor = self.__persistent_connection.cursor()
         self.__initdatabase()
 
-    def persistent_connection(self): 
+    def persistent_connection(self):
         return self.__persistent_connection
 
     def persistent_cursor(self):
@@ -61,14 +61,13 @@ class Metdb:
         except:
             print("[ERROR]: Could not connect to MySQL database")
             sys.exit(1)
-        
 
     def __initdatabase(self):
         """
         Initializes the database with the appropriate tables
         :return:
         """
-        
+
         self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS gfs_ncep(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
@@ -540,7 +539,7 @@ class Metdb:
         fdate = str(pair["forecastdate"])
         member = str(pair["ensemble_member"])
         url = pair["grb"]
-        #sqlhas = (
+        # sqlhas = (
         #    "SELECT Count(*) FROM "
         #    + "gefs_fcst"
         #    + " WHERE FORECASTCYCLE = '"
@@ -552,7 +551,7 @@ class Metdb:
         #    + "' AND FILEPATH = '"
         #    + filepath
         #    + "';"
-        #)
+        # )
         sqlhas = (
             "SELECT Count(*) FROM "
             + "gefs_fcst"
@@ -652,10 +651,14 @@ class Metdb:
         )
         sqlupdate = (
             "UPDATE nhc_btk SET ACCESSED = now(), MD5 = '"
-            + md5 
-            + "', ADVISORY_START = '" + start, 
-            + "', ADVISORY_END = '" + end, 
-            + "' WHERE storm_year = "
+            + md5
+            + "', ADVISORY_START = '"
+            + start
+            + "', ADVISORY_END = '"
+            + end
+            + "', ADVISORY_DURATION_HR = "
+            + duration
+            + " WHERE storm_year = "
             + str(year)
             + " AND BASIN = '"
             + basin

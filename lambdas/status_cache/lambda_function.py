@@ -53,19 +53,25 @@ class Database:
         jsondata["metget"]["gfs-ncep"] = self.generate_status_gfs()
         jsondata["metget"]["hwrf"] = self.generate_hwrf_status()
         jsondata["metget"]["coamps-tc"] = self.generate_coamps_status()
+        jsondata["metget"]["nhc"] = self.generate_status_nhc()
         return jsondata
 
     @staticmethod
-    def generate_record_period():
+    def generate_record_period(large: bool = False):
         from datetime import datetime
         from datetime import timedelta
 
         now = datetime.now()
-        prev_month = now - timedelta(days=31)
-        prev_month = datetime(
-            prev_month.year, prev_month.month, prev_month.day, 0, 0, 0
-        )
-        return str(prev_month), prev_month
+
+        if large:
+            prev = datetime(now.year - 2, 1, 1, 0, 0, 0)
+            return str(prev), prev
+        else:
+            prev_month = now - timedelta(days=31)
+            prev_month = datetime(
+                prev_month.year, prev_month.month, prev_month.day, 0, 0, 0
+            )
+            return str(prev_month), prev_month
 
     def generate_status_generic(self, table, desired_len):
         from datetime import datetime
@@ -158,6 +164,99 @@ class Database:
     def generate_status_gfs(self):
         return self.generate_status_generic("gfs_ncep", 384)
 
+    def generate_status_nhc(self):
+        nhc_btk_stat = self.generate_nhc_best_track_status()
+        nhc_fcst_stat = self.generate_nhc_forecast_track_status()
+        return {"best_track": nhc_btk_stat, "forecast": nhc_fcst_stat}
+
+    def generate_nhc_best_track_status(self):
+        search_period, search_period_date = Database.generate_record_period(True)
+
+        self.cursor().execute("SELECT DISTINCT basin from nhc_btk")
+        rows = self.cursor().fetchall()
+        basins = []
+        for row in rows:
+            basins.append(row[0])
+
+        self.cursor().execute("SELECT DISTINCT storm_year from nhc_btk")
+        rows = self.cursor().fetchall()
+        years = []
+        for row in rows:
+            years.append(row[0])
+
+        stormlist = []
+        self.cursor().execute("SELECT basin, storm, storm_year from nhc_btk")
+        rows = self.cursor().fetchall()
+        for row in rows:
+            stormlist.append({"storm": row[1], "basin": row[0], "year": row[2]})
+
+        nhc_btk_stat = {}
+        for y in years:
+            b_temp = {}
+            for b in basins:
+                s_temp = {}
+                for s in stormlist:
+                    sql = "select advisory_start, advisory_end, advisory_duration_hr from nhc_btk where basin = '{:s}' and storm = '{:d}' and storm_year = '{:04d}'".format(
+                        b, s["storm"], y
+                    )
+                    self.cursor().execute(sql)
+                    row = self.cursor().fetchone()
+                    if row:
+                        s_temp[s["storm"]] = {
+                            "best_track_start": row[0].strftime("%Y-%m-%d %H:%M:%S"),
+                            "best_track_end": row[1].strftime("%Y-%m-%d %H:%M:%S"),
+                            "duration": row[2],
+                        }
+                b_temp[b] = {"storm": s_temp}
+            nhc_btk_stat[y] = b_temp
+
+        return nhc_btk_stat
+
+    def generate_nhc_forecast_track_status(self):
+        search_period, search_period_date = Database.generate_record_period(True)
+
+        self.cursor().execute("SELECT DISTINCT basin from nhc_fcst")
+        rows = self.cursor().fetchall()
+        basins = []
+        for row in rows:
+            basins.append(row[0])
+
+        self.cursor().execute("SELECT DISTINCT storm_year from nhc_fcst")
+        rows = self.cursor().fetchall()
+        years = []
+        for row in rows:
+            years.append(row[0])
+
+        self.cursor().execute("SELECT DISTINCT basin, storm, storm_year from nhc_fcst")
+        rows = self.cursor().fetchall()
+        stormlist = []
+        for row in rows:
+            stormlist.append({"storm": row[1], "basin": row[0], "year": row[2]})
+
+        nhc_fcst_stat = {}
+        for y in years:
+            b_temp = {}
+            for b in basins:
+                s_temp = {}
+                for s in stormlist:
+                    sql = "select advisory, advisory_start, advisory_end, advisory_duration_hr from nhc_fcst where basin = '{:s}' and storm = '{:d}' and storm_year = '{:04d}'".format(
+                        b, s["storm"], y
+                    )
+                    self.cursor().execute(sql)
+                    adv_query_list = self.cursor().fetchall()
+                    advisory_list = {}
+                    for q in adv_query_list:
+                        advisory_list[q[0]] = {
+                            "advisory_start": q[1].strftime("%Y-%m-%d %H:%M:%S"),
+                            "advisory_end": q[2].strftime("%Y-%m-%d %H:%M:%S"),
+                            "duration": q[3],
+                        }
+                    s_temp[s["storm"]] = {"advisory": advisory_list}
+                b_temp[b] = {"storm": s_temp}
+            nhc_fcst_stat[y] = b_temp
+
+        return nhc_fcst_stat
+
     def generate_hwrf_status(self):
         """
         Generates the json status object from the database for the available HWRF data
@@ -179,7 +278,7 @@ class Database:
         for row in rows:
             stormlist.append({"storm": row[0]})
 
-        hwrf_stat = []
+        hwrf_stat = {}
 
         # For each storm, determine the availability of data
         for s in stormlist:
@@ -244,20 +343,17 @@ class Database:
                         latest_complete_forecast_length = latest_length
 
             # Assemble a storm object
-            hwrf_stat.append(
-                {
-                    "storm": s["storm"],
-                    "min_forecast_date": date_or_null(fcst_min),
-                    "max_forecast_date": date_or_null(fcst_max),
-                    "first_available_cycle": date_or_null(cyc_min),
-                    "last_available_cycle": date_or_null(cyc_max),
-                    "latest_complete_forecast": date_or_null(latest_complete),
-                    "latest_complete_forecast_start": latest_complete_forecast_start,
-                    "latest_complete_forecast_end": latest_complete_forecast_end,
-                    "latest_complete_forecast_length": latest_complete_forecast_length,
-                    "cycle_list": cycle_list,
-                }
-            )
+            hwrf_stat[s["storm"]] = {
+                "min_forecast_date": date_or_null(fcst_min),
+                "max_forecast_date": date_or_null(fcst_max),
+                "first_available_cycle": date_or_null(cyc_min),
+                "last_available_cycle": date_or_null(cyc_max),
+                "latest_complete_forecast": date_or_null(latest_complete),
+                "latest_complete_forecast_start": latest_complete_forecast_start,
+                "latest_complete_forecast_end": latest_complete_forecast_end,
+                "latest_complete_forecast_length": latest_complete_forecast_length,
+                "cycle_list": cycle_list,
+            }
 
         return hwrf_stat
 
@@ -282,7 +378,7 @@ class Database:
         for row in rows:
             stormlist.append({"storm": row[0]})
 
-        coamps_stat = []
+        coamps_stat = {}
 
         # For each storm, determine the availability of data
         for s in stormlist:
@@ -347,20 +443,17 @@ class Database:
                         latest_complete_forecast_length = latest_length
 
             # Assemble a storm object
-            coamps_stat.append(
-                {
-                    "storm": s["storm"],
-                    "min_forecast_date": date_or_null(fcst_min),
-                    "max_forecast_date": date_or_null(fcst_max),
-                    "first_available_cycle": date_or_null(cyc_min),
-                    "last_available_cycle": date_or_null(cyc_max),
-                    "latest_complete_forecast": date_or_null(latest_complete),
-                    "latest_complete_forecast_start": latest_complete_forecast_start,
-                    "latest_complete_forecast_end": latest_complete_forecast_end,
-                    "latest_complete_forecast_length": latest_complete_forecast_length,
-                    "cycle_list": cycle_list,
-                }
-            )
+            coamps_stat[s["storm"]] = {
+                "min_forecast_date": date_or_null(fcst_min),
+                "max_forecast_date": date_or_null(fcst_max),
+                "first_available_cycle": date_or_null(cyc_min),
+                "last_available_cycle": date_or_null(cyc_max),
+                "latest_complete_forecast": date_or_null(latest_complete),
+                "latest_complete_forecast_start": latest_complete_forecast_start,
+                "latest_complete_forecast_end": latest_complete_forecast_end,
+                "latest_complete_forecast_length": latest_complete_forecast_length,
+                "cycle_list": cycle_list,
+            }
 
         return coamps_stat
 
