@@ -654,6 +654,7 @@ class NhcDownloader:
     def download_forecast_ftp(self):
         from ftplib import FTP
         import os
+        import tempfile
 
         ftp = FTP("ftp.nhc.noaa.gov")
         ftp.login()
@@ -713,16 +714,17 @@ class NhcDownloader:
                                 + current_advisory,
                                 flush=True,
                             )
-                            ftp.retrbinary("RETR " + f, open(filepath, "wb").write)
+                            temp_file_path = tempfile.gettempdir() + "/" + fn
+                            ftp.retrbinary("RETR " + f, open(temp_file_path, "wb").write)
                             (
                                 start_date,
                                 end_date,
                                 duration,
-                            ) = self.get_nhc_start_end_date(filepath, True)
+                            ) = self.get_nhc_start_end_date(temp_file_path, True)
 
-                            self.nhc_compute_pressure(filepath)
+                            self.nhc_compute_pressure(temp_file_path)
 
-                            md5 = self.compute_checksum(filepath)
+                            md5 = self.compute_checksum(temp_file_path)
                             data = {
                                 "year": year,
                                 "basin": basin,
@@ -735,8 +737,9 @@ class NhcDownloader:
                             }
 
                             if self.__use_aws:
-                                self.__s3file.upload_file(filepath, remote_path)
+                                self.__s3file.upload_file(temp_file_path, remote_path)
                                 self.__database.add(data, "nhc_fcst", remote_path)
+                                os.remove(temp_file_path)
                             else:
                                 self.__database.add(data, "nhc_fcst", filepath)
                             n += 1
@@ -823,6 +826,7 @@ class NhcDownloader:
                         if self.__use_aws:
                             self.__s3file.upload_file(file_path, remote_path)
                             self.__database.add(data, "nhc_btk", remote_path)
+                            os.remove(file_path)
                         else:
                             self.__database.add(data, "nhc_btk", file_path)
                         n += 1
