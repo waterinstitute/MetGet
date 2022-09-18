@@ -257,7 +257,7 @@ Resources:
     Properties:
       DBInstanceIdentifier: !Sub '${AWS::StackName}-database'
       AllocatedStorage: 20
-      DBInstanceClass: db.t2.micro
+      DBInstanceClass: db.t3.small
       Engine: mysql
       MasterUsername: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::username}}'
       MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::password}}'
@@ -267,7 +267,7 @@ Resources:
       AvailabilityZone: !GetAtt PublicSubnet.AvailabilityZone
       PreferredMaintenanceWindow: 'wed:06:00-wed:06:30'
       MultiAZ: false
-      EngineVersion: 8.0.20
+      EngineVersion: 8.0.23
       AutoMinorVersionUpgrade: true
       LicenseModel: general-public-license
       PubliclyAccessible: true
@@ -535,9 +535,9 @@ Resources:
       LaunchTemplate: 
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
-      MinSize: 1
-      MaxSize: 4
-      DesiredCapacity: 1
+      MinSize: 2
+      MaxSize: 6
+      DesiredCapacity: 2
       Cooldown: 60
       AvailabilityZones:
         - !Sub "${AWS::Region}c"
@@ -549,7 +549,10 @@ Resources:
         - "Default"
       MetricsCollection:
         - Granularity: "1Minute"
-      NewInstancesProtectedFromScaleIn: false
+      Tags:
+        - Key: Name
+          Value: "MetGet"
+          PropagateAtLaunch: true
     DependsOn:
       - LaunchTemplate
       - InternalSubnet1
@@ -590,7 +593,7 @@ Resources:
       Dimensions:
         - Name: "QueueName"
           Value: !GetAtt SQSQueue.QueueName
-      Period: 60
+      Period: 300
       EvaluationPeriods: 1
       Threshold: 1
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
@@ -611,7 +614,7 @@ Resources:
       Dimensions:
         - Name: "QueueName"
           Value: !GetAtt SQSQueue.QueueName
-      Period: 60
+      Period: 300
       EvaluationPeriods: 1
       Threshold: 2
       ComparisonOperator: "LessThanThreshold"
@@ -623,15 +626,19 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties: 
       LaunchTemplateData: 
-        ImageId: "ami-00bf9294f667c570e"
-        SecurityGroupIds:
-          - !GetAtt SecurityGroup.GroupId
-        InstanceType: "t2.micro"
+        ImageId: "ami-015a430fb639922e0"
+        InstanceType: "c5.large"
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+            SubnetId: !Ref PublicSubnet
+            Groups:
+              - !GetAtt SecurityGroup.GroupId
         BlockDeviceMappings:
           -
             DeviceName: "/dev/xvda"
             Ebs:
-              VolumeSize: 16
+              VolumeSize: 256
               VolumeType: "gp2"
               DeleteOnTermination: true
               Encrypted: false
@@ -766,6 +773,101 @@ Resources:
                     statusCode: "200"
                 passthroughBehavior: "WHEN_NO_MATCH"
                 httpMethod: "POST"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "AWS"
+          /stormtrack:
+            get:
+              summary: Get geojson storm track data
+              description: Get geojson formatted storm track data
+              parameters:
+                - name: "x-api-key"
+                  in: "header"
+                  required: true
+                  schema:
+                    type: "string"
+                - in: query
+                  name: type
+                  schema:
+                    type: string
+                  required: true
+                  description: The type of request data (besttrack or forecast)
+                - in: query
+                  name: basin
+                  schema:
+                    type: string
+                  required: true
+                  description: The nhc basin in which the storm occurs
+                - in: query
+                  name: year
+                  schema:
+                    type: integer
+                  required: true
+                  description: The year in which the storm occurs
+                - in: query
+                  name: storm
+                  schema:
+                    type: string
+                  required: true
+                  description: The storm number as designated by nhc
+                - in: query
+                  name: advisory
+                  schema:
+                    type: integer
+                  description: The advisory number from nhc
+              responses:
+                "200":
+                  description: |
+                    "OK"
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          status:
+                            type: integer
+                            description: Status code returned
+                          body:
+                            type: object
+                            properties:
+                              storm_track:
+                                type: object
+                                additionalProperties: { }
+                "400":
+                  description: "ERROR"
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          status:
+                            type: integer
+                            description: Status code returned
+                          body:
+                            type: object
+                            properties:
+                              error_description:
+                                type: string
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaStormTrackRequest.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "WHEN_NO_MATCH"
+                httpMethod: "GET"
+                RequestParameters:
+                  method.request.querystring.basin: true
+                  method.request.querystring.storm: true
+                  method.request.querystring.year: true
+                  method.request.querystring.advisory: false
+                Integration:
+                  IntegrationHttpMethod: "POST"
+                  Type: "AWS_PROXY"
+                  RequestParameters:
+                    integration.request.querystring.basin: method.request.querystring.basin
+                    integration.request.querystring.storm: method.request.querystring.storm
+                    integration.request.querystring.year: method.request.querystring.year
+                    integration.request.querystring.advisory: method.request.querystring.advisory
                 contentHandling: "CONVERT_TO_TEXT"
                 type: "AWS"
           /build:
@@ -1292,6 +1394,55 @@ Resources:
       - Database
       - DatabaseSecretManager
 
+  LambdaStormTrackRequest:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "Function to check the status of a request"
+      Runtime: "python3.8"
+      Role: !GetAtt LambdaIAMRole.Arn
+      FunctionName: !Sub "${AWS::StackName}_get_nhc_storm_track"
+      Handler: "lambda_function.lambda_handler"
+      MemorySize: 128
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+          - !GetAtt VPC.DefaultSecurityGroup
+        SubnetIds:
+          - !Ref InternalSubnet1
+          - !Ref InternalSubnet2
+      TracingConfig:
+        Mode: "PassThrough"
+      Environment:
+        Variables:
+          DBSERVER: !GetAtt Database.Endpoint.Address
+          DBPASS: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::password}}'
+          DBUSER: !Sub '{{resolve:secretsmanager:${DatabaseSecretManager}::username}}'
+          DBNAME: !Sub "${MetGetDatabaseName}"
+      Code:
+        ZipFile: | 
+          def lambda_handler(event, context):
+            import json
+            
+            geojson = "storm_track"
+            query_parameters = event["queryStringParameters"]
+            
+            return {
+                'statusCode': 200,
+                'body': {
+                    "input_parameters": query_parameters,
+                    "geojson": geojson
+                }
+            }
+
+    DependsOn:
+      - SecurityGroup
+      - InternalSubnet1
+      - InternalSubnet2
+      - VPC
+      - Database
+      - DatabaseSecretManager
+
   LambdaCheckRequest:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -1472,11 +1623,34 @@ Resources:
             Fn::GetAtt:
               - "LambdaGetData"
               - "Arn"
-          Id: !Sub "${AWS::StackName}-gfsLambdaEvent"
+          Id: !Sub "${AWS::StackName}-coampsLambdaEvent"
           Input:
             !Sub |
             {
               "service": "coamps"
+            }
+          RetryPolicy:
+            MaximumRetryAttempts: 0
+            MaximumEventAgeInSeconds: 900
+    DependsOn:
+      - LambdaGetData
+
+  EventRunLambdaGefs:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Executes the event to get the GEFS model data"
+      State: "ENABLED"
+      ScheduleExpression: "rate(15 minutes)"
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - "LambdaGetData"
+              - "Arn"
+          Id: !Sub "${AWS::StackName}-gefsLambdaEvent"
+          Input:
+            !Sub |
+            {
+              "service": "gefs"
             }
           RetryPolicy:
             MaximumRetryAttempts: 0

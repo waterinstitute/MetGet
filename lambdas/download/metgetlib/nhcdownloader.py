@@ -567,6 +567,11 @@ class NhcDownloader:
         NhcDownloader.sanitize_keys(line, "system_depth", "")
         NhcDownloader.sanitize_keys(line, "seas_wave_height", 0)
         NhcDownloader.sanitize_keys(line, "seas_radius_code", "NEQ")
+        NhcDownloader.sanitize_keys(line, "max_seas", "")
+        NhcDownloader.sanitize_keys(line, "forecaster_initials", "")
+        NhcDownloader.sanitize_keys(line, "storm_direction", 0)
+        NhcDownloader.sanitize_keys(line, "storm_speed", 0)
+        NhcDownloader.sanitize_keys(line, "storm_name", 0)
         NhcDownloader.sanitize_keys(line, "seas1", 0)
         NhcDownloader.sanitize_keys(line, "seas2", 0)
         NhcDownloader.sanitize_keys(line, "seas3", 0)
@@ -725,6 +730,14 @@ class NhcDownloader:
                             self.nhc_compute_pressure(temp_file_path)
 
                             md5 = self.compute_checksum(temp_file_path)
+                            geojson = self.generate_geojson(temp_file_path)
+
+                            md5_in_db = self.__database.get_nhc_fcst_md5(year, basin, storm, None)
+                            if len(md5_in_db) != 0:
+                                if md5 in md5_in_db:
+                                    print("[WARNING]: Forecast MD5 exists in database. Discarding this data")
+                                    continue
+
                             data = {
                                 "year": year,
                                 "basin": basin,
@@ -734,6 +747,7 @@ class NhcDownloader:
                                 "advisory_start": start_date,
                                 "advisory_end": end_date,
                                 "advisory_duration_hr": duration,
+                                "geojson": geojson,
                             }
 
                             if self.__use_aws:
@@ -745,7 +759,44 @@ class NhcDownloader:
                             n += 1
             except Exception as e:
                 print("[ERROR]: The following exception was thrown: " + str(e))
+                raise
         return n
+
+    def __position_to_float(self, position: str):
+        direction = position[-1].upper()
+        pos = float(position[:-1]) / 10.0
+        if direction == "W" or direction == "S":
+            return pos * -1.0
+        else:
+            return pos
+
+    def __generate_track(self, path: str) -> tuple:
+        from geojson import Feature, FeatureCollection, Point, LineString
+        KNOT_TO_MPH = 1.15078
+
+        data = self.read_nhc_data(path)
+
+        track_points = []
+        points = []
+        last_time = None
+        for d in data:
+            if d["time"] == last_time:
+                continue
+            longitude = self.__position_to_float(d["data"]["longitude"])
+            latitude = self.__position_to_float(d["data"]["latitude"])
+            track_points.append((longitude, latitude))
+            points.append(
+                Feature(geometry=Point((longitude, latitude)),
+                        properties={"max_wind_speed_mph": round(float(d["data"]["vmax"]) * KNOT_TO_MPH, 2),
+                                    "minimum_sea_level_pressure_mb": float(d["data"]["mslp"]),
+                                    "radius_to_max_wind_nmi": float(
+                                        d["data"]["radius_to_max_winds"]),
+                                    "storm_class": d["data"]["development_level"].strip()}))
+        storm_track = Feature(geometry=LineString(track_points))
+        return FeatureCollection(features=points), storm_track
+
+    def generate_geojson(self, filename: str):
+        return self.__generate_track(filename)
 
     def download_hindcast(self):
         from ftplib import FTP
@@ -793,6 +844,7 @@ class NhcDownloader:
                         file_path, False
                     )
                     md5_updated = self.compute_checksum(file_path)
+                    geojson = self.generate_geojson(file_path)
                     if not md5_original == md5_updated:
                         if md5_original == 0:
                             print(
@@ -822,6 +874,7 @@ class NhcDownloader:
                             "advisory_start": start_date,
                             "advisory_end": end_date,
                             "advisory_duration_hr": duration,
+                            "geojson": geojson,
                         }
                         if self.__use_aws:
                             self.__s3file.upload_file(file_path, remote_path)
