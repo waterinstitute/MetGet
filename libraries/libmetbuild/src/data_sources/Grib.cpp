@@ -26,6 +26,7 @@
 #include "Grib.h"
 
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <utility>
 
@@ -40,8 +41,10 @@
 
 using namespace MetBuild;
 
-Grib::Grib(std::string filename, VariableNames variable_names)
-    : GriddedData(std::move(filename), std::move(variable_names)),
+Grib::Grib(std::string filename, VariableNames variable_names,
+           VariableUnits variable_units)
+    : GriddedData(std::move(filename), std::move(variable_names),
+                  variable_units),
       m_convention(0) {
   this->initialize();
   this->setSourceSubtype(MetBuild::GriddedDataTypes::SOURCE_SUBTYPE::GRIB);

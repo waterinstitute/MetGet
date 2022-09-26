@@ -36,6 +36,7 @@
 #include "GriddedData.h"
 #include "Point.h"
 #include "VariableNames.h"
+#include "VariableUnits.h"
 
 //...Forward Declarations
 struct grib_handle;
@@ -48,7 +49,8 @@ namespace MetBuild {
 
 class Grib : public GriddedData {
  public:
-  explicit Grib(std::string filename, MetBuild::VariableNames variable_names);
+  explicit Grib(std::string filename, MetBuild::VariableNames variable_names,
+                MetBuild::VariableUnits variable_units);
 
   ~Grib() override;
 

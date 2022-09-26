@@ -244,21 +244,12 @@ int RasNetcdfDomain::write(const MetBuild::Date &date,
                              minutes));
 
   const auto array = data.toVector(0);
-  std::vector<MeteorologicalDataType> out_data;
-  out_data.reserve(array.size());
-  if (m_variables[0] == "rain") {
-    for (const auto &v : array) {
-      out_data.push_back(v * static_cast<MeteorologicalDataType>(3600.0));
-    }
-  } else {
-    out_data = array;
-  }
 #ifdef METBUILD_USE_FLOAT
   ncCheck(nc_put_vara_float(m_ncid, m_varids[0], start_array, count_array,
-                            out_data.data()));
+                            array.data()));
 #else
   ncCheck(nc_put_vara_double(m_ncid, m_varids[0], start_array, count_array,
-                             out_data.data()));
+                             array.data()));
 #endif
 
   m_counter++;

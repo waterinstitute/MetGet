@@ -33,8 +33,10 @@ namespace MetBuild {
 class NamData : public Grib {
  public:
   explicit NamData(const std::string &filename)
-      : Grib(filename, {"longitudes", "latitudes", "prmsl", "10u", "10v", "tp",
-                        "r", "t", "ci"}) {
+      : Grib(filename,
+             {"longitudes", "latitudes", "prmsl", "10u", "10v", "tp", "r", "t",
+              "ci"},
+             {1.0, 1.0, 1.0, 3600.0, 1.0, 1.0, 1.0}) {
     this->get_bounding_region();
   };
 

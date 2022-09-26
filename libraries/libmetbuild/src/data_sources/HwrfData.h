@@ -33,8 +33,10 @@ namespace MetBuild {
 class HwrfData : public Grib {
  public:
   explicit HwrfData(const std::string &filename)
-      : Grib(filename, {"longitudes", "latitudes", "prmsl", "10u", "10v", "tp",
-                        "2r", "2t", ""}) {
+      : Grib(filename,
+             {"longitudes", "latitudes", "prmsl", "10u", "10v", "tp", "2r",
+              "2t", ""},
+             {1.0, 1.0, 1.0, 3600.0, 1.0, 1.0, 1.0}) {
     this->get_bounding_region();
     this->generate_triangulation();
   }

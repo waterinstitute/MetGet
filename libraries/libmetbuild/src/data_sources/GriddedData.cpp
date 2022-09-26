@@ -33,20 +33,24 @@
 
 using namespace MetBuild;
 
-GriddedData::GriddedData(std::string filename, VariableNames variableNames)
+GriddedData::GriddedData(std::string filename, VariableNames variableNames,
+                         VariableUnits variableUnits)
     : m_ni(0),
       m_nj(0),
       m_size(0),
       m_filenames({std::move(filename)}),
-      m_variableNames(std::move(variableNames)) {}
+      m_variableNames(std::move(variableNames)),
+      m_variableUnits(variableUnits) {}
 
 GriddedData::GriddedData(std::vector<std::string> filenames,
-                         VariableNames variableNames)
+                         VariableNames variableNames,
+                         VariableUnits variableUnits)
     : m_ni(0),
       m_nj(0),
       m_size(0),
       m_filenames(std::move(filenames)),
-      m_variableNames(std::move(variableNames)) {}
+      m_variableNames(std::move(variableNames)),
+      m_variableUnits(variableUnits) {}
 
 GriddedData::~GriddedData() = default;
 
@@ -64,25 +68,42 @@ void GriddedData::setSize(size_t size) { m_size = size; }
 
 std::vector<double> GriddedData::getVariable1d(
     MetBuild::GriddedDataTypes::VARIABLES v) {
+  std::vector<double> vec;
+  double unit_conversion = 1.0;
   switch (v) {
     case MetBuild::GriddedDataTypes::VAR_PRESSURE:
-      return this->getArray1d(m_variableNames.pressure());
+      vec = this->getArray1d(m_variableNames.pressure());
+      unit_conversion = this->m_variableUnits.pressure();
     case MetBuild::GriddedDataTypes::VAR_U10:
-      return this->getArray1d(m_variableNames.u10());
+      vec = this->getArray1d(m_variableNames.u10());
+      unit_conversion = this->m_variableUnits.u10();
     case MetBuild::GriddedDataTypes::VAR_V10:
-      return this->getArray1d(m_variableNames.v10());
+      vec = this->getArray1d(m_variableNames.v10());
+      unit_conversion = this->m_variableUnits.v10();
     case MetBuild::GriddedDataTypes::VAR_RAINFALL:
-      return this->getArray1d(m_variableNames.precipitation());
+      vec = this->getArray1d(m_variableNames.precipitation());
+      unit_conversion = this->m_variableUnits.precipitation();
     case MetBuild::GriddedDataTypes::VAR_HUMIDITY:
-      return this->getArray1d(m_variableNames.humidity());
+      vec = this->getArray1d(m_variableNames.humidity());
+      unit_conversion = this->m_variableUnits.humidity();
     case MetBuild::GriddedDataTypes::VAR_TEMPERATURE:
-      return this->getArray1d(m_variableNames.temperature());
+      vec = this->getArray1d(m_variableNames.temperature());
+      unit_conversion = this->m_variableUnits.temperature();
     case MetBuild::GriddedDataTypes::VAR_ICE:
-      return this->getArray1d(m_variableNames.ice());
+      vec = this->getArray1d(m_variableNames.ice());
+      unit_conversion = this->m_variableUnits.ice();
     default:
       Logging::throwError("No valid variable specified.");
       return {};
   }
+
+  if (unit_conversion != 1.0) {
+    for (auto &vv : vec) {
+      vv *= unit_conversion;
+    }
+  }
+
+  return vec;
 };
 
 std::vector<std::vector<double>> GriddedData::getVariable2d(

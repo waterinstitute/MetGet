@@ -33,8 +33,10 @@ namespace MetBuild {
 class GfsData : public Grib {
  public:
   explicit GfsData(const std::string &filename)
-      : Grib(filename, {"longitudes", "latitudes", "prmsl", "10u", "10v",
-                        "prate", "r", "t", "ci"}) {
+      : Grib(filename,
+             {"longitudes", "latitudes", "prmsl", "10u", "10v", "prate", "r",
+              "t", "ci"},
+             {1.0, 1.0, 1.0, 3600.0, 1.0, 1.0, 1.0}) {
     this->get_bounding_region();
   }
 

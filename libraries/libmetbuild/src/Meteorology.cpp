@@ -26,18 +26,17 @@
 #include "Meteorology.h"
 
 #include <cmath>
+#include <fstream>
 #include <iostream>
-#include <stdexcept>
 #include <utility>
 
 #include "Logging.h"
 #include "MetBuild_Status.h"
 #include "Projection.h"
 #include "Triangulation.h"
-#include "Utilities.h"
 #include "data_sources/CoampsData.h"
-#include "data_sources/GfsData.h"
 #include "data_sources/GefsData.h"
+#include "data_sources/GfsData.h"
 #include "data_sources/Grib.h"
 #include "data_sources/HwrfData.h"
 #include "data_sources/NamData.h"
@@ -146,7 +145,6 @@ int Meteorology::process_data() {
 
 MetBuild::MeteorologicalData<1> Meteorology::scalar_value_interpolation(
     const double time_weight) {
-  using namespace MetBuild::Utilities;
 
   MeteorologicalData<1> r(m_windGrid->ni(), m_windGrid->nj());
 
@@ -234,7 +232,6 @@ Meteorology::to_grid(const double time_weight) {
 
 MetBuild::MeteorologicalData<3, MetBuild::MeteorologicalDataType>
 Meteorology::to_wind_grid(double time_weight) {
-  using namespace MetBuild::Utilities;
 
   const auto pressure_scaling_1 =
       MetBuild::Meteorology::getPressureScaling(m_gridded1.get());

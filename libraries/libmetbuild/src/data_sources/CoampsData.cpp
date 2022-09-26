@@ -33,8 +33,9 @@ using namespace MetBuild;
 
 CoampsData::CoampsData(std::vector<std::string> filenames)
     : GriddedData(std::move(filenames),
-                  VariableNames("lon", "lat", "slpres", "uuwind", "vvwind", "precip",
-                                "relhum", "airtmp", "")) {
+                  VariableNames("lon", "lat", "slpres", "uuwind", "vvwind",
+                                "precip", "relhum", "airtmp", ""),
+                  VariableUnits(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)) {
   this->initialize();
   this->setSourceSubtype(MetBuild::GriddedDataTypes::SOURCE_SUBTYPE::COAMPS);
 }

@@ -36,21 +36,23 @@
 #include "InterpolationWeight.h"
 #include "Point.h"
 #include "VariableNames.h"
+#include "VariableUnits.h"
 
 namespace MetBuild {
 
 class Geometry;
-class Kdtree;
 class Triangulation;
 
 class GriddedData {
  public:
   GriddedData() = default;
 
-  GriddedData(std::string filename, MetBuild::VariableNames variableNames);
+  GriddedData(std::string filename, MetBuild::VariableNames variableNames,
+              MetBuild::VariableUnits variableUnits);
 
   GriddedData(std::vector<std::string> filenames,
-              MetBuild::VariableNames variableNames);
+              MetBuild::VariableNames variableNames,
+              MetBuild::VariableUnits variableUnits);
 
   virtual ~GriddedData();
 
@@ -83,9 +85,12 @@ class GriddedData {
 
   MetBuild::VariableNames variableNames() const { return m_variableNames; }
 
+  MetBuild::VariableUnits variableUnits() const { return m_variableUnits; }
+
   std::vector<double> getVariable1d(MetBuild::GriddedDataTypes::VARIABLES v);
 
-  std::vector<std::vector<double>> getVariable2d(MetBuild::GriddedDataTypes::VARIABLES v);
+  std::vector<std::vector<double>> getVariable2d(
+      MetBuild::GriddedDataTypes::VARIABLES v);
 
   // MetBuild::InterpolationWeight interpolationWeight(double x, double y)
   // const;
@@ -131,11 +136,12 @@ class GriddedData {
   long m_ni;
   long m_nj;
   size_t m_size;
-  std::vector<MetBuild::Point> m_bounding_region;
-  std::vector<std::string> m_filenames;
   std::unique_ptr<MetBuild::Geometry> m_geometry;
   std::array<MetBuild::Point, 4> m_corners;
   MetBuild::VariableNames m_variableNames;
+  MetBuild::VariableUnits m_variableUnits;
+  std::vector<MetBuild::Point> m_bounding_region;
+  std::vector<std::string> m_filenames;
 };
 }  // namespace MetBuild
 
