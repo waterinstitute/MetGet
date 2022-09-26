@@ -50,7 +50,7 @@ class VariableUnits {
                           double v10_unit, double precipitation_unit,
                           double humidity_unit, double temperature_unit,
                           double ice_unit)
-      : m_pressure(precipitation_unit),
+      : m_pressure(pressure_unit),
         m_u10(u10_unit),
         m_v10(v10_unit),
         m_precipitation(precipitation_unit),
