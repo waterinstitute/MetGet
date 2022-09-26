@@ -74,24 +74,31 @@ std::vector<double> GriddedData::getVariable1d(
     case MetBuild::GriddedDataTypes::VAR_PRESSURE:
       vec = this->getArray1d(m_variableNames.pressure());
       unit_conversion = this->m_variableUnits.pressure();
+      break;
     case MetBuild::GriddedDataTypes::VAR_U10:
       vec = this->getArray1d(m_variableNames.u10());
       unit_conversion = this->m_variableUnits.u10();
+      break;
     case MetBuild::GriddedDataTypes::VAR_V10:
       vec = this->getArray1d(m_variableNames.v10());
       unit_conversion = this->m_variableUnits.v10();
+      break;
     case MetBuild::GriddedDataTypes::VAR_RAINFALL:
       vec = this->getArray1d(m_variableNames.precipitation());
       unit_conversion = this->m_variableUnits.precipitation();
+      break;
     case MetBuild::GriddedDataTypes::VAR_HUMIDITY:
       vec = this->getArray1d(m_variableNames.humidity());
       unit_conversion = this->m_variableUnits.humidity();
+      break;
     case MetBuild::GriddedDataTypes::VAR_TEMPERATURE:
       vec = this->getArray1d(m_variableNames.temperature());
       unit_conversion = this->m_variableUnits.temperature();
+      break;
     case MetBuild::GriddedDataTypes::VAR_ICE:
       vec = this->getArray1d(m_variableNames.ice());
       unit_conversion = this->m_variableUnits.ice();
+      break;
     default:
       Logging::throwError("No valid variable specified.");
       return {};

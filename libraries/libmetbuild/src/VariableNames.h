@@ -85,6 +85,17 @@ class VariableNames {
     }
   }
 
+  void print() const {
+    std::cout << "   Longitude: " << m_longitude << std::endl;	
+    std::cout << "    Latitude: " << m_latitude << std::endl;
+    std::cout << "         u10: " << m_u10 << std::endl;
+    std::cout << "         v10: " << m_v10 << std::endl;
+    std::cout << "      precip: " << m_precipitation << std::endl;
+    std::cout << "    humidity: " << m_humidity << std::endl;
+    std::cout << " temperature: " << m_temperature << std::endl;
+    std::cout << "         ice: " << m_ice << std::endl;
+  }
+
  private:
   std::string m_longitude;
   std::string m_latitude;
