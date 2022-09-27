@@ -59,11 +59,11 @@ class Database:
             )
         elif service == "hwrf":
             return self.generate_storm_file_list(
-                "hwrf", start, end, storm, nowcast, multiple_forecasts
+                "hwrf", param, start, end, storm, nowcast, multiple_forecasts
             )
         elif service == "coamps-tc":
             return self.generate_storm_file_list(
-                "coamps_tc", start, end, storm, nowcast, multiple_forecasts
+                "coamps_tc", param, start, end, storm, nowcast, multiple_forecasts
             )
         elif service == "gefs-ncep":
             if not ensemble_member:
@@ -352,21 +352,24 @@ class Database:
         return return_list
 
     def generate_storm_file_list(
-        self, data_type, start, end, storm, nowcast, multiple_forecasts
+        self, data_type, param_type, start, end, storm, nowcast, multiple_forecasts
     ):
         from datetime import timedelta
 
-        if nowcast:
-            return self.generate_storm_file_list_nowcast(data_type, start, end, storm)
+        if data_type == "coamps_tc" and param_type == "rain" and multiple_forecasts:
+            return self.generate_storm_file_list_ignore_zero_hour(data_type, start, end, storm)
         else:
-            if multiple_forecasts:
-                return self.generate_storm_file_list_multiple_forecasts(
-                    data_type, start, end, storm
-                )
+            if nowcast:
+                return self.generate_storm_file_list_nowcast(data_type, start, end, storm)
             else:
-                return self.generate_storm_file_list_single_forecast(
-                    data_type, start, end, storm
-                )
+                if multiple_forecasts:
+                    return self.generate_storm_file_list_multiple_forecasts(
+                        data_type, start, end, storm
+                    )
+                else:
+                    return self.generate_storm_file_list_single_forecast(
+                        data_type, start, end, storm
+                    )
 
     def generate_storm_file_list_nowcast(self, data_type, start, end, storm):
         # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
@@ -397,7 +400,38 @@ class Database:
         self.cursor().execute("drop temporary table tmptbl1;")
         self.cursor().execute("drop temporary table tmptbl2;")
         return return_list
+        
+    def generate_storm_file_list_ignore_zero_hour(self, data_type, start, end, storm):
+        # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
+        sql_tmptable = (
+            "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
+            + data_type
+            + " where stormname = '"
+            + storm
+            + "'AND forecastcycle != forecasttime;"
+        )
+        sql_tmptable2 = "create temporary table tmptbl2 select * from tmptbl1;"
+        sql = (
+            "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1"
+            " t1 JOIN(select forecasttime, max(id) id FROM tmptbl2 group by forecasttime order by forecasttime) t2 "
+            "ON t1.id = t2.id AND t1.forecasttime = t2.forecasttime AND t1.forecasttime >= '"
+            + start.strftime("%Y-%m-%d %H:%M:%S")
+            + "' AND t1.forecasttime <= '"
+            + end.strftime("%Y-%m-%d %H:%M:%S")
+            + "';"
+        )
 
+        self.cursor().execute(sql_tmptable)
+        self.cursor().execute(sql_tmptable2)
+        self.cursor().execute(sql)
+        rows = self.cursor().fetchall()
+        return_list = []
+        for f in rows:
+            return_list.append([f[2], f[3]])
+        self.cursor().execute("drop temporary table tmptbl1;")
+        self.cursor().execute("drop temporary table tmptbl2;")
+        return return_list
+    
     def generate_storm_file_list_single_forecast(self, data_type, start, end, storm):
         # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
         sql_tmptable = (
