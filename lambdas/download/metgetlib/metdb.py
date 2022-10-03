@@ -120,7 +120,7 @@ class Metdb:
         self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS coamps_tc(id INTEGER PRIMARY KEY AUTO_INCREMENT, "
             "stormname VARCHAR(256) NOT NULL, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
-            "filepath VARCHAR(512) NOT NULL, accessed DATETIME NOT NULL);"
+            "filepath VARCHAR(512) NOT NULL, accessed DATETIME NOT NULL, tau INTEGER NOT NULL);"
         )
 
     def get_nhc_md5(self, mettype, year, basin, storm, advisory=0):
@@ -786,14 +786,15 @@ class Metdb:
     def __generate_sql_coamps(filepath, pair):
         cdate = str(pair["cycledate"])
         fdate = str(pair["forecastdate"])
+        tau = int((pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600)
         name = pair["name"]
         sqlhas = "SELECT Count(*) FROM coamps_tc where stormname = '{}' and forecastcycle = '{}' and forecasttime = '{}';".format(
             name,
             cdate,
             fdate,
         )
-        sqlinsert = "INSERT INTO coamps_tc(stormname, forecastcycle, forecasttime, filepath, accessed) VALUES('{}', '{}', '{}', '{}', now());".format(
-            name, cdate, fdate, filepath
+        sqlinsert = "INSERT INTO coamps_tc(stormname, forecastcycle, forecasttime, filepath, accessed, tau) VALUES('{}', '{}', '{}', '{}', now(), '{}');".format(
+            name, cdate, fdate, filepath, tau
         )
         sqlupdate = ""
         return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
