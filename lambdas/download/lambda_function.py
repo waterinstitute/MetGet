@@ -127,6 +127,16 @@ def hrrr_download():
     print("[INFO]: HRRR complete. " + str(n) + " files downloaded", flush=True)
     return n
 
+def hrrr_alaska_download():
+    from metgetlib.ncephrrralaskadownloader import NcepHrrrAlaskadownloader
+    
+    start, end = generate_default_date_range()
+    hrrr = NcepHrrrAlaskadownloader(start, end)
+    print("[INFO]: Beginning downloading HRRR-Alaska data")
+    n = hrrr.download()
+    print("[INFO]: HRRR complete. " + str(n) + " files downloaded", flush=True)
+    return n
+
 
 
 def lambda_handler(event, context):
@@ -156,6 +166,8 @@ def lambda_handler(event, context):
         n = coamps_download()
     elif request_type == "hrrr":
         n = hrrr_download()
+    elif request_type == "hrrr-alaska": 
+        n = hrrr_alaska_download()
 
     returndata = {
         "statusCode": 200,

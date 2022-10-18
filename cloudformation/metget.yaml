@@ -1635,6 +1635,52 @@ Resources:
     DependsOn:
       - LambdaGetData
 
+  EventRunLambdaHRRR:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Executes the event to get the HRRR model data"
+      State: "ENABLED"
+      ScheduleExpression: "rate(15 minutes)"
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - "LambdaGetData"
+              - "Arn"
+          Id: !Sub "${AWS::StackName}-hrrrLambdaEvent"
+          Input:
+            !Sub |
+            {
+              "service": "hrrr"
+            }
+          RetryPolicy:
+            MaximumRetryAttempts: 0
+            MaximumEventAgeInSeconds: 900
+    DependsOn:
+      - LambdaGetData
+
+  EventRunLambdaHRRRAlaska:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Executes the event to get the HRRR-Alaska model data"
+      State: "ENABLED"
+      ScheduleExpression: "rate(15 minutes)"
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - "LambdaGetData"
+              - "Arn"
+          Id: !Sub "${AWS::StackName}-hrrrAlaskaLambdaEvent"
+          Input:
+            !Sub |
+            {
+              "service": "hrrr-alaska"
+            }
+          RetryPolicy:
+            MaximumRetryAttempts: 0
+            MaximumEventAgeInSeconds: 900
+    DependsOn:
+      - LambdaGetData
+
   EventRunLambdaGefs:
     Type: "AWS::Events::Rule"
     Properties:

@@ -115,6 +115,11 @@ class Metdb:
             "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
             "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
         )
+        self.persistent_cursor().execute(
+            "CREATE TABLE IF NOT EXISTS hrrr_alaska_ncep(id INTEGER PRIMARY KEY "
+            "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
+            "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
+        )
 
     def get_nhc_md5(self, mettype, year, basin, storm, advisory=0):
         if mettype == "nhc_btk":
