@@ -117,6 +117,17 @@ def coamps_download():
     print("[INFO]: COAMPS complete. " + str(n) + " files downloaded", flush=True)
     return n
 
+def hrrr_download():
+    from metgetlib.ncephrrrdownloader import NcepHrrrdownloader
+    
+    start, end = generate_default_date_range()
+    hrrr = NcepHrrrdownloader(start, end)
+    print("[INFO]: Beginning downloading HRRR data")
+    n = hrrr.download()
+    print("[INFO]: HRRR complete. " + str(n) + " files downloaded", flush=True)
+    return n
+
+
 
 def lambda_handler(event, context):
     import json
@@ -143,6 +154,8 @@ def lambda_handler(event, context):
         n = nhc_download()
     elif request_type == "coamps":
         n = coamps_download()
+    elif request_type == "hrrr":
+        n = hrrr_download()
 
     returndata = {
         "statusCode": 200,

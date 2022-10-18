@@ -74,22 +74,10 @@ class Metdb:
             "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
         )
         self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS gfs_fcst(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, forecastcycle DATETIME "
-            "NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, "
-            "accessed DATETIME NOT NULL);"
-        )
-        self.persistent_cursor().execute(
             "CREATE TABLE IF NOT EXISTS gefs_fcst(id INTEGER PRIMARY KEY "
             "AUTO_INCREMENT, forecastcycle DATETIME "
             "NOT NULL, forecasttime DATETIME NOT NULL, ensemble_member VARCHAR(32) NOT NULL, "
             "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, "
-            "accessed DATETIME NOT NULL);"
-        )
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS nam_fcst(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, forecastcycle DATETIME "
-            "NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, "
             "accessed DATETIME NOT NULL);"
         )
         self.persistent_cursor().execute(
@@ -121,6 +109,11 @@ class Metdb:
             "CREATE TABLE IF NOT EXISTS coamps_tc(id INTEGER PRIMARY KEY AUTO_INCREMENT, "
             "stormname VARCHAR(256) NOT NULL, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
             "filepath VARCHAR(512) NOT NULL, accessed DATETIME NOT NULL, tau INTEGER NOT NULL);"
+        )
+        self.persistent_cursor().execute(
+            "CREATE TABLE IF NOT EXISTS hrrr_ncep(id INTEGER PRIMARY KEY "
+            "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
+            "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
         )
 
     def get_nhc_md5(self, mettype, year, basin, storm, advisory=0):
