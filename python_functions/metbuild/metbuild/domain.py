@@ -20,7 +20,9 @@ class Domain:
         self.__storm = None
         self.__ensemble_member = None
         self.__advisory = None
+        self.__tau = 0
         self.__basin = None
+        self.__get_tau()
         self.__get_storm()
         self.__get_ensemble_member()
         self.__get_advisory()
@@ -33,6 +35,9 @@ class Domain:
 
     def basin(self) -> str:
         return self.__basin
+
+    def tau(self) -> int:
+        return self.__tau
 
     def advisory(self) -> str:
         return self.__advisory
@@ -51,6 +56,12 @@ class Domain:
 
     def valid(self) -> bool:
         return self.__valid
+
+    def __get_tau(self):
+        if "tau" in self.__json:
+            self.__tau = int(self.__json["tau"])
+        else:
+            self.__tau = 0
 
     def __get_storm(self):
         if self.service() == "hwrf" or self.service() == "coamps-tc" or self.service() == "nhc":

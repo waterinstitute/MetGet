@@ -272,6 +272,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
             d.storm(),
             d.basin(),
             d.advisory(),
+            d.tau(),
             nowcast,
             multiple_forecasts,
             ensemble_member,
@@ -394,6 +395,19 @@ def process_message(json_message, queue, json_file=None) -> bool:
                         local_file = new_file
                     domain_data[i].append({"time": item[0], "filepath": local_file})
 
+    def print_file_status(filepath: any, time: datetime) -> None:
+        import os
+        if type(filepath) == list:
+            fnames = ""
+            for fff in filepath:
+                if fnames == "":
+                    fnames += os.path.basename(fff)
+                else:
+                    fnames += ", "+os.path.basename(fff)
+        else:
+            fnames=filepath
+        logger.info("Processing next file: {:s} ({:s})".format(fnames,time.strftime("%Y-%m-%d %H:%M")))
+
     def get_next_file_index(time, domain_data):
         for i in range(len(domain_data)):
             if time <= domain_data[i]["time"]:
@@ -436,7 +450,11 @@ def process_message(json_message, queue, json_file=None) -> bool:
             t1 = domain_data[i][index]["time"]
             t0_pmb = Input.date_to_pmb(t0)
             t1_pmb = Input.date_to_pmb(t1)
-            met.set_next_file(domain_data[i][0]["filepath"])
+                    
+            ff = domain_data[i][0]["filepath"]
+            print_file_status(ff, t0)
+            
+            met.set_next_file(ff)
             if d.service() == "coamps-tc":
                 for ff in domain_data[i][0]["filepath"]:
                     domain_files_used.append(os.path.basename(ff))
@@ -444,6 +462,8 @@ def process_message(json_message, queue, json_file=None) -> bool:
                 domain_files_used.append(os.path.basename(domain_data[i][0]["filepath"]))
     
             met.set_next_file(domain_data[i][index]["filepath"])
+            ff = domain_data[i][index]["filepath"]
+            print_file_status(ff, t1)
             met.process_data()
             if d.service() == "coamps-tc":
                 for ff in domain_data[i][index]["filepath"]:
@@ -458,6 +478,8 @@ def process_message(json_message, queue, json_file=None) -> bool:
                     index = get_next_file_index(t, domain_data[i])
                     t0 = t1
                     t1 = domain_data[i][index]["time"]
+                    ff = domain_data[i][index]["filepath"]
+                    print_file_status(ff, t1)
                     met.set_next_file(domain_data[i][index]["filepath"])
                     if t0 != t1:
                         if d.service() == "coamps-tc":
@@ -468,13 +490,15 @@ def process_message(json_message, queue, json_file=None) -> bool:
                                 os.path.basename(domain_data[i][index]["filepath"])
                             )
                     met.process_data()
-    
+
                 if t < t0 or t > t1:
                     weight = -1.0
                 else:
                     weight = met.generate_time_weight(
                         Input.date_to_pmb(t0), Input.date_to_pmb(t1), Input.date_to_pmb(t)
                     )
+                
+                logger.info("Processing time {:s}, weight = {:f}".format(t.strftime("%Y-%m-%d %H:%M"),weight))
     
                 if inputData.data_type() == "wind_pressure":
                     values = met.to_wind_grid(weight)
@@ -586,7 +610,7 @@ def main():
         if os.path.exists(jsonfile):
             process_message(None, None, json_file=jsonfile)
         else:
-            print("[ERROR]: File " + jsonfile + " does not exist.")
+            logger.error("File " + jsonfile + " does not exist.")
             exit(1)
     else:
         queue = Queue(logger)
@@ -670,7 +694,7 @@ def main():
                     message["Body"],
                     False,
                 )
-                print(str(e))
+                logger.error(str(e))
         else:
             logger.info("No message available in queue. Shutting down.")
 

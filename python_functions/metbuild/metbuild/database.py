@@ -43,6 +43,7 @@ class Database:
         storm,
         basin,
         advisory,
+        tau,
         nowcast,
         multiple_forecasts,
         ensemble_member=None,
@@ -63,7 +64,7 @@ class Database:
             )
         elif service == "coamps-tc":
             return self.generate_storm_file_list(
-                "coamps_tc", param, start, end, storm, nowcast, multiple_forecasts
+                "coamps_tc", param, start, end, storm, nowcast, multiple_forecasts, tau
             )
         elif service == "gefs-ncep":
             if not ensemble_member:
@@ -352,26 +353,26 @@ class Database:
         return return_list
 
     def generate_storm_file_list(
-        self, data_type, param_type, start, end, storm, nowcast, multiple_forecasts
+        self, data_type, param_type, start, end, storm, nowcast, multiple_forecasts, tau = 0
     ):
         from datetime import timedelta
 
-        if data_type == "coamps_tc" and param_type == "rain" and multiple_forecasts:
-            return self.generate_storm_file_list_ignore_zero_hour(data_type, start, end, storm)
-        else:
-            if nowcast:
-                return self.generate_storm_file_list_nowcast(data_type, start, end, storm)
-            else:
-                if multiple_forecasts:
-                    return self.generate_storm_file_list_multiple_forecasts(
-                        data_type, start, end, storm
-                    )
-                else:
-                    return self.generate_storm_file_list_single_forecast(
-                        data_type, start, end, storm
-                    )
+        if param_type == "rain" and tau == 0:
+            tau = 1
 
-    def generate_storm_file_list_nowcast(self, data_type, start, end, storm):
+        if nowcast:
+            return self.generate_storm_file_list_nowcast(data_type, start, end, storm)
+        else:
+            if multiple_forecasts:
+                return self.generate_storm_file_list_multiple_forecasts(
+                    data_type, start, end, storm, tau
+                )
+            else:
+                return self.generate_storm_file_list_single_forecast(
+                    data_type, start, end, storm, tau
+                )
+
+    def generate_storm_file_list_nowcast(self, data_type: str, start, end, storm: str) -> list:
         # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
         sql_tmptable = (
             "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
@@ -432,15 +433,26 @@ class Database:
         self.cursor().execute("drop temporary table tmptbl2;")
         return return_list
     
-    def generate_storm_file_list_single_forecast(self, data_type, start, end, storm):
+    def generate_storm_file_list_single_forecast(self, data_type: str, start, end, storm: str, tau: int) -> list:
         # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
-        sql_tmptable = (
-            "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
-            + data_type
-            + " where stormname = '"
-            + storm
-            + "';"
-        )
+        if tau > 0 and data_type == "coamps_tc": 
+            sql_tmptable = (
+                "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
+                + data_type
+                + " where stormname = '"
+                + storm
+                + "' and tau >= {:d}".format(tau)
+                + ";"
+            )
+        else:
+            sql_tmptable = (
+                "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
+                + data_type
+                + " where stormname = '"
+                + storm
+                + "';"
+            )
+
         sql_tmptable2 = "create temporary table tmptbl2 select * from tmptbl1;"
         sql = (
             "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1"
@@ -477,15 +489,26 @@ class Database:
         self.cursor().execute("drop temporary table tmptbl2;")
         return return_list
 
-    def generate_storm_file_list_multiple_forecasts(self, data_type, start, end, storm):
+    def generate_storm_file_list_multiple_forecasts(self, data_type: str, start, end, storm: str, tau: int) -> list:
         # ... Generate some selections into a temporary table. This essentially duplicates the gfs style database
-        sql_tmptable = (
-            "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
-            + data_type
-            + " where stormname = '"
-            + storm
-            + "';"
-        )
+        if tau > 0 and data_type == "coamps_tc":
+            sql_tmptable = (
+                "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
+                + data_type
+                + " where stormname = '"
+                + storm
+                + "' and tau >= {:d}".format(tau)
+                + ";"
+            )
+        else:
+            sql_tmptable = (
+                "create temporary table tmptbl1 select id,forecastcycle,forecasttime,filepath from "
+                + data_type
+                + " where stormname = '"
+                + storm
+                + "';"
+            )
+
         sql_tmptable2 = "create temporary table tmptbl2 select * from tmptbl1;"
         sql = (
             "select t1.id,t1.forecastcycle,t1.forecasttime,t1.filepath from tmptbl1"

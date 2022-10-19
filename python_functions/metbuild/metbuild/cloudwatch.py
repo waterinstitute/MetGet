@@ -86,6 +86,7 @@ class CloudWatch:
                 break
             except:
                 continue
+        print("[{:s}]: {:s}".format(level, message))
 
     def info(self, message):
         self.__log("INFO", message)
