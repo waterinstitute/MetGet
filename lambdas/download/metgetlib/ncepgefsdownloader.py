@@ -30,6 +30,7 @@ class NcepGefsdownloader(NoaaDownloader):
         NoaaDownloader.__init__(
             self, "gefs_ncep", "GEFS-NCEP", address, begin, end, use_aws_big_data=True
         )
+        self.add_download_variable("PRMSL", "press"),
         self.add_download_variable("ICETK:surface", "ice")
         self.add_download_variable("APCP", "accumulated_precip")
         self.add_download_variable("RH:2 m above ground", "humidity")

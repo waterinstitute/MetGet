@@ -30,6 +30,7 @@ class NcepHrrrAlaskadownloader(NoaaDownloader):
         NoaaDownloader.__init__(
             self, "hrrr_alaska_ncep", "HRRR-ALASKA-NCEP", address, begin, end, use_aws_big_data=True
         )
+        self.add_download_variable("MSLMA:mean sea level", "press")
         self.add_download_variable("ICEC:surface", "ice")
         self.add_download_variable("PRATE", "precip_rate")
         self.add_download_variable("RH:2 m above ground", "humidity")

@@ -65,12 +65,10 @@ class NoaaDownloader:
             else:
                 self.__s3file = S3file()
 
-        # The default variable list. Must haves for
-        #   this system at present
+        # The default variable list
         self.__variables = [
             {"long_name": "UGRD:10 m above ground", "name": "uvel"},
             {"long_name": "VGRD:10 m above ground", "name": "vvel"},
-            {"long_name": "PRMSL", "name": "press"},
         ]
 
     def s3file(self):
