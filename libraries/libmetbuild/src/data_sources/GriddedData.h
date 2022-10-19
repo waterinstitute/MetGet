@@ -127,8 +127,9 @@ class GriddedData {
 
   std::vector<MetBuild::Point> bounding_region() const;
 
- protected:
   void set_bounding_region(const std::vector<Point> &region);
+
+  void write_bounding_region(const std::string &filename);
 
  private:
   GriddedDataTypes::TYPE m_type;

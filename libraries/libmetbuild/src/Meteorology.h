@@ -41,7 +41,7 @@ namespace MetBuild {
 
 class Meteorology {
  public:
-  enum SOURCE { GFS, GEFS, NAM, HWRF, COAMPS };
+  enum SOURCE { GFS, GEFS, NAM, HWRF, COAMPS, HRRR_CONUS, HRRR_ALASKA };
 
   METBUILD_EXPORT explicit Meteorology(const MetBuild::Grid *grid,
                                        Meteorology::SOURCE source_type,
@@ -76,10 +76,10 @@ class Meteorology {
       const std::vector<std::string> &filenames,
       Meteorology::SOURCE source);
 
-  MetBuild::Grid::grid reproject_grid(
+  [[nodiscard]] MetBuild::Grid::grid reproject_grid(
       MetBuild::Grid::grid g) const;
 
-  std::tuple<double, double> getScalingRates(
+  [[nodiscard]] std::tuple<double, double> getScalingRates(
       const GriddedDataTypes::VARIABLES &variable) const;
 
   constexpr static size_t c_idw_depth = 6;

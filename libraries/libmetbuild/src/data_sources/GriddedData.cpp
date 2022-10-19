@@ -25,7 +25,11 @@
 //
 #include "GriddedData.h"
 
+#include <fstream>
 #include <utility>
+
+#define FMT_HEADER_ONLY
+#include <fmt/core.h>
 
 #include "Geometry.h"
 #include "Logging.h"
@@ -177,4 +181,12 @@ std::vector<MetBuild::Point> GriddedData::bounding_region() const {
 
 void GriddedData::set_bounding_region(const std::vector<Point> &region) {
   m_bounding_region = region;
+}
+
+void GriddedData::write_bounding_region(const std::string &filename) {
+  auto f = std::ofstream(filename);
+  for (const auto &p : m_bounding_region) {
+    f << fmt::format("{:0.9f},{:0.9f}\n", p.x(), p.y());
+  }
+  f.close();
 }
