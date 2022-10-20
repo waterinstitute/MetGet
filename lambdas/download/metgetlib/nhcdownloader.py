@@ -770,7 +770,7 @@ class NhcDownloader:
         else:
             return pos
 
-    def __generate_track(self, path: str) -> tuple:
+    def __generate_track(self, path: str) -> dict:
         from geojson import Feature, FeatureCollection, Point, LineString
         KNOT_TO_MPH = 1.15078
 
@@ -793,10 +793,11 @@ class NhcDownloader:
                                         d["data"]["radius_to_max_winds"]),
                                     "storm_class": d["data"]["development_level"].strip()}))
         storm_track = Feature(geometry=LineString(track_points))
-        return FeatureCollection(features=points), storm_track
+        return {"storm_track_points": FeatureCollection(features=points), "storm_track_line": storm_track}
 
     def generate_geojson(self, filename: str):
-        return self.__generate_track(filename)
+        import json
+        return json.dumps(self.__generate_track(filename))
 
     def download_hindcast(self):
         from ftplib import FTP
