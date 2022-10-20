@@ -33,6 +33,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "CoordinateConvention.h"
 #include "GriddedData.h"
 #include "Point.h"
 #include "VariableNames.h"
@@ -50,7 +51,8 @@ namespace MetBuild {
 class Grib : public GriddedData {
  public:
   explicit Grib(std::string filename, MetBuild::VariableNames variable_names,
-                MetBuild::VariableUnits variable_units);
+                MetBuild::VariableUnits variable_units,
+                COORDINATE_CONVENTION convention = CONVENTION_180);
 
   ~Grib() override;
 
@@ -87,7 +89,6 @@ class Grib : public GriddedData {
   std::vector<std::vector<double>> m_preread_values;
   std::unordered_map<std::string, size_t> m_preread_value_map;
   std::unique_ptr<FILE *> m_file;
-  int m_convention;
 };
 }  // namespace MetBuild
 #endif  // METBUILD_GRIB_H

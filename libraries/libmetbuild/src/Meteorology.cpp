@@ -38,6 +38,7 @@
 #include "data_sources/GefsData.h"
 #include "data_sources/GfsData.h"
 #include "data_sources/Grib.h"
+#include "data_sources/HrrrAlaskaData.h"
 #include "data_sources/HrrrConusData.h"
 #include "data_sources/HwrfData.h"
 #include "data_sources/NamData.h"
@@ -124,12 +125,14 @@ int Meteorology::process_data() {
       m_gridded1 =
           MetBuild::Meteorology::gridded_data_factory(m_file1, m_source);
       m_interpolation_1 = std::make_shared<InterpolationData>(
-          m_gridded1->generate_triangulation(), m_grid_positions);
+          m_gridded1->generate_triangulation(), m_grid_positions,
+          m_gridded1->convention());
     }
   } else {
     m_gridded1 = MetBuild::Meteorology::gridded_data_factory(m_file1, m_source);
     m_interpolation_1 = std::make_shared<InterpolationData>(
-        m_gridded1->generate_triangulation(), m_grid_positions);
+        m_gridded1->generate_triangulation(), m_grid_positions,
+        m_gridded1->convention());
   }
 
   m_gridded2 = MetBuild::Meteorology::gridded_data_factory(m_file2, m_source);
@@ -138,7 +141,8 @@ int Meteorology::process_data() {
     m_interpolation_2 = std::make_shared<InterpolationData>(*m_interpolation_1);
   } else {
     m_interpolation_2 = std::make_shared<InterpolationData>(
-        m_gridded2->generate_triangulation(), m_grid_positions);
+        m_gridded2->generate_triangulation(), m_grid_positions,
+        m_gridded2->convention());
   }
 
   return MB_NOERROR;
@@ -391,6 +395,10 @@ std::unique_ptr<GriddedData> Meteorology::gridded_data_factory(
       return std::make_unique<MetBuild::HwrfData>(filenames[0]);
     case COAMPS:
       return std::make_unique<MetBuild::CoampsData>(filenames);
+    case HRRR_CONUS:
+      return std::make_unique<MetBuild::HrrrConusData>(filenames[0]);
+    case HRRR_ALASKA:
+      return std::make_unique<MetBuild::HrrrAlaskaData>(filenames[0]);
     default:
       Logging::throwError(
           "No valid source type defined. Cannot create object.");

@@ -38,20 +38,24 @@
 using namespace MetBuild;
 
 GriddedData::GriddedData(std::string filename, VariableNames variableNames,
-                         VariableUnits variableUnits)
+                         VariableUnits variableUnits,
+                         COORDINATE_CONVENTION convention)
     : m_ni(0),
       m_nj(0),
       m_size(0),
+      m_convention(convention),
       m_filenames({std::move(filename)}),
       m_variableNames(std::move(variableNames)),
       m_variableUnits(variableUnits) {}
 
 GriddedData::GriddedData(std::vector<std::string> filenames,
                          VariableNames variableNames,
-                         VariableUnits variableUnits)
+                         VariableUnits variableUnits,
+                         COORDINATE_CONVENTION convention)
     : m_ni(0),
       m_nj(0),
       m_size(0),
+      m_convention(convention),
       m_filenames(std::move(filenames)),
       m_variableNames(std::move(variableNames)),
       m_variableUnits(variableUnits) {}
@@ -69,6 +73,8 @@ void GriddedData::setNi(size_t ni) { m_ni = ni; }
 void GriddedData::setNj(size_t nj) { m_nj = nj; }
 
 void GriddedData::setSize(size_t size) { m_size = size; }
+
+COORDINATE_CONVENTION GriddedData::convention() const { return m_convention; }
 
 std::vector<double> GriddedData::getVariable1d(
     MetBuild::GriddedDataTypes::VARIABLES v) {
@@ -185,8 +191,10 @@ void GriddedData::set_bounding_region(const std::vector<Point> &region) {
 
 void GriddedData::write_bounding_region(const std::string &filename) {
   auto f = std::ofstream(filename);
+  size_t index = 0;
   for (const auto &p : m_bounding_region) {
-    f << fmt::format("{:0.9f},{:0.9f}\n", p.x(), p.y());
+    f << fmt::format("{:0.9f},{:0.9f},{:d}\n", p.x(), p.y(), index);
+    index++;
   }
   f.close();
 }

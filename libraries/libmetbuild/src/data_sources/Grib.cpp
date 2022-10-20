@@ -42,10 +42,9 @@
 using namespace MetBuild;
 
 Grib::Grib(std::string filename, VariableNames variable_names,
-           VariableUnits variable_units)
+           VariableUnits variable_units, COORDINATE_CONVENTION convention)
     : GriddedData(std::move(filename), std::move(variable_names),
-                  variable_units),
-      m_convention(0) {
+                  variable_units, convention) {
   this->initialize();
   this->setSourceSubtype(MetBuild::GriddedDataTypes::SOURCE_SUBTYPE::GRIB);
 }
@@ -95,7 +94,8 @@ int Grib::getStepLength(const std::string &filename,
 void Grib::initialize() {
   codes_grib_multi_support_on(grib_context_get_default());
 
-  auto handle = GribHandle(this->filenames()[0], "prmsl");
+  auto handle = GribHandle(this->filenames()[0],
+                           this->variableNames().pressure().c_str());
 
   long ni = 0;
   CODES_CHECK(codes_get_long(handle.ptr(), "Ni", &ni), nullptr);
@@ -178,7 +178,7 @@ void Grib::readCoordinates(codes_handle *handle) {
     CODES_CHECK(
         codes_get_double_array(handle, "longitudes", m_longitude.data(), &s),
         nullptr);
-    if (m_convention == 0) {
+    if (this->convention() == CONVENTION_180) {
       for (auto &v : m_longitude) {
         v = (std::fmod(v + 180.0, 360.0)) - 180.0;
       }

@@ -28,9 +28,11 @@
 using namespace MetBuild;
 
 InterpolationData::InterpolationData(const Triangulation& triangulation,
-                                     const MetBuild::Grid::grid& grid)
+                                     const MetBuild::Grid::grid& grid,
+                                     COORDINATE_CONVENTION convention)
     : m_triangulation(triangulation),
-      m_weights(generate_interpolation_weight(grid)) {}
+      m_weights(generate_interpolation_weight(grid)),
+      m_convention(convention) {}
 
 const InterpolationWeights& InterpolationData::interpolation() const {
   return m_weights;
@@ -42,6 +44,10 @@ const Triangulation& InterpolationData::triangulation() const {
   return m_triangulation;
 }
 
+COORDINATE_CONVENTION InterpolationData::convention() const {
+  return m_convention;
+}
+
 InterpolationWeights InterpolationData::generate_interpolation_weight(
     const MetBuild::Grid::grid& grid) {
   const auto ni = grid.size();
@@ -50,7 +56,11 @@ InterpolationWeights InterpolationData::generate_interpolation_weight(
   for (size_t i = 0; i < ni; ++i) {
     for (size_t j = 0; j < nj; ++j) {
       auto p = grid[i][j];
-      p.setX((std::fmod(p.x() + 180.0, 360.0)) - 180.0);
+
+      if (this->convention() == CONVENTION_180) {
+        p.setX((std::fmod(p.x() + 180.0, 360.0)) - 180.0);
+      }
+
       auto iw = m_triangulation.getInterpolationFactors(p.x(), p.y());
       weights.set(j, i, iw);
     }

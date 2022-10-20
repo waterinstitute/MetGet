@@ -23,24 +23,24 @@
 // Author: Zach Cobell
 // Contact: zcobell@thewaterinstitute.org
 //
-#ifndef METGET_SRC_DATA_SOURCES_HRRRCONUSDATA_H_
-#define METGET_SRC_DATA_SOURCES_HRRRCONUSDATA_H_
+#ifndef METGET_SRC_DATA_SOURCES_HRRRALASKADATA_H_
+#define METGET_SRC_DATA_SOURCES_HRRRALASKADATA_H_
 
 #include "Grib.h"
 
 namespace MetBuild {
 
-class HrrrConusData : public Grib {
+class HrrrAlaskaData : public Grib {
  public:
-  explicit HrrrConusData(const std::string &filename)
+  explicit HrrrAlaskaData(const std::string &filename)
       : Grib(filename,
-             {"longitudes", "latitudes", "mslma", "10u", "10v", "prate", "2r", "2t",
-              "ci"},
-             {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}) {
+             {"longitudes", "latitudes", "mslma", "10u", "10v", "prate", "2r",
+              "2t", "ci"},
+             {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}, CONVENTION_360) {
     this->get_bounding_region();
   }
 
-  ~HrrrConusData() override = default;
+  ~HrrrAlaskaData() override = default;
 
  private:
   void get_bounding_region() {
@@ -73,7 +73,8 @@ class HrrrConusData : public Grib {
     }
 
     this->set_bounding_region(region);
+    this->write_bounding_region("hrrr_alaska.txt");
   }
 };
 }  // namespace MetBuild
-#endif  // METGET_SRC_DATA_SOURCES_HRRRCONUSDATA_H_
+#endif  // METGET_SRC_DATA_SOURCES_HRRRALASKADATA_H_

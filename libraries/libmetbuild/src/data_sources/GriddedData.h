@@ -31,6 +31,7 @@
 #include <tuple>
 #include <vector>
 
+#include "CoordinateConvention.h"
 #include "CppAttributes.h"
 #include "GriddedDataTypes.h"
 #include "InterpolationWeight.h"
@@ -48,11 +49,13 @@ class GriddedData {
   GriddedData() = default;
 
   GriddedData(std::string filename, MetBuild::VariableNames variableNames,
-              MetBuild::VariableUnits variableUnits);
+              MetBuild::VariableUnits variableUnits,
+              COORDINATE_CONVENTION convention = CONVENTION_180);
 
   GriddedData(std::vector<std::string> filenames,
               MetBuild::VariableNames variableNames,
-              MetBuild::VariableUnits variableUnits);
+              MetBuild::VariableUnits variableUnits,
+              COORDINATE_CONVENTION convention = CONVENTION_180);
 
   virtual ~GriddedData();
 
@@ -101,6 +104,8 @@ class GriddedData {
 
   virtual Triangulation generate_triangulation() const = 0;
 
+  COORDINATE_CONVENTION convention() const;
+
  protected:
   virtual void findCorners() = 0;
 
@@ -137,6 +142,7 @@ class GriddedData {
   long m_ni;
   long m_nj;
   size_t m_size;
+  COORDINATE_CONVENTION m_convention;
   std::unique_ptr<MetBuild::Geometry> m_geometry;
   std::array<MetBuild::Point, 4> m_corners;
   MetBuild::VariableNames m_variableNames;

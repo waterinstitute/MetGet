@@ -26,6 +26,7 @@
 #ifndef METGET_SRC_INTERPOLATIONDATA_H_
 #define METGET_SRC_INTERPOLATIONDATA_H_
 
+#include "CoordinateConvention.h"
 #include "Grid.h"
 #include "InterpolationWeights.h"
 #include "Triangulation.h"
@@ -35,12 +36,15 @@ namespace MetBuild {
 class InterpolationData {
  public:
   InterpolationData(const Triangulation &triangulation,
-                    const MetBuild::Grid::grid &grid);
+                    const MetBuild::Grid::grid &grid,
+                    COORDINATE_CONVENTION convention = CONVENTION_180);
 
   [[nodiscard]] const InterpolationWeights &interpolation() const;
   InterpolationWeights &interpolation();
 
   [[nodiscard]] const Triangulation &triangulation() const;
+
+  [[nodiscard]] COORDINATE_CONVENTION convention() const;
 
  private:
   InterpolationWeights generate_interpolation_weight(
@@ -48,6 +52,7 @@ class InterpolationData {
 
   Triangulation m_triangulation;
   InterpolationWeights m_weights;
+  COORDINATE_CONVENTION m_convention;
 };
 }  // namespace MetBuild
 #endif  // METGET_SRC_INTERPOLATIONDATA_H_
