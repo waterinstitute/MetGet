@@ -207,6 +207,7 @@ def process_message(json_message, queue, json_file=None) -> bool:
     import os
     import json
     import sys
+    import math
     from metbuild.instance import Instance
     from metbuild.input import Input
     from metbuild.database import Database
@@ -493,11 +494,13 @@ def process_message(json_message, queue, json_file=None) -> bool:
 
                 if t < t0 or t > t1:
                     weight = -1.0
+                elif t0 == t1:
+                    weight = 0.0
                 else:
                     weight = met.generate_time_weight(
                         Input.date_to_pmb(t0), Input.date_to_pmb(t1), Input.date_to_pmb(t)
                     )
-                
+
                 logger.info("Processing time {:s}, weight = {:f}".format(t.strftime("%Y-%m-%d %H:%M"),weight))
     
                 if inputData.data_type() == "wind_pressure":
