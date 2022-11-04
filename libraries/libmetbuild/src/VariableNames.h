@@ -85,7 +85,7 @@ class VariableNames {
     }
   }
 
-  void print() const {
+  void write() const {
     std::cout << "   Longitude: " << m_longitude << std::endl;	
     std::cout << "    Latitude: " << m_latitude << std::endl;
     std::cout << "         u10: " << m_u10 << std::endl;

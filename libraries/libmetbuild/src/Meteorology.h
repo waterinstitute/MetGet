@@ -76,10 +76,10 @@ class Meteorology {
       const std::vector<std::string> &filenames,
       Meteorology::SOURCE source);
 
-  [[nodiscard]] MetBuild::Grid::grid reproject_grid(
+  MetBuild::Grid::grid reproject_grid(
       MetBuild::Grid::grid g) const;
 
-  [[nodiscard]] std::tuple<double, double> getScalingRates(
+  std::tuple<double, double> getScalingRates(
       const GriddedDataTypes::VARIABLES &variable) const;
 
   constexpr static size_t c_idw_depth = 6;
