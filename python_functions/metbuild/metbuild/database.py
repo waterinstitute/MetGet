@@ -81,6 +81,14 @@ class Database:
                 raise RuntimeError("ERROR: Must specify advisory")
             year = start.year
             return self.generate_nhc_file_list(year, basin, storm, advisory)
+        elif service == "hrrr-conus": 
+            return self.generate_generic_file_list(
+                "hrrr_ncep", param, start, end, nowcast, multiple_forecasts
+            )
+        elif service == "hrrr-conus": 
+            return self.generate_generic_file_list(
+                "hrrr_alaska_ncep", param, start, end, nowcast, multiple_forecasts
+            )
         else:
             print("ERROR: Invalid data type")
             sys.exit(1)

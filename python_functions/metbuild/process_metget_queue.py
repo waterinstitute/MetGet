@@ -69,6 +69,10 @@ def generate_data_source_key(data_source):
         return pymetbuild.Meteorology.HWRF
     elif data_source == "coamps-tc":
         return pymetbuild.Meteorology.COAMPS
+    elif data_source == "hrrr-conus":
+        return pymetbuild.Meteorology.HRRR_CONUS
+    elif data_source == "hrrr-alaska": 
+        return pymetbuild.Meteorology.HRRR_ALASKA
     else:
         raise RuntimeError("Invalid data source")
 
