@@ -31,14 +31,13 @@ class Metdb:
         """
         import os
 
-        self.__dbhost = os.environ["DBSERVER"]
-        self.__dbpassword = os.environ["DBPASS"]
-        self.__dbusername = os.environ["DBUSER"]
-        self.__dbname = os.environ["DBNAME"]
+        self.__dbhost = os.environ["METGET_DATABASE_SERVICE_HOST"]
+        self.__dbpassword = os.environ["METGET_DATABASE_PASSWORD"]
+        self.__dbusername = os.environ["METGET_DATABASE_USER"]
+        self.__dbname = os.environ["METGET_DATABASE"]
         self.__gefs_cache = None
         self.__persistent_connection = self.connect()
         self.__persistent_cursor = self.__persistent_connection.cursor()
-        self.__initdatabase()
 
     def persistent_connection(self):
         return self.__persistent_connection
@@ -49,6 +48,9 @@ class Metdb:
     def connect(self):
         import sys
         import pymysql
+        import logging
+
+        logger = logging.getLogger(__name__)
 
         try:
             return pymysql.connect(
@@ -59,67 +61,8 @@ class Metdb:
                 connect_timeout=5,
             )
         except:
-            print("[ERROR]: Could not connect to MySQL database")
+            logger.error("Could not connect to MySQL database")
             sys.exit(1)
-
-    def __initdatabase(self):
-        """
-        Initializes the database with the appropriate tables
-        :return:
-        """
-
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS gfs_ncep(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
-            "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
-        )
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS gefs_fcst(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, forecastcycle DATETIME "
-            "NOT NULL, forecasttime DATETIME NOT NULL, ensemble_member VARCHAR(32) NOT NULL, "
-            "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, "
-            "accessed DATETIME NOT NULL);"
-        )
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS hwrf(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, stormname VARCHAR(256) NOT NULL, forecastcycle DATETIME "
-            "NOT NULL, forecasttime DATETIME NOT NULL, filepath VARCHAR(256) NOT NULL, "
-            "url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
-        )
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS nam_ncep(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
-            "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
-        )
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS nhc_btk(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, storm_year INTEGER NOT NULL, basin VARCHAR(256) NOT NULL, storm INTEGER NOT NULL, "
-            "advisory_start DATETIME NOT NULL, advisory_end DATETIME NOT NULL, "
-            "advisory_duration_hr INT NOT NULL, filepath VARCHAR(256) NOT NULL, md5 VARCHAR(32) NOT NULL, "
-            "accessed DATETIME NOT NULL, geojson MEDIUMTEXT);"
-        )
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS nhc_fcst(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, storm_year INTEGER NOT NULL, basin VARCHAR(256) NOT NULL, storm INTEGER NOT NULL, "
-            "advisory VARCHAR(256) NOT NULL, advisory_start DATETIME NOT NULL, advisory_end DATETIME NOT NULL, "
-            "advisory_duration_hr INT NOT NULL, filepath VARCHAR(256) NOT NULL, md5 VARCHAR(32) NOT NULL, "
-            "accessed DATETIME NOT NULL, geojson MEDIUMTEXT);"
-        )
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS coamps_tc(id INTEGER PRIMARY KEY AUTO_INCREMENT, "
-            "stormname VARCHAR(256) NOT NULL, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
-            "filepath VARCHAR(512) NOT NULL, accessed DATETIME NOT NULL, tau INTEGER NOT NULL);"
-        )
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS hrrr_ncep(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
-            "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
-        )
-        self.persistent_cursor().execute(
-            "CREATE TABLE IF NOT EXISTS hrrr_alaska_ncep(id INTEGER PRIMARY KEY "
-            "AUTO_INCREMENT, forecastcycle DATETIME NOT NULL, forecasttime DATETIME NOT NULL, "
-            "filepath VARCHAR(256) NOT NULL, url VARCHAR(256) NOT NULL, accessed DATETIME NOT NULL);"
-        )
 
     def get_nhc_md5(self, mettype, year, basin, storm, advisory=0):
         if mettype == "nhc_btk":
@@ -131,13 +74,13 @@ class Metdb:
 
     def get_nhc_btk_md5(self, year, basin, storm):
         sql = (
-                "SELECT md5 FROM nhc_btk WHERE storm_year = "
-                + str(year)
-                + " AND BASIN = '"
-                + basin
-                + "' AND STORM = "
-                + str(storm)
-                + ";"
+            "SELECT md5 FROM nhc_btk WHERE storm_year = "
+            + str(year)
+            + " AND BASIN = '"
+            + basin
+            + "' AND STORM = "
+            + str(storm)
+            + ";"
         )
         self.persistent_cursor().execute(sql)
         dat = self.persistent_cursor().fetchone()
@@ -149,13 +92,13 @@ class Metdb:
 
     def get_nhc_fcst_md5(self, year, basin, storm, advisory):
         sql = (
-                "SELECT md5 FROM nhc_fcst WHERE storm_year = "
-                + str(year)
-                + " AND BASIN = '"
-                + basin
-                + "' AND STORM = '"
-                + str(storm)
-                + "'"
+            "SELECT md5 FROM nhc_fcst WHERE storm_year = "
+            + str(year)
+            + " AND BASIN = '"
+            + basin
+            + "' AND STORM = '"
+            + str(storm)
+            + "'"
         )
 
         if advisory:
@@ -321,11 +264,11 @@ class Metdb:
         cycle_list = []
         for r in reversed(rows):
             sql = (
-                    "SELECT MIN(DATE) AS FIRST, MAX(DATE) AS LAST FROM "
-                    + table
-                    + " WHERE FORECASTCYCLE = datetime('"
-                    + r[0]
-                    + "')"
+                "SELECT MIN(DATE) AS FIRST, MAX(DATE) AS LAST FROM "
+                + table
+                + " WHERE FORECASTCYCLE = datetime('"
+                + r[0]
+                + "')"
             )
             rr = self.persistent_cursor().execute(sql).fetchall()
             start = datetime.strptime(rr[0][0], "%Y-%m-%d %H:%M:%S")
@@ -379,17 +322,17 @@ class Metdb:
         # For each storm, determine the availability of data
         for s in stormlist:
             sql = (
-                    "SELECT DATE FROM hwrf WHERE stormname = '"
-                    + s["storm"]
-                    + "' ORDER BY DATE"
+                "SELECT DATE FROM hwrf WHERE stormname = '"
+                + s["storm"]
+                + "' ORDER BY DATE"
             )
             rows = self.persistent_cursor().execute(sql).fetchall()
             fcst_min = rows[0][0]
             fcst_max = rows[-1][0]
             sql = (
-                    "SELECT DISTINCT FORECASTCYCLE FROM hwrf WHERE stormname = '"
-                    + s["storm"]
-                    + "' ORDER BY FORECASTCYCLE"
+                "SELECT DISTINCT FORECASTCYCLE FROM hwrf WHERE stormname = '"
+                + s["storm"]
+                + "' ORDER BY FORECASTCYCLE"
             )
             rows = self.persistent_cursor().execute(sql).fetchall()
             cyc_min = rows[0][0]
@@ -405,11 +348,11 @@ class Metdb:
             # Backwards loop to see the most recent complete forecast cycle
             for f in reversed(rows):
                 sql = (
-                        "SELECT MIN(DATE) AS FIRST, MAX(DATE) AS LAST FROM hwrf WHERE stormname = '"
-                        + s["storm"]
-                        + "' AND FORECASTCYCLE = datetime('"
-                        + f[0]
-                        + "') ORDER BY DATE"
+                    "SELECT MIN(DATE) AS FIRST, MAX(DATE) AS LAST FROM hwrf WHERE stormname = '"
+                    + s["storm"]
+                    + "' AND FORECASTCYCLE = datetime('"
+                    + f[0]
+                    + "') ORDER BY DATE"
                 )
                 r = self.persistent_cursor().execute(sql).fetchall()
                 start = datetime.strptime(r[0][0], "%Y-%m-%d %H:%M:%S")
@@ -461,13 +404,13 @@ class Metdb:
             bs = f[1]
             st = f[2]
             sql = (
-                    "SELECT advisory, advisory_start, advisory_end, advisory_duration_hr FROM nhc_fcst WHERE year = "
-                    + str(yr)
-                    + " and basin = '"
-                    + bs
-                    + "' and storm = "
-                    + str(st)
-                    + " ORDER BY advisory;"
+                "SELECT advisory, advisory_start, advisory_end, advisory_duration_hr FROM nhc_fcst WHERE year = "
+                + str(yr)
+                + " and basin = '"
+                + bs
+                + "' and storm = "
+                + str(st)
+                + " ORDER BY advisory;"
             )
             crsr2 = db.execute(sql)
             for ff in crsr2:
@@ -512,84 +455,62 @@ class Metdb:
         return nhc_fcst_stat, nhc_btk_stat
 
     @staticmethod
-    def __generate_sql_generic(datatype, filepath, pair):
+    def __generate_sql_generic(datatype, filepath, pair) -> dict:
+        import math
+
         cdate = str(pair["cycledate"])
         fdate = str(pair["forecastdate"])
+        tau = int(
+            math.floor(
+                (pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600.0
+            )
+        )
         url = pair["grb"]
+
         sqlhas = (
-                "SELECT Count(*) FROM "
-                + datatype
-                + " WHERE FORECASTCYCLE = '"
-                + cdate
-                + "' AND FORECASTTIME = '"
-                + fdate
-                + "' AND FILEPATH = '"
-                + filepath
-                + "';"
+            "SELECT Count(*) FROM {:s} WHERE "
+            "FORECASTCYCLE = '{:s}' AND FORECASTTIME = '{:s}' "
+            "AND FILEPATH = '{:s}';".format(datatype, cdate, fdate, filepath)
         )
+
         sqlinsert = (
-                "INSERT INTO "
-                + datatype
-                + " (FORECASTCYCLE,FORECASTTIME,FILEPATH,URL,ACCESSED) VALUES('"
-                + cdate
-                + "','"
-                + fdate
-                + "','"
-                + filepath
-                + "','"
-                + url
-                + "',now());"
+            "INSERT INTO {:s} (FORECASTCYCLE,FORECASTTIME,TAU,FILEPATH,URL,ACCESSED) "
+            "VALUES('{:s}','{:s}',{:d},'{:s}','{:s}', now());".format(
+                datatype, cdate, fdate, tau, filepath, url
+            )
         )
-        sqlupdate = ""
-        return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
+        return {"has": sqlhas, "insert": sqlinsert, "update": None}
 
     @staticmethod
     def __generate_sql_gefs_ncep(filepath, pair):
+        import math
+
         cdate = str(pair["cycledate"])
         fdate = str(pair["forecastdate"])
         member = str(pair["ensemble_member"])
         url = pair["grb"]
-        # sqlhas = (
-        #    "SELECT Count(*) FROM "
-        #    + "gefs_fcst"
-        #    + " WHERE FORECASTCYCLE = '"
-        #    + cdate
-        #    + "' AND FORECASTTIME = '"
-        #    + fdate
-        #    + "' AND ENSEMBLE_MEMBER = '"
-        #    + member
-        #    + "' AND FILEPATH = '"
-        #    + filepath
-        #    + "';"
-        # )
+        tau = int(
+            math.floor(
+                (pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600.0
+            )
+        )
+
         sqlhas = (
-                "SELECT Count(*) FROM "
-                + "gefs_fcst"
-                + " WHERE FORECASTCYCLE = '"
-                + cdate
-                + "' AND FORECASTTIME = '"
-                + fdate
-                + "' AND ENSEMBLE_MEMBER = '"
-                + member
-                + "';"
+            "SELECT Count(*) FROM gefs_fcst WHERE FORECASTCYCLE = '{:s}' "
+            "AND FORECASTTIME = '{:s}' AND ENSEMBLE_MEMBER = '{:s}';".format(
+                cdate, fdate, member
+            )
         )
+
         sqlinsert = (
-                "INSERT INTO "
-                + "gefs_fcst"
-                + " (FORECASTCYCLE,FORECASTTIME,ENSEMBLE_MEMBER,FILEPATH,URL,ACCESSED) VALUES('"
-                + cdate
-                + "','"
-                + fdate
-                + "','"
-                + member
-                + "','"
-                + filepath
-                + "','"
-                + url
-                + "',now());"
+            "INSERT INTO gefs_fcst "
+            "(FORECASTCYCLE,FORECASTTIME,ENSEMBLE_MEMBER,TAU,FILEPATH,URL,ACCESSED)"
+            "VALUES('{:s}','{:s}','{:s}','{:d}','{:s}','{:s}',now());".format(
+                cdate, fdate, member, tau, filepath, url
+            )
         )
-        sqlupdate = ""
-        return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
+
+        return {"has": sqlhas, "insert": sqlinsert, "update": None}
 
     @staticmethod
     def __generate_nhc_vars_from_pair(pair):
@@ -622,6 +543,7 @@ class Metdb:
     @staticmethod
     def __generate_sql_nhc_btk(filepath, pair):
         import json
+
         (
             year,
             storm,
@@ -638,60 +560,62 @@ class Metdb:
             geojson = "none"
 
         sqlhas = (
-                "SELECT Count(*) FROM nhc_btk WHERE storm_year = "
-                + str(year)
-                + " AND BASIN = '"
-                + basin
-                + "' AND STORM = "
-                + str(storm)
-                + ";"
+            "SELECT Count(*) FROM nhc_btk WHERE storm_year = "
+            + str(year)
+            + " AND BASIN = '"
+            + basin
+            + "' AND STORM = "
+            + str(storm)
+            + ";"
         )
         sqlinsert = (
-                "INSERT INTO nhc_btk (STORM_YEAR,BASIN,STORM,ADVISORY_START,ADVISORY_END,"
-                "ADVISORY_DURATION_HR,FILEPATH,MD5,ACCESSED,GEOJSON) VALUES("
-                + str(year)
-                + ",'"
-                + basin
-                + "',"
-                + str(storm)
-                + ", '"
-                + start
-                + "', '"
-                + end
-                + "', "
-                + duration
-                + ",'"
-                + filepath
-                + "', '"
-                + md5
-                + "', now()"
-                + ", '"
-                + geojson +
-                "');"
+            "INSERT INTO nhc_btk (STORM_YEAR,BASIN,STORM,ADVISORY_START,ADVISORY_END,"
+            "ADVISORY_DURATION_HR,FILEPATH,MD5,ACCESSED,GEOJSON) VALUES("
+            + str(year)
+            + ",'"
+            + basin
+            + "',"
+            + str(storm)
+            + ", '"
+            + start
+            + "', '"
+            + end
+            + "', "
+            + duration
+            + ",'"
+            + filepath
+            + "', '"
+            + md5
+            + "', now()"
+            + ", '"
+            + geojson
+            + "');"
         )
         sqlupdate = (
-                "UPDATE nhc_btk SET ACCESSED = now(), MD5 = '"
-                + md5
-                + "', ADVISORY_START = '"
-                + start
-                + "', ADVISORY_END = '"
-                + end
-                + "', ADVISORY_DURATION_HR = "
-                + duration
-                + ", GEOJSON = '" + geojson
-                + "' WHERE storm_year = "
-                + str(year)
-                + " AND BASIN = '"
-                + basin
-                + "' AND STORM = "
-                + str(storm)
-                + ";"
+            "UPDATE nhc_btk SET ACCESSED = now(), MD5 = '"
+            + md5
+            + "', ADVISORY_START = '"
+            + start
+            + "', ADVISORY_END = '"
+            + end
+            + "', ADVISORY_DURATION_HR = "
+            + duration
+            + ", GEOJSON = '"
+            + geojson
+            + "' WHERE storm_year = "
+            + str(year)
+            + " AND BASIN = '"
+            + basin
+            + "' AND STORM = "
+            + str(storm)
+            + ";"
         )
         return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
 
     @staticmethod
     def __generate_sql_nhc_fcst(filepath, pair):
         import json
+
         (
             year,
             storm,
@@ -709,83 +633,87 @@ class Metdb:
             geojson = "none"
 
         sqlhas = (
-                "SELECT Count(*) FROM nhc_fcst WHERE storm_year = "
-                + str(year)
-                + " AND ADVISORY = '"
-                + advisory
-                + "' AND BASIN = '"
-                + basin
-                + "' AND STORM = "
-                + str(storm)
-                + ";"
+            "SELECT Count(*) FROM nhc_fcst WHERE storm_year = "
+            + str(year)
+            + " AND ADVISORY = '"
+            + advisory
+            + "' AND BASIN = '"
+            + basin
+            + "' AND STORM = "
+            + str(storm)
+            + ";"
         )
         sqlinsert = (
-                "INSERT INTO nhc_fcst (STORM_YEAR,BASIN,STORM,ADVISORY,ADVISORY_START,ADVISORY_END,"
-                "ADVISORY_DURATION_HR,FILEPATH,MD5,ACCESSED,GEOJSON) VALUES("
-                + str(year)
-                + ",'"
-                + basin
-                + "',"
-                + str(storm)
-                + ",'"
-                + advisory
-                + "', '"
-                + start
-                + "', '"
-                + end
-                + "', "
-                + duration
-                + ",'"
-                + filepath
-                + "', '"
-                + md5
-                + "', now()"
-                + ", '"
-                + geojson +
-                "');"
+            "INSERT INTO nhc_fcst (STORM_YEAR,BASIN,STORM,ADVISORY,ADVISORY_START,ADVISORY_END,"
+            "ADVISORY_DURATION_HR,FILEPATH,MD5,ACCESSED,GEOJSON) VALUES("
+            + str(year)
+            + ",'"
+            + basin
+            + "',"
+            + str(storm)
+            + ",'"
+            + advisory
+            + "', '"
+            + start
+            + "', '"
+            + end
+            + "', "
+            + duration
+            + ",'"
+            + filepath
+            + "', '"
+            + md5
+            + "', now()"
+            + ", '"
+            + geojson
+            + "');"
         )
         sqlupdate = ""
         return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
 
     @staticmethod
     def __generate_sql_hwrf(filepath, pair):
+        import math
+
         cdate = str(pair["cycledate"])
         fdate = str(pair["forecastdate"])
         url = pair["grb"]
         name = pair["name"]
+        tau = int(
+            math.floor(
+                (pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600.0
+            )
+        )
+
         sqlhas = (
-                "SELECT Count(*) FROM hwrf WHERE FORECASTCYCLE = '"
-                + cdate
-                + "' AND FORECASTTIME = '"
-                + fdate
-                + "' AND STORMNAME = '"
-                + name
-                + "' AND FILEPATH = '"
-                + filepath
-                + "';"
+            "SELECT Count(*) FROM hwrf WHERE FORECASTCYCLE = '{:s}' AND "
+            "FORECASTTIME = '{:s}' AND STORMNAME = '{:s}' AND FILEPATH = '{:s}';".format(
+                cdate, fdate, name, filepath, url
+            )
         )
+
         sqlinsert = (
-                "INSERT INTO hwrf (FORECASTCYCLE,FORECASTTIME,STORMNAME,FILEPATH,URL,ACCESSED) VALUES('"
-                + cdate
-                + "','"
-                + fdate
-                + "','"
-                + name
-                + "','"
-                + filepath
-                + "','"
-                + url
-                + "',now());"
+            "INSERT INTO hwrf (FORECASTCYCLE,FORECASTTIME,STORMNAME,TAU,FILEPATH,URL,ACCESSED) "
+            "VALUES('{:s}', '{:s}', '{:s}', {:d}, '{:s}', '{:s}', now());".format(
+                cdate, fdate, name, tau, filepath, url
+            )
         )
-        sqlupdate = ""
-        return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
+
+        return {"has": sqlhas, "insert": sqlinsert, "update": None}
 
     @staticmethod
     def __generate_sql_coamps(filepath, pair):
+        import math
+
         cdate = str(pair["cycledate"])
         fdate = str(pair["forecastdate"])
-        tau = int((pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600)
         name = pair["name"]
+        tau = int(
+            math.floor(
+                (pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600.0
+            )
+        )
+
         sqlhas = "SELECT Count(*) FROM coamps_tc where stormname = '{}' and forecastcycle = '{}' and forecasttime = '{}';".format(
             name,
             cdate,
@@ -794,5 +722,4 @@ class Metdb:
         sqlinsert = "INSERT INTO coamps_tc(stormname, forecastcycle, forecasttime, filepath, accessed, tau) VALUES('{}', '{}', '{}', '{}', now(), '{}');".format(
             name, cdate, fdate, filepath, tau
         )
-        sqlupdate = ""
-        return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
+        return {"has": sqlhas, "insert": sqlinsert, "update": None}

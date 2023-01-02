@@ -60,10 +60,7 @@ class NoaaDownloader:
         if self.__use_aws:
             from .s3file import S3file
 
-            if "BUCKET_NAME" in os.environ:
-                self.__s3file = S3file(os.environ["BUCKET_NAME"])
-            else:
-                self.__s3file = S3file()
+            self.__s3file = S3file()
 
         # The default variable list
         self.__variables = [
@@ -159,6 +156,9 @@ class NoaaDownloader:
     def __get_grib_big_data(self, info, s3_client):
         import tempfile
         import os
+        import logging
+
+        logger = logging.getLogger(__name__)
 
         time = info["cycledate"]
         fn = info["grb"].rsplit("/")[-1]
@@ -183,21 +183,18 @@ class NoaaDownloader:
             # ...Get the inventory data
             byte_list = self.__get_inventory_big_data(info, s3_client)
             if not len(byte_list) == len(self.variables()):
-                print(
-                    "[ERROR]: Could not gather the inventory or missing variables detected. Trying again later."
+                logger.error(
+                    "Could not gather the inventory or missing variables detected. Trying again later."
                 )
                 return None, 0, 1
             n = 1
 
-            print(
-                "     Downloading File: "
-                + fn
-                + " (F: "
-                + info["cycledate"].strftime("%Y-%m-%d %H:%M:%S")
-                + ", T: "
-                + info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S")
-                + ")",
-                flush=True,
+            logger.info(
+                "Downloading File: {:s} (F: {:s}, T: {:s})".format(
+                    fn,
+                    info["cycledate"].strftime("%Y-%m-%d %H:%M:%S"),
+                    info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S"),
+                )
             )
             grb_key = info["grb"]
             with open(local_file, "wb") as fid:
@@ -247,6 +244,9 @@ class NoaaDownloader:
         import tempfile
         from requests.adapters import HTTPAdapter
         from requests.packages.urllib3.util.retry import Retry
+        import logging
+
+        logger = logging.getLogger(__name__)
 
         # ...Note: Status 302 is NOAA speak for "chill out", not a redirect as in normal http
         retry_strategy = Retry(
@@ -267,7 +267,7 @@ class NoaaDownloader:
                 inv = http.get(info["inv"], timeout=30)
                 inv.raise_for_status()
                 if inv.status_code == 302:
-                    print("RESP: ", inv.text)
+                    logger.error("RESP: ", inv.text)
                 inv_lines = str(inv.text).split("\n")
                 retlist = []
                 for v in self.variables():
@@ -276,8 +276,8 @@ class NoaaDownloader:
                     )
 
                 if not len(retlist) == len(self.__variables):
-                    print(
-                        "[ERROR]: Could not gather the inventory or missing variables detected. Trying again later."
+                    logger.error(
+                        "Could not gather the inventory or missing variables detected. Trying again later."
                     )
                     return None, 0, 1
 
@@ -295,15 +295,12 @@ class NoaaDownloader:
                     pathfound = os.path.exists(fn)
 
                 if not pathfound:
-                    print(
-                        "     Downloading File: "
-                        + fn
-                        + " (F: "
-                        + info["cycledate"].strftime("%Y-%m-%d %H:%M:%S")
-                        + ", T: "
-                        + info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S")
-                        + ")",
-                        flush=True,
+                    logger.info(
+                        "Downloading File: {:s} (F: {:s}, T: {:s})".format(
+                            fn,
+                            info["cycledate"].strftime("%Y-%m-%d %H:%M:%S"),
+                            info["forecastdate"].strftime("%Y-%m-%d %H:%M:%S"),
+                        )
                     )
                     n = 1
                     total_size = 0
@@ -328,8 +325,8 @@ class NoaaDownloader:
                         except KeyboardInterrupt:
                             raise
                         except:
-                            print(
-                                "    [WARNING]: NOAA Server stopped responding. Trying again later"
+                            logger.warning(
+                                "NOAA Server stopped responding. Trying again later"
                             )
                             if os.path.exists(floc):
                                 os.remove(floc)
@@ -338,8 +335,8 @@ class NoaaDownloader:
                     # ...Check that the full path was downloaded
                     delta_size = got_size - total_size
                     if delta_size != 0 and got_size > 0:
-                        print(
-                            "[ERROR]: Did not get the full file from NOAA. Trying again later."
+                        logger.error(
+                            "Did not get the full file from NOAA. Trying again later."
                         )
                         os.remove(floc)
                         return None, 0, 0
@@ -362,9 +359,6 @@ class NoaaDownloader:
 
         except KeyboardInterrupt:
             raise
-        # except:
-        #    print("[WARNING]: NOAA Server stopped responding. Trying again later")
-        #    return None, 0, 1
 
     @staticmethod
     def _generate_prefix(date, hour) -> str:

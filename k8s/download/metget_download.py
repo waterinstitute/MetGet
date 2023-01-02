@@ -34,155 +34,170 @@ def generate_default_date_range():
 
 def nam_download():
     from metgetlib.ncepnamdownloader import NcepNamdownloader
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     start, end = generate_default_date_range()
     nam = NcepNamdownloader(start, end)
-    print(
-        "[INFO]: Beginning to run NCEP-NAM from "
-        + start.isoformat()
-        + " to "
-        + end.isoformat(),
-        flush=True,
+    logger.info(
+        "Beginning to run NCEP-NAM from {:s} to {:s}".format(
+            start.isoformat(), end.isoformat()
+        )
     )
     n = nam.download()
-    print("[INFO]: NCEP-NAM complete. " + str(n) + " files downloaded", flush=True)
+    logger.info("NCEP-NAM complete. " + str(n) + " files downloaded")
     return n
 
 
 def gfs_download():
     from metgetlib.ncepgfsdownloader import NcepGfsdownloader
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     start, end = generate_default_date_range()
     gfs = NcepGfsdownloader(start, end)
-    print(
-        "[INFO]: Beginning to run NCEP-GFS from "
-        + start.isoformat()
-        + " to "
-        + end.isoformat(),
-        flush=True,
+    logger.info(
+        "Beginning to run NCEP-GFS from {:s} to {:s}".format(
+            start.isoformat(), end.isoformat()
+        )
     )
     n = gfs.download()
-    print("[INFO]: NCEP-GFS complete. " + str(n) + " files downloaded", flush=True)
+    logger.info("NCEP-GFS complete. {:d} files downloaded".format(n))
     return n
 
 
 def gefs_download():
     from metgetlib.ncepgefsdownloader import NcepGefsdownloader
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     start, end = generate_default_date_range()
     gefs = NcepGefsdownloader(start, end)
-    print(
-        "[INFO]: Beginning to run NCEP-GEFS from "
-        + start.isoformat()
-        + " to "
-        + end.isoformat(),
-        flush=True,
+    logger.info(
+        "Beginning to run NCEP-GEFS from {:s} to {:s}".format(
+            start.isoformat(), end.isoformat()
+        )
     )
     n = gefs.download()
-    print("[INFO]: NCEP-GEFS complete. " + str(n) + " files downloaded", flush=True)
+    logger.info("NCEP-GEFS complete. {:d} files downloaded".format(n))
     return n
 
 
 def hwrf_download():
     from metgetlib.hwrfdownloader import HwrfDownloader
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     start, end = generate_default_date_range()
     hwrf = HwrfDownloader(start, end)
-    print(
-        "[INFO]: Beginning to run HWRF from "
-        + start.isoformat()
-        + " to "
-        + end.isoformat(),
-        flush=True,
+    logger.info(
+        "Beginning to run HWRF from {:s} to {:s}".format(
+            start.isoformat(), end.isoformat()
+        )
     )
     n = hwrf.download()
-    print("[INFO]: HWRF complete. " + str(n) + " files downloaded", flush=True)
+    logger.info("HWRF complete. {:d} files downloaded".format(n))
     return n
 
 
 def nhc_download():
     from metgetlib.nhcdownloader import NhcDownloader
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     nhc = NhcDownloader()
-    print("[INFO:] Beginning downloading NHC data")
+    logger.info("Beginning downloading NHC data")
     n = nhc.download()
-    print("[INFO]: NHC complete. " + str(n) + " files downloaded", flush=True)
+    logger.info("NHC complete. {:d} files downloaded".format(n))
     return n
 
 
 def coamps_download():
     from metgetlib.coampsdownloader import CoampsDownloader
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     coamps = CoampsDownloader()
-    print("[INFO]: Beginning downloading COAMPS data")
+    logger.info("Beginning downloading COAMPS data")
     n = coamps.download()
-    print("[INFO]: COAMPS complete. " + str(n) + " files downloaded", flush=True)
+    logger.info("COAMPS complete. {:d} files downloaded".format(n))
     return n
 
 
 def hrrr_download():
     from metgetlib.ncephrrrdownloader import NcepHrrrdownloader
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     start, end = generate_default_date_range()
     hrrr = NcepHrrrdownloader(start, end)
-    print("[INFO]: Beginning downloading HRRR data")
+    logger.info("Beginning downloading HRRR data")
     n = hrrr.download()
-    print("[INFO]: HRRR complete. " + str(n) + " files downloaded", flush=True)
+
+    logger.info("HRRR complete. {:d} files downloaded".format(n))
     return n
 
 
 def hrrr_alaska_download():
     from metgetlib.ncephrrralaskadownloader import NcepHrrrAlaskadownloader
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     start, end = generate_default_date_range()
     hrrr = NcepHrrrAlaskadownloader(start, end)
-    print("[INFO]: Beginning downloading HRRR-Alaska data")
+    logger.info("Beginning downloading HRRR-Alaska data")
     n = hrrr.download()
-    print("[INFO]: HRRR complete. " + str(n) + " files downloaded", flush=True)
+    logger.info("HRRR complete. {:d} files downloaded".format(n))
     return n
 
 
-def lambda_handler(event, context):
-    import json
-    import sys
+def main():
+    import argparse
+    import logging
 
-    try:
-        request_type = event["service"]
-    except:
-        print("[ERROR]: Malformed event")
-        sys.exit(1)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s :: %(levelname)s :: %(module)s :: %(message)s",
+    )
+    logger = logging.getLogger(__name__)
 
-    print("[INFO]: Running with configuration: " + request_type, flush=True)
+    p = argparse.ArgumentParser(description="MetGet Download Function")
+    p.add_argument(
+        "--service",
+        type=str,
+        required=True,
+        help="Service to download from (nam, gfs, gefs, hwrf, nhc, coamps, hrrr, hrrr-alaska)",
+    )
+    args = p.parse_args()
+
+    logger.info("Running with configuration: {:s}".format(args.service))
 
     n = 0
-    if request_type == "nam":
+    if args.service == "nam":
         n = nam_download()
-    elif request_type == "gfs":
+    elif args.service == "gfs":
         n = gfs_download()
-    elif request_type == "gefs":
+    elif args.service == "gefs":
         n = gefs_download()
-    elif request_type == "hwrf":
+    elif args.service == "hwrf":
         n = hwrf_download()
-    elif request_type == "nhc":
+    elif args.service == "nhc":
         n = nhc_download()
-    elif request_type == "coamps":
+    elif args.service == "coamps":
         n = coamps_download()
-    elif request_type == "hrrr":
+    elif args.service == "hrrr":
         n = hrrr_download()
-    elif request_type == "hrrr-alaska":
+    elif args.service == "hrrr-alaska":
         n = hrrr_alaska_download()
-
-    returndata = {
-        "statusCode": 200,
-        "body": {"message": "download complete", "service": request_type, "nfiles": n},
-    }
-
-    print("[INFO]: Returning data: " + json.dumps(returndata, indent=2))
-
-    return returndata
 
 
 if __name__ == "__main__":
-    context = ""
-    event = {"service": "coamps"}
-    lambda_handler(event, context)
+    main()

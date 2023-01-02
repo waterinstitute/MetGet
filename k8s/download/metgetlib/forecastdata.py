@@ -123,7 +123,7 @@ class ForecastData:
         background_pressure = 1013.0
 
         # Below from Courtney and Knaff 2009
-        vsrm1 = wind_speed * 1.5 * forward_speed**0.63
+        vsrm1 = wind_speed * 1.5 * forward_speed ** 0.63
 
         rmax = (
             66.785 - 0.09102 * wind_speed + 1.0619 * (eye_latitude - 25.0)

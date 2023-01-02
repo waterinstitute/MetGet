@@ -2,14 +2,6 @@
 
 from datetime import datetime
 
-DEBUG_LEVEL = 1
-
-
-def logger(message, level=0):
-    if level > DEBUG_LEVEL:
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print("[{}]: {}".format(now, message), flush=True)
-
 
 class CoampsDownloader:
     def __init__(self):
@@ -22,16 +14,19 @@ class CoampsDownloader:
     def __connect(self):
         from ftplib import FTP
         import sys
+        import logging
+
+        logger = logging.getLogger(__name__)
 
         try:
-            logger("Connecting to " + self.__ftp_site)
+            logger.debug("Connecting to " + self.__ftp_site)
             self.__ftp_client = FTP(self.__ftp_site)
             self.__ftp_client.login()
             self.__ftp_client.cwd(self.__folder)
         except Exception as e:
-            logger("Could not start FTP session: " + str(e), 5)
+            logger.error("Could not start FTP session: " + str(e))
             sys.exit(1)
-        logger("Connected to " + self.__ftp_site, 1)
+        logger.debug("Connected to {:s}".format(self.__ftp_site))
 
     def __disconnect(self):
         self.__ftp_client.quit()
@@ -43,7 +38,7 @@ class CoampsDownloader:
         import os
 
         db = Metdb()
-        s3 = S3file(os.environ["BUCKET_NAME"])
+        s3 = S3file()
 
         forecast_delta_time = 3600 * 6
 
@@ -125,38 +120,42 @@ class CoampsDownloader:
         import os
         import ftplib
         import tempfile
+        import logging
+
+        logger = logging.getLogger(__name__)
 
         filename = "{}_{}_netcdf.tar".format(storm, date.strftime("%Y%m%d%H"))
         if not os.path.exists(filename):
-            logger("Attempting to fetch file: {}".format(filename), 1)
+            logger.info("Attempting to fetch file: {}".format(filename))
 
             # ...Check if file exists. Use size method on a known
             # filename since the list methods are disabled on the
             # coamps ftp server
             try:
                 file_size = self.__ftp_client.size(filename)
-                logger("File {} found on server".format(filename), 3)
+                logger.info("File {} found on server".format(filename))
             except ftplib.error_perm as e:
-                logger("File {} not found on server".format(filename), 1)
+                logger.info("File {} not found on server".format(filename))
                 return False, ""
 
             # ...If the file exists, then download
             floc = tempfile.gettempdir() + "/" + filename
             try:
-                logger("Starting to download filename: {}".format(filename))
+                logger.info("Starting to download filename: {}".format(filename))
                 self.__ftp_client.retrbinary(
                     "RETR {}".format(filename), open(floc, "wb").write
                 )
             except Exception as e:
                 os.remove(floc)
-                logger(
+                logger.error(
                     "Could not retrieve specified file: {}, Error:  {}".format(
-                        filename, str(e), 5
+                        filename,
+                        str(e),
                     )
                 )
                 self.__disconnect()
                 return False, ""
-            logger("Got file {}".format(floc))
+            logger.info("Got file {}".format(floc))
             return True, floc
         else:
             return False, ""
@@ -165,9 +164,12 @@ class CoampsDownloader:
     def unpack(storm, filename) -> str:
         import tarfile
         import tempfile
+        import logging
+
+        logger = logging.getLogger(__name__)
 
         if not tarfile.is_tarfile(filename):
-            logger("[ERROR]: Invalid tarfile: {}".format(filename), 5)
+            logger.error("Invalid tarfile: {}".format(filename))
 
         tempdir = tempfile.mkdtemp(prefix="coamps_")
         with tarfile.open(filename, "r") as tar:

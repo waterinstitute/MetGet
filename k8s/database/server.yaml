@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metget-database
+spec:
+  selector:
+    matchLabels:
+      app: metget-database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: metget-database
+    spec:
+      containers:
+      - image: zcobell/metget-database
+        name: metget-database
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: metget-database-secret
+              key: password
+        ports:
+        - containerPort: 3306
+          name: metget-db-port
+        volumeMounts:
+        - name: metget-database-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: metget-database-persistent-storage
+        persistentVolumeClaim:
+          claimName: metget-database-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metget-database
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: metget-database

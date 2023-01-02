@@ -27,8 +27,10 @@ from botocore.exceptions import ClientError
 
 
 class S3file:
-    def __init__(self, bucket_name="metgetdata"):
-        self.__bucket = bucket_name
+    def __init__(self):
+        import os
+
+        self.__bucket = os.environ["METGET_S3_BUCKET"]
         self.__client = boto3.client("s3")
         self.__resource = boto3.resource("s3")
 
@@ -38,6 +40,9 @@ class S3file:
         :param remote_path: desired path to the remote file
         :return: True if file was uploaded, else False
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
         # Upload the file
         try:
             response = self.__client.upload_file(
@@ -47,22 +52,28 @@ class S3file:
                 ExtraArgs={"StorageClass": "INTELLIGENT_TIERING"},
             )
         except ClientError as e:
-            print("[ERROR]: ", e, flush=True)
+            logger.error(str(e))
             return False
 
         return True
 
     def download_file(self, remote_path, local_path):
+        import logging
+
+        logger = logging.getLogger(__name__)
         try:
             response = self.__client.download_file(
                 self.__bucket, remote_path, local_path
             )
         except ClientError as e:
-            print("[ERROR]: ", e, flush=True)
+            logger.error(str(e))
             return False
         return True
 
     def exists(self, path):
+        import logging
+
+        logger = logging.getLogger(__name__)
         try:
             self.__resource.Object(self.__bucket, path).load()
         except botocore.exceptions.ClientError as e:
@@ -70,6 +81,6 @@ class S3file:
                 return False
             else:
                 # Something else has gone wrong.
-                print("[ERROR]: ", e, flush=True)
+                logger.error(str(e))
                 raise
         return True

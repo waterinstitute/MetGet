@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: metget-download-template
+spec:
+  entrypoint: metget-download-runner
+  templates:
+  - name: metget-download-runner
+    inputs:
+      parameters:
+        - name: service
+    container:
+      image: zcobell/metget-download:0.0.1
+      imagePullPolicy: Always
+      env:
+        - name: METGET_DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: metget-database-secret
+              key: username
+        - name: METGET_DATABASE_PASSWORD
+          valueFrom: 
+            secretKeyRef: 
+              name: metget-database-secret 
+              key: password
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom: 
+            secretKeyRef: 
+              name: aws-credentials
+              key: username
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: password
+        - name: AWS_DEFAULT_REGION
+          valueFrom:
+            secretKeyRef:
+              name: aws-region
+              key: password
+        - name: METGET_DATABASE
+          value: metget
+        - name: METGET_S3_BUCKET
+          value: metget-data-dev
+      command: [python3, metget_download.py]
+      args: ["--service", "{{inputs.parameters.service}}"]
