@@ -65,6 +65,7 @@ def gfs_download():
     print("[INFO]: NCEP-GFS complete. " + str(n) + " files downloaded", flush=True)
     return n
 
+
 def gefs_download():
     from metgetlib.ncepgefsdownloader import NcepGefsdownloader
 
@@ -80,6 +81,7 @@ def gefs_download():
     n = gefs.download()
     print("[INFO]: NCEP-GEFS complete. " + str(n) + " files downloaded", flush=True)
     return n
+
 
 def hwrf_download():
     from metgetlib.hwrfdownloader import HwrfDownloader
@@ -117,9 +119,10 @@ def coamps_download():
     print("[INFO]: COAMPS complete. " + str(n) + " files downloaded", flush=True)
     return n
 
+
 def hrrr_download():
     from metgetlib.ncephrrrdownloader import NcepHrrrdownloader
-    
+
     start, end = generate_default_date_range()
     hrrr = NcepHrrrdownloader(start, end)
     print("[INFO]: Beginning downloading HRRR data")
@@ -127,16 +130,16 @@ def hrrr_download():
     print("[INFO]: HRRR complete. " + str(n) + " files downloaded", flush=True)
     return n
 
+
 def hrrr_alaska_download():
     from metgetlib.ncephrrralaskadownloader import NcepHrrrAlaskadownloader
-    
+
     start, end = generate_default_date_range()
     hrrr = NcepHrrrAlaskadownloader(start, end)
     print("[INFO]: Beginning downloading HRRR-Alaska data")
     n = hrrr.download()
     print("[INFO]: HRRR complete. " + str(n) + " files downloaded", flush=True)
     return n
-
 
 
 def lambda_handler(event, context):
@@ -166,14 +169,12 @@ def lambda_handler(event, context):
         n = coamps_download()
     elif request_type == "hrrr":
         n = hrrr_download()
-    elif request_type == "hrrr-alaska": 
+    elif request_type == "hrrr-alaska":
         n = hrrr_alaska_download()
 
     returndata = {
         "statusCode": 200,
-        "body": json.dumps(
-            {"message": "download complete", "service": request_type, "nfiles": n}
-        ),
+        "body": {"message": "download complete", "service": request_type, "nfiles": n},
     }
 
     print("[INFO]: Returning data: " + json.dumps(returndata, indent=2))

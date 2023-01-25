@@ -179,8 +179,8 @@ class NoaaDownloader:
             path_found = os.path.exists(fn)
 
         if not path_found:
-            
-            #...Get the inventory data
+
+            # ...Get the inventory data
             byte_list = self.__get_inventory_big_data(info, s3_client)
             if not len(byte_list) == len(self.variables()):
                 print(
@@ -210,13 +210,23 @@ class NoaaDownloader:
                             Range=return_range,
                         )
                         fid.write(grb_obj["Body"].read())
+
+            # ...Used to check if we actually got some data
+            file_size = os.path.getsize(local_file)
+
+            # ...Name of the file in S3
+            remote_file = destination_folder + "/" + fn
+
             if self.use_aws():
-                self.s3file().upload_file(local_file, destination_folder + "/" + fn)
+                if file_size > 0:
+                    self.s3file().upload_file(local_file, remote_file)
+                else:
+                    remote_file = None
                 os.remove(local_file)
             else:
                 os.rename(local_file, fn)
 
-            return destination_folder + "/" + fn, n, 0
+            return remote_file, n, 0
 
         else:
             return None, 0, 0
@@ -231,6 +241,7 @@ class NoaaDownloader:
         available
 
         """
+        import os
         import os.path
         import requests
         import tempfile
@@ -333,13 +344,19 @@ class NoaaDownloader:
                         os.remove(floc)
                         return None, 0, 0
 
+                    file_size = os.path.getsize(floc)
+                    remote_file = dfolder + "/" + fn
+
                     if self.__use_aws:
-                        self.__s3file.upload_file(floc, dfolder + "/" + fn)
+                        if file_size > 0:
+                            self.__s3file.upload_file(floc, remote_file)
+                        else:
+                            remote_file = None
                         os.remove(floc)
                     else:
                         os.rename(floc, fn)
 
-                    return dfolder + "/" + fn, n, 0
+                    return remote_file, n, 0
                 else:
                     return None, 0, 0
 

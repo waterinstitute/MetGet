@@ -4,7 +4,7 @@ rm -rf package
 rm -rf metget_deployment.zip
 
 mkdir package
-pip install --target ./package pymysql requests bs4 feedparser boto3 geojson
+pip3 install --target ./package pymysql requests bs4 feedparser boto3 geojson
 
 cd package
 zip -gr ../metget-deployment.zip *
