@@ -93,8 +93,6 @@ class CoampsDomain {
   static double normalize_longitude(double longitude);
 
   std::string m_filename;
-  COAMPS_COORDINATE_TYPE m_type;
-  COAMPS_VARIABLE_TYPE m_var_type;
   std::unique_ptr<NetcdfFile> m_ncid;
   int m_dimid_lat;
   int m_dimid_lon;
@@ -111,6 +109,9 @@ class CoampsDomain {
   std::vector<double> m_longitude;
   std::vector<double> m_latitude;
   std::vector<bool> m_mask;
+  
+  COAMPS_COORDINATE_TYPE m_type;
+  COAMPS_VARIABLE_TYPE m_var_type;
 
   std::array<MetBuild::Point, 4> m_corners;
 };

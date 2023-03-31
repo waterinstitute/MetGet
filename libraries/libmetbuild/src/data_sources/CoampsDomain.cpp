@@ -51,9 +51,11 @@ CoampsDomain::CoampsDomain(std::string filename)
 CoampsDomain::COAMPS_COORDINATE_TYPE CoampsDomain::getCoordinateType() const {
   int n_dims = 0;
   int ierr = nc_inq_varndims(m_ncid->ncid(), m_varid_lat, &n_dims);
+  std::cout << ierr << std::endl;
   if (ierr != NC_NOERR) {
     Logging::throwError("Could not read latitude values from COAMPS file");
   }
+  std::cout << n_dims << std::endl;
 
   if (n_dims == 1) {
     return COAMPS_GRIDDED;
@@ -61,6 +63,7 @@ CoampsDomain::COAMPS_COORDINATE_TYPE CoampsDomain::getCoordinateType() const {
     return COAMPS_UNSTRUCTURED;
   } else {
     Logging::throwError("Could not determine coordinate type for COAMPS file");
+    return COAMPS_GRIDDED;
   }
 }
 
@@ -72,11 +75,12 @@ CoampsDomain::COAMPS_VARIABLE_TYPE CoampsDomain::getVariableType() const {
     Logging::throwError("Could not read latitude values from COAMPS file");
   }
   if (n_dims == 3) {
-    return COAMPS_VARIABLE_TYPE::COAMPS_WITHTIME;
+    return COAMPS_WITHTIME;
   } else if (n_dims == 2) {
-    return COAMPS_VARIABLE_TYPE::COAMPS_NOTIME;
+    return COAMPS_NOTIME;
   } else {
     Logging::throwError("Could not determine variable type for COAMPS file");
+    return COAMPS_NOTIME;
   }
 }
 
