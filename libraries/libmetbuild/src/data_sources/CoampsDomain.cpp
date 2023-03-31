@@ -34,7 +34,7 @@
 
 using namespace MetBuild;
 
-CoampsDomain::CoampsDomain(std::string filename, CoampsDomain::COAMPS_COORDINATE_TYPE type)
+CoampsDomain::CoampsDomain(std::string filename)
     : m_filename(std::move(filename)),
       m_ncid(std::make_unique<NetcdfFile>(m_filename)),
       m_dimid_lat(m_ncid->getDimid("lat")),
@@ -42,15 +42,49 @@ CoampsDomain::CoampsDomain(std::string filename, CoampsDomain::COAMPS_COORDINATE
       m_nlon(m_ncid->getDimensionSize(m_dimid_lon)),
       m_nlat(m_ncid->getDimensionSize(m_dimid_lat)),
       m_varid_lat(m_ncid->getVarid("lat")),
-      m_varid_lon(m_ncid->getVarid("lon")) {
-  this->initialize(type);
+      m_varid_lon(m_ncid->getVarid("lon")),
+      m_type(this->getCoordinateType()),
+      m_var_type(this->getVariableType()) {
+  this->initialize();
 }
 
-void CoampsDomain::initialize(COAMPS_COORDINATE_TYPE type) {
+CoampsDomain::COAMPS_COORDINATE_TYPE CoampsDomain::getCoordinateType() const {
+  int n_dims = 0;
+  int ierr = nc_inq_varndims(m_ncid->ncid(), m_varid_lat, &n_dims);
+  if (ierr != NC_NOERR) {
+    Logging::throwError("Could not read latitude values from COAMPS file");
+  }
+
+  if (n_dims == 1) {
+    return COAMPS_GRIDDED;
+  } else if (n_dims == 2) {
+    return COAMPS_UNSTRUCTURED;
+  } else {
+    Logging::throwError("Could not determine coordinate type for COAMPS file");
+  }
+}
+
+CoampsDomain::COAMPS_VARIABLE_TYPE CoampsDomain::getVariableType() const {
+  int n_dims = 0;
+  auto varid = m_ncid->getVarid("uuwind");
+  int ierr = nc_inq_varndims(m_ncid->ncid(), varid, &n_dims);
+  if (ierr != NC_NOERR) {
+    Logging::throwError("Could not read latitude values from COAMPS file");
+  }
+  if (n_dims == 3) {
+    return COAMPS_VARIABLE_TYPE::COAMPS_WITHTIME;
+  } else if (n_dims == 2) {
+    return COAMPS_VARIABLE_TYPE::COAMPS_NOTIME;
+  } else {
+    Logging::throwError("Could not determine variable type for COAMPS file");
+  }
+}
+
+void CoampsDomain::initialize() {
   m_latitude.resize(this->size());
   m_longitude.resize(this->size());
   m_mask.resize(this->size());
-  switch (type) {
+  switch (m_type) {
     case COAMPS_GRIDDED:this->initializeGriddedCoordinates();
       break;
     case COAMPS_UNSTRUCTURED:this->initializeUnstructuredCoordiantes();
@@ -198,13 +232,24 @@ std::vector<double> CoampsDomain::get(const std::string &variable) const {
   std::vector<double> var_out;
   var_out.reserve(this->size());
 
-  const size_t start[2] = {0, 0};
-  const size_t count[2] = {m_nlat, m_nlon};
-  int ierr =
-      nc_get_vara_float(m_ncid->ncid(), variable_id, start, count, var.data());
-  if (ierr != NC_NOERR) {
-    Logging::throwError("Could not read variable " + variable +
-        " from COAMPS file");
+  if (m_var_type == COAMPS_VARIABLE_TYPE::COAMPS_NOTIME) {
+    const size_t start[2] = {0, 0};
+    const size_t count[2] = {m_nlat, m_nlon};
+    int ierr =
+        nc_get_vara_float(m_ncid->ncid(), variable_id, start, count, var.data());
+    if (ierr != NC_NOERR) {
+      Logging::throwError("Could not read variable " + variable +
+          " from COAMPS file");
+    }
+  } else if (m_var_type == COAMPS_VARIABLE_TYPE::COAMPS_WITHTIME) {
+    const size_t start[3] = {0, 0, 0};
+    const size_t count[3] = {1, m_nlat, m_nlon};
+    int ierr =
+        nc_get_vara_float(m_ncid->ncid(), variable_id, start, count, var.data());
+    if (ierr != NC_NOERR) {
+      Logging::throwError("Could not read variable " + variable +
+          " from COAMPS file");
+    }
   }
 
   for (size_t i = 0; i < this->size(); ++i) {

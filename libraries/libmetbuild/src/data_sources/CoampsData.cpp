@@ -42,16 +42,8 @@ CoampsData::CoampsData(std::vector<std::string> filenames)
 
 void CoampsData::initialize() {
   CoampsDomain::COAMPS_COORDINATE_TYPE type = CoampsDomain::COAMPS_COORDINATE_TYPE::COAMPS_GRIDDED;
-  if (this->filenames().empty()) {
-    throw std::runtime_error("No filenames provided");
-  } else if (this->filenames().size() == 1) {
-    type = CoampsDomain::COAMPS_COORDINATE_TYPE::COAMPS_GRIDDED;
-  } else {
-    type = CoampsDomain::COAMPS_COORDINATE_TYPE::COAMPS_UNSTRUCTURED;
-  }
-
   for (const auto &f: this->filenames()) {
-    m_domains.emplace_back(f, type);
+    m_domains.emplace_back(f);
   }
   this->computeMasking();
   this->computeCoordinates();

@@ -40,8 +40,9 @@ class CoampsDomain {
  public:
 
   enum COAMPS_COORDINATE_TYPE { COAMPS_GRIDDED, COAMPS_UNSTRUCTURED };
+  enum COAMPS_VARIABLE_TYPE { COAMPS_WITHTIME, COAMPS_NOTIME };
 
-  explicit CoampsDomain(std::string filename, CoampsDomain::COAMPS_COORDINATE_TYPE type);
+  explicit CoampsDomain(std::string filename);
 
   NetcdfFile *ncid();
 
@@ -78,16 +79,22 @@ class CoampsDomain {
   std::vector<Point> get_bounding_region() const;
 
  private:
-  void initialize(COAMPS_COORDINATE_TYPE type);
+  void initialize();
 
   void initializeUnstructuredCoordiantes();
   void initializeGriddedCoordinates();
 
   void findCorners();
 
+  COAMPS_COORDINATE_TYPE getCoordinateType() const;
+
+  COAMPS_VARIABLE_TYPE getVariableType() const;
+
   static double normalize_longitude(double longitude);
 
   std::string m_filename;
+  COAMPS_COORDINATE_TYPE m_type;
+  COAMPS_VARIABLE_TYPE m_var_type;
   std::unique_ptr<NetcdfFile> m_ncid;
   int m_dimid_lat;
   int m_dimid_lon;
