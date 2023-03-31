@@ -41,7 +41,7 @@ CoampsData::CoampsData(std::vector<std::string> filenames)
 }
 
 void CoampsData::initialize() {
-  for (const auto& f : this->filenames()) {
+  for (const auto &f: this->filenames()) {
     m_domains.emplace_back(f);
   }
   this->computeMasking();
@@ -51,19 +51,19 @@ void CoampsData::initialize() {
 
 std::vector<std::vector<double>> CoampsData::latitude2d() { return {}; }
 
-const std::vector<double>& CoampsData::latitude1d() const { return m_latitude; }
+const std::vector<double> &CoampsData::latitude1d() const { return m_latitude; }
 
 std::vector<std::vector<double>> CoampsData::longitude2d() { return {}; }
 
-const std::vector<double>& CoampsData::longitude1d() const {
+const std::vector<double> &CoampsData::longitude1d() const {
   return m_longitude;
 }
 
 void CoampsData::findCorners() { return; }
 
-std::vector<double> CoampsData::getArray1d(const std::string& variable) {
+std::vector<double> CoampsData::getArray1d(const std::string &variable) {
   std::vector<double> result;
-  for (const auto& d : m_domains) {
+  for (const auto &d: m_domains) {
     const auto values = d.get(variable);
     result.reserve(result.size() + values.size());
     result.insert(result.end(), values.begin(), values.end());
@@ -72,12 +72,15 @@ std::vector<double> CoampsData::getArray1d(const std::string& variable) {
 }
 
 std::vector<std::vector<double>> CoampsData::getArray2d(
-    const std::string& variable) {
+    const std::string &variable) {
   return {};
 }
 
 void CoampsData::computeMasking() {
   size_t nmask = 0;
+
+  if (m_domains.size() == 1) return;
+
   for (size_t dom = 0; dom < m_domains.size() - 1; ++dom) {
     for (size_t p = 0; p < m_domains[dom].size(); ++p) {
       const auto point =
@@ -97,7 +100,7 @@ void CoampsData::computeMasking() {
 }
 
 void CoampsData::computeCoordinates() {
-  for (auto& d : m_domains) {
+  for (auto &d: m_domains) {
     const auto [lon, lat] = d.getUnmaskedCoordinates();
     m_longitude.insert(m_longitude.end(), lon.begin(), lon.end());
     m_latitude.insert(m_latitude.end(), lat.begin(), lat.end());

@@ -69,9 +69,9 @@ class CoampsDownloader:
             start_timestamp = int(date_min.timestamp())
             end_timestamp = int(date_max.timestamp())
             for dt in range(
-                int(date_min.timestamp()),
-                int(date_max.timestamp()),
-                forecast_delta_time,
+                    int(date_min.timestamp()),
+                    int(date_max.timestamp()),
+                    forecast_delta_time,
             ):
                 current_date = datetime.fromtimestamp(dt)
 
@@ -99,13 +99,15 @@ class CoampsDownloader:
                             for f in dd:
                                 local_file = f["filename"]
                                 cycle = f["cycle"]
+                                year = datetime.strftime(cycle, "%Y")
                                 remote_path = (
-                                    "coamps_tc/"
-                                    + storm_name
-                                    + "/"
-                                    + datetime.strftime(cycle, "%Y%m%d/%H")
-                                    + "/"
-                                    + os.path.basename(f["filename"])
+                                        "forecasts/" + year + "/" +
+                                        "coamps_tc/"
+                                        + storm_name
+                                        + "/"
+                                        + datetime.strftime(cycle, "%Y%m%d/%H")
+                                        + "/"
+                                        + os.path.basename(f["filename"])
                                 )
                                 s3.upload_file(local_file, remote_path)
                                 if files == "":
@@ -175,7 +177,7 @@ class CoampsDownloader:
         return tempdir
 
     @staticmethod
-    def wipe(folder) -> bool:
+    def wipe(folder):
         import shutil
 
         shutil.rmtree(folder)
@@ -194,6 +196,7 @@ class CoampsDownloader:
         forecast_hour = cycle_hour + timedelta(hours=forecast_nhour)
         return cycle_hour, forecast_hour
 
+    @staticmethod
     def get_file_list(folder) -> dict:
         import glob
 
