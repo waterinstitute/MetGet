@@ -51,11 +51,9 @@ CoampsDomain::CoampsDomain(std::string filename)
 CoampsDomain::COAMPS_COORDINATE_TYPE CoampsDomain::getCoordinateType() const {
   int n_dims = 0;
   int ierr = nc_inq_varndims(m_ncid->ncid(), m_varid_lat, &n_dims);
-  std::cout << ierr << std::endl;
   if (ierr != NC_NOERR) {
     Logging::throwError("Could not read latitude values from COAMPS file");
   }
-  std::cout << n_dims << std::endl;
 
   if (n_dims == 1) {
     return COAMPS_GRIDDED;
