@@ -38,7 +38,10 @@
 namespace MetBuild {
 class CoampsDomain {
  public:
-  explicit CoampsDomain(std::string filename);
+
+  enum COAMPS_COORDINATE_TYPE { COAMPS_GRIDDED, COAMPS_UNSTRUCTURED };
+
+  explicit CoampsDomain(std::string filename, CoampsDomain::COAMPS_COORDINATE_TYPE type);
 
   NetcdfFile *ncid();
 
@@ -75,7 +78,11 @@ class CoampsDomain {
   std::vector<Point> get_bounding_region() const;
 
  private:
-  void initialize();
+  void initialize(COAMPS_COORDINATE_TYPE type);
+
+  void initializeUnstructuredCoordiantes();
+  void initializeGriddedCoordinates();
+
   void findCorners();
 
   static double normalize_longitude(double longitude);

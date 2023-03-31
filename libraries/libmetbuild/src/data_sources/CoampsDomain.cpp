@@ -34,7 +34,7 @@
 
 using namespace MetBuild;
 
-CoampsDomain::CoampsDomain(std::string filename)
+CoampsDomain::CoampsDomain(std::string filename, CoampsDomain::COAMPS_COORDINATE_TYPE type)
     : m_filename(std::move(filename)),
       m_ncid(std::make_unique<NetcdfFile>(m_filename)),
       m_dimid_lat(m_ncid->getDimid("lat")),
@@ -43,16 +43,58 @@ CoampsDomain::CoampsDomain(std::string filename)
       m_nlat(m_ncid->getDimensionSize(m_dimid_lat)),
       m_varid_lat(m_ncid->getVarid("lat")),
       m_varid_lon(m_ncid->getVarid("lon")) {
-  this->initialize();
+  this->initialize(type);
 }
 
-void CoampsDomain::initialize() {
-  size_t start[2] = {0, 0};
-  size_t count[2] = {m_nlat, m_nlon};
-
+void CoampsDomain::initialize(COAMPS_COORDINATE_TYPE type) {
   m_latitude.resize(this->size());
   m_longitude.resize(this->size());
   m_mask.resize(this->size());
+  switch (type) {
+    case COAMPS_GRIDDED:this->initializeGriddedCoordinates();
+      break;
+    case COAMPS_UNSTRUCTURED:this->initializeUnstructuredCoordiantes();
+      break;
+  }
+  for (auto &v: m_longitude) {
+    v = CoampsDomain::normalize_longitude(v);
+  }
+  this->findCorners();
+}
+
+void CoampsDomain::initializeGriddedCoordinates() {
+  size_t start[1] = {0};
+  size_t count_lat[1] = {m_nlat};
+  size_t count_lon[1] = {m_nlon};
+
+  std::vector<double> lat(m_nlat);
+  std::vector<double> lon(m_nlon);
+
+  int ierr = nc_get_vara_double(m_ncid->ncid(), m_varid_lat, start, count_lat,
+                                lat.data());
+  if (ierr != NC_NOERR) {
+    Logging::throwError("Could not read latitude values from COAMPS file");
+
+  }
+
+  ierr = nc_get_vara_double(m_ncid->ncid(), m_varid_lon, start, count_lon,
+                            lon.data());
+  if (ierr != NC_NOERR) {
+    Logging::throwError("Could not read longitude files from COAMPS file");
+  }
+
+  for (size_t i = 0; i < m_nlat; ++i) {
+    for (size_t j = 0; j < m_nlon; ++j) {
+      m_latitude[i * m_nlon + j] = lat[i];
+      m_longitude[i * m_nlon + j] = lon[j];
+    }
+  }
+
+}
+
+void CoampsDomain::initializeUnstructuredCoordiantes() {
+  size_t start[2] = {0, 0};
+  size_t count[2] = {m_nlat, m_nlon};
 
   int ierr = nc_get_vara_double(m_ncid->ncid(), m_varid_lat, start, count,
                                 m_latitude.data());
@@ -65,11 +107,6 @@ void CoampsDomain::initialize() {
   if (ierr != NC_NOERR) {
     Logging::throwError("Could not read longitude files from COAMPS file");
   }
-
-  for (auto& v : m_longitude) {
-    v = CoampsDomain::normalize_longitude(v);
-  }
-  this->findCorners();
 }
 
 /**
@@ -100,7 +137,7 @@ void CoampsDomain::findCorners() {
   m_point_ur = Point(xtr, ytr);
 }
 
-NetcdfFile* CoampsDomain::ncid() { return this->m_ncid.get(); }
+NetcdfFile *CoampsDomain::ncid() { return this->m_ncid.get(); }
 
 std::array<Point, 4> CoampsDomain::corners() const { return m_corners; }
 
@@ -140,7 +177,7 @@ void CoampsDomain::setMask(size_t index, bool value) {
 size_t CoampsDomain::n_masked_points() const { return m_mask_count; }
 
 std::array<std::vector<double>, 2> CoampsDomain::getUnmaskedCoordinates()
-    const {
+const {
   std::vector<double> lon;
   lon.reserve(this->size());
   std::vector<double> lat;
@@ -155,7 +192,7 @@ std::array<std::vector<double>, 2> CoampsDomain::getUnmaskedCoordinates()
   return {lon, lat};
 }
 
-std::vector<double> CoampsDomain::get(const std::string& variable) const {
+std::vector<double> CoampsDomain::get(const std::string &variable) const {
   const auto variable_id = m_ncid->getVarid(variable);
   std::vector<float> var(this->size());
   std::vector<double> var_out;
@@ -167,7 +204,7 @@ std::vector<double> CoampsDomain::get(const std::string& variable) const {
       nc_get_vara_float(m_ncid->ncid(), variable_id, start, count, var.data());
   if (ierr != NC_NOERR) {
     Logging::throwError("Could not read variable " + variable +
-                        " from COAMPS file");
+        " from COAMPS file");
   }
 
   for (size_t i = 0; i < this->size(); ++i) {
@@ -178,9 +215,9 @@ std::vector<double> CoampsDomain::get(const std::string& variable) const {
   return var_out;
 }
 
-const Point& CoampsDomain::point_ll() const { return m_point_ll; }
+const Point &CoampsDomain::point_ll() const { return m_point_ll; }
 
-const Point& CoampsDomain::point_ur() const { return m_point_ur; }
+const Point &CoampsDomain::point_ur() const { return m_point_ur; }
 
 std::vector<Point> CoampsDomain::get_bounding_region() const {
   std::vector<Point> region;
