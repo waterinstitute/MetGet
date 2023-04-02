@@ -1,0 +1,68 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: metget-build-source
+spec:
+  amqp:
+    metget-queue-source:
+      # amqp server url
+      url: amqp://rabbitmq-service.metget:5672
+      # jsonBody specifies that all event body payload coming from this
+      # source will be JSON
+      jsonBody: true
+      # name of the exchange.
+      exchangeName: metget
+      # exchange type. more info at https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchanges
+      exchangeType: fanout
+      # routing key
+      routingKey: metget-request
+      # optional backoff time for connection retries.
+      # if not provided, default connection backoff time will be used.
+      connectionBackoff:
+        # duration in nanoseconds, or strings like "1s", "1m". following value is 10 seconds
+        duration: 10s
+        # how many backoffs
+        steps: 5
+        # factor to increase on each step.
+        # setting factor > 1 makes backoff exponential.
+        factor: 2
+        jitter: 0.2
+      # optional exchange settings
+      # if not provided, default values will be used
+      exchangeDeclare:
+        durable: true
+        autoDelete: false
+        internal: false
+        noWait: false
+      # optional queue settings
+      # if not provided, default values will be used
+      queueDeclare:
+        name: "metget-request"
+        durable: false
+        autoDelete: false
+        exclusive: true
+        noWait: false
+        # example argument to use quorum queues
+        # arguments: |-
+          # x-queue-type: quorum
+      # optional queue binding settings
+      # if not provided, default values will be used
+      queueBind:
+        noWait: false
+      # optional consume settings
+      # if not provided, default values will be used
+      consume:
+        consumerTag: "metget-argo-consumer"
+        autoAck: true
+        exclusive: false
+        noLocal: false
+        noWait: false
+      # username and password for authentication
+      # use secret selectors
+      # auth:
+      #   username:
+      #     name: my-secret
+      #     key: username
+      #   password:
+      #     name: my-secret
+      #     key: password
