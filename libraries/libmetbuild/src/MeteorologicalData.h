@@ -28,6 +28,7 @@
 
 #include <array>
 #include <cassert>
+#include <cstddef>
 #include <vector>
 
 #include "CppAttributes.h"
