@@ -1,0 +1,82 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: metget-build-sensor
+spec:
+  template:
+    serviceAccountName: operate-workflow-sa
+  dependencies:
+    - name: metget-build-dependency
+      eventSourceName: metget-build-source
+      eventName: metget-queue-source
+  triggers:
+    - template:
+        name: metget-build-workflow
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: metget-build-
+              spec:
+                entrypoint: metget-build
+                arguments:
+                  parameters:
+                    - name: message
+                      # value will get overridden by the event payload
+                      value: hello world
+                templates:
+                  - name: metget-build
+                    inputs:
+                      parameters:
+                        - name: message
+                    container:
+                      image: zcobell/metget-build:0.0.1
+                      imagePullPolicy: Always
+                      env:
+                        - name: METGET_DATABASE_USER
+                          valueFrom:
+                            secretKeyRef:
+                              name: metget-database-secret
+                              key: username
+                        - name: METGET_DATABASE_PASSWORD
+                          valueFrom: 
+                            secretKeyRef: 
+                              name: metget-database-secret 
+                              key: password
+                        - name: AWS_ACCESS_KEY_ID
+                          valueFrom: 
+                            secretKeyRef: 
+                              name: aws-credentials
+                              key: username
+                        - name: AWS_SECRET_ACCESS_KEY
+                          valueFrom:
+                            secretKeyRef:
+                              name: aws-credentials
+                              key: password
+                        - name: AWS_DEFAULT_REGION
+                          valueFrom:
+                            secretKeyRef:
+                              name: aws-region
+                              key: password
+                        - name: METGET_DATABASE
+                          value: metget
+                        - name: METGET_S3_BUCKET
+                          value: metget-data-dev
+                        - name: METGET_S3_BUCKET_UPLOAD
+                          value: metget-dev-upload
+                        - name: METGET_REQUEST_JSON
+                          value: '{{inputs.parameters.message}}'
+                      command: [python3, metget_build.py]
+                      args: ["--input", "'{{inputs.parameters.message}}'"]
+                dnsConfig:
+                  options:
+                    - name: ndots
+                      value: "0"
+          parameters:
+            - src:
+                dependencyName: metget-build-dependency
+                dataKey: body
+              dest: spec.arguments.parameters.0.value
