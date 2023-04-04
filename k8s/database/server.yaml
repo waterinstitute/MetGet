@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: metget-database
+  namespace: metget
 spec:
   selector:
     matchLabels:
@@ -37,6 +38,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: metget-database
+  namespace: metget
 spec:
   ports:
   - port: 3306
