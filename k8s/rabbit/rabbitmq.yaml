@@ -3,7 +3,8 @@ kind: ReplicationController
 metadata:
   labels:
     component: rabbitmq
-  name: rabbitmq-controller
+  name: metget-rabbitmq-controller
+  namespace: metget
 spec:
   replicas: 1
   template:
@@ -21,3 +22,17 @@ spec:
         resources:
           limits:
             cpu: 100m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: rabbitmq
+  name: metget-rabbitmq-service
+  namespace: metget
+spec:
+  ports:
+    - port: 5672
+  selector:
+    app: taskQueue
+    component: rabbitmq
