@@ -159,6 +159,20 @@ def hrrr_alaska_download():
     return n
 
 
+def wpc_download():
+    from metgetlib.wpcdownloader import WpcDownloader
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    start, end = generate_default_date_range()
+    wpc = WpcDownloader(start, end)
+    logger.info("Beginning downloading WPC data")
+    n = wpc.download()
+    logger.info("WPC complete. {:d} files downloaded".format(n))
+    return n
+
+
 def main():
     import argparse
     import logging
@@ -174,13 +188,12 @@ def main():
         "--service",
         type=str,
         required=True,
-        help="Service to download from (nam, gfs, gefs, hwrf, nhc, coamps, hrrr, hrrr-alaska)",
+        help="Service to download from (nam, gfs, gefs, hwrf, nhc, coamps, hrrr, hrrr-alaska, wpc)",
     )
     args = p.parse_args()
 
     logger.info("Running with configuration: {:s}".format(args.service))
 
-    n = 0
     if args.service == "nam":
         n = nam_download()
     elif args.service == "gfs":
@@ -197,6 +210,10 @@ def main():
         n = hrrr_download()
     elif args.service == "hrrr-alaska":
         n = hrrr_alaska_download()
+    elif args.service == "wpc":
+        n = wpc_download()
+    else:
+        raise RuntimeError("Invalid data source selected")
 
 
 if __name__ == "__main__":

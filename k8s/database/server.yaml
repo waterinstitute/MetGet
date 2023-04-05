@@ -4,6 +4,7 @@ metadata:
   name: metget-database
   namespace: metget
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: metget-database
@@ -15,20 +16,28 @@ spec:
         app: metget-database
     spec:
       containers:
-      - image: zcobell/metget-database
+      - image: zcobell/metget-database:0.0.1
+        imagePullPolicy: Always
         name: metget-database
         env:
-        - name: MYSQL_ROOT_PASSWORD
+          #- name: POSTGRES_USER
+          #  valueFrom:
+          #    secretKeyRef:
+          #      name: metget-database-secret
+          #      key: username  
+        - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: metget-database-secret
               key: password
+        - name: POSTGRES_DB
+          value: metget
         ports:
-        - containerPort: 3306
+        - containerPort: 5432
           name: metget-db-port
         volumeMounts:
         - name: metget-database-persistent-storage
-          mountPath: /var/lib/mysql
+          mountPath: /var/lib/postgresql/data
       volumes:
       - name: metget-database-persistent-storage
         persistentVolumeClaim:
@@ -41,6 +50,6 @@ metadata:
   namespace: metget
 spec:
   ports:
-  - port: 3306
+  - port: 5432
   selector:
     app: metget-database

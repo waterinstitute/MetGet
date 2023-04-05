@@ -45,7 +45,7 @@ class CoampsDownloader:
         storm_min = 1
         storm_max = 41
 
-        temp_date_min = datetime.utcnow() - timedelta(days=5)
+        temp_date_min = datetime.utcnow() - timedelta(days=365)
         temp_date_max = datetime.utcnow() + timedelta(days=1)
 
         date_min = datetime(
@@ -126,16 +126,16 @@ class CoampsDownloader:
 
         filename = "{}_{}_netcdf.tar".format(storm, date.strftime("%Y%m%d%H"))
         if not os.path.exists(filename):
-            logger.info("Attempting to fetch file: {}".format(filename))
+            logger.debug("Attempting to fetch file: {}".format(filename))
 
             # ...Check if file exists. Use size method on a known
             # filename since the list methods are disabled on the
             # coamps ftp server
             try:
                 file_size = self.__ftp_client.size(filename)
-                logger.info("File {} found on server".format(filename))
+                logger.debug("File {} found on server".format(filename))
             except ftplib.error_perm as e:
-                logger.info("File {} not found on server".format(filename))
+                logger.debug("File {} not found on server".format(filename))
                 return False, ""
 
             # ...If the file exists, then download

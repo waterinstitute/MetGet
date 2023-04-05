@@ -78,7 +78,7 @@ class NhcDownloader:
         self.__metstring = "NHC"
         self.__use_forecast = use_besttrack
         self.__use_hindcast = use_forecast
-        self.__year = datetime.now().year
+        self.__year = datetime.now().year - 1 
         self.__pressure_method = pressure_method
         self.__use_rss = False
         self.__use_aws = use_aws
@@ -782,7 +782,7 @@ class NhcDownloader:
         else:
             return pos
 
-    def __generate_track(self, path: str) -> dict:
+    def __generate_track(self, path: str) -> tuple:
         from geojson import Feature, FeatureCollection, Point, LineString
 
         KNOT_TO_MPH = 1.15078
@@ -813,12 +813,11 @@ class NhcDownloader:
                     },
                 )
             )
-        storm_track = Feature(geometry=LineString(track_points))
-        return {"storm_track_points": FeatureCollection(features=points), "storm_track_line": storm_track}
+        # storm_track = Feature(geometry=LineString(track_points))
+        return FeatureCollection(features=points) #, storm_track
 
     def generate_geojson(self, filename: str):
-        import json
-        return json.dumps(self.__generate_track(filename))
+        return self.__generate_track(filename)
 
     def download_hindcast(self):
         from ftplib import FTP

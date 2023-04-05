@@ -1,3 +1,3 @@
-FROM mysql:5.7.40
+FROM postgis/postgis:15-3.3
 ADD schema.sql /docker-entrypoint-initdb.d
-EXPOSE 3306
+EXPOSE 5432
