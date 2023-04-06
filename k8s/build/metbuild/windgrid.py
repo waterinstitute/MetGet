@@ -1,5 +1,13 @@
 class WindGrid:
-    def __init__(self, json=None,no_construct=None):
+    """
+    Class to represent a wind grid.  This class is used to represent a wind grid and
+    act as an interface to the underlying wind grid object in pymetbuild
+    """
+
+    def __init__(self, json: dict = None, no_construct: bool = None):
+        """
+        Constructor for the WindGrid class
+        """
         import pymetbuild
 
         self.__json = json
@@ -11,44 +19,88 @@ class WindGrid:
         except:
             self.__valid = False
 
-    def valid(self):
+    def valid(self) -> bool:
+        """
+        Returns true if the wind grid is valid
+        """
         return self.__valid
 
     def grid_object(self):
+        """
+        Returns the underlying wind grid object from pymetbuild
+        """
         return self.__wg
 
-    def bottom_left(self):
+    def bottom_left(self) -> tuple:
+        """
+        Returns the bottom left corner of the wind grid
+        """
         return self.__wg.bottom_left()
 
-    def bottom_right(self):
+    def bottom_right(self) -> tuple:
+        """
+        Returns the bottom right corner of the wind grid
+        """
         return self.__wg.bottom_right()
 
-    def top_left(self):
+    def top_left(self) -> tuple
+        """
+        Returns the top left corner of the wind grid
+        """
         return self.__wg.top_left()
 
-    def top_right(self):
+    def top_right(self) -> tuple:
+        """
+        Returns the top right corner of the wind grid
+        """
         return self.__wg.top_right()
 
-    def di(self):
+    def di(self) -> float:
+        """
+        Returns the grid spacing in the x direction in degrees
+        """
         return self.__wg.di()
 
-    def dj(self):
+    def dj(self) -> float:
+        """
+        Returns the grid spacing in the y direction in degrees
+        """
         return self.__wg.dj()
 
-    def rotation(self):
+    def rotation(self) -> float:
+        """
+        Returns the rotation of the wind grid in degrees
+        """
         return self.__wg.rotation()
 
-    def nx(self):
+    def nx(self) -> int:
+        """
+        Returns the number of grid points in the x direction
+        """
         return self.__wg.nx()
 
-    def ny(self):
+    def ny(self) -> int:
+        """
+        Returns the number of grid points in the y direction
+        """
         return self.__wg.ny()
 
-    def valid(self):
-        return self.__valid
-
     @staticmethod
-    def predefined_domain(predefined_domain_name):
+    def predefined_domain(predefined_domain_name: str):
+        """
+        Returns the predefined domain specified by the name
+
+        The following predefined domains are supported:
+            - wnat: The Western North Atlantic domain
+            - gom: The Gulf of Mexico domain
+            - global: The global domain
+
+        Args:
+            predefined_domain_name: The name of the predefined domain to return
+
+        Returns:
+            A tuple containing the xinit, yinit, xend, yend, dx, dy of the predefined domain
+        """
         predefined_domain_name = predefined_domain_name.lower()
         if predefined_domain_name == "wnat":
             return -98, 10, -60, 45, 0.25, 0.25
@@ -59,6 +111,9 @@ class WindGrid:
         raise RuntimeError("No matching predefined domain found")
 
     def __construct(self):
+        """
+        Constructs the wind grid object using the json data in pymetbuild
+        """
         import pymetbuild
 
         xinit = None

@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y ca-certificates python3 python3-pip openssl build-essential swig cmake libnetcdf-dev git libproj-dev libgmp-dev libboost-all-dev 
+RUN apt-get update && apt-get install -y ca-certificates python3 python3-pip openssl build-essential swig cmake libnetcdf-dev git libproj-dev libgmp-dev libboost-all-dev libpq-dev
 
 COPY requirements.txt /tmp/
 
