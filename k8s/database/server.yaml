@@ -1,20 +1,20 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: metget-database
   namespace: metget
 spec:
   replicas: 1
+  serviceName: metget-database
   selector:
     matchLabels:
       app: metget-database
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
         app: metget-database
     spec:
+      terminationGracePeriodSeconds: 5
       containers:
       - image: zcobell/metget-database:0.0.1
         imagePullPolicy: Always
@@ -48,7 +48,10 @@ kind: Service
 metadata:
   name: metget-database
   namespace: metget
+  labels: 
+    app: metget-database
 spec:
+  type: ClusterIP
   ports:
   - port: 5432
   selector:
