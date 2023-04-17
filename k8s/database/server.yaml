@@ -1,11 +1,10 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: metget-database
   namespace: metget
 spec:
   replicas: 1
-  serviceName: metget-database
   selector:
     matchLabels:
       app: metget-database

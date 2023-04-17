@@ -78,7 +78,7 @@ class NhcDownloader:
         self.__metstring = "NHC"
         self.__use_forecast = use_besttrack
         self.__use_hindcast = use_forecast
-        self.__year = datetime.now().year - 1 
+        self.__year = datetime.now().year 
         self.__pressure_method = pressure_method
         self.__use_rss = False
         self.__use_aws = use_aws

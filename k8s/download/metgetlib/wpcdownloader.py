@@ -47,7 +47,7 @@ class WpcDownloader:
             year = forecast_cycle.year
             month = forecast_cycle.month
             day = forecast_cycle.day
-            remote_path = "wpc_nhc/{:04d}/{:02d}/{:02d}/{:s}".format(
+            remote_path = "wpc_ncep/{:04d}/{:02d}/{:02d}/{:s}".format(
                 year, month, day, f
             )
 
