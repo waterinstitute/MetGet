@@ -1,11 +1,11 @@
 from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum
 import enum
 
 table_base = declarative_base()
 
 
 class AuthTable(table_base):
-    from sqlalchemy import Column, Integer, String, Boolean
     import os
 
     __tablename__ = os.environ["METGET_API_KEY_TABLE"]
@@ -24,7 +24,6 @@ class RequestEnum(enum.Enum):
 
 
 class RequestTable(table_base):
-    from sqlalchemy import Column, Integer, String, DateTime, Enum
     from sqlalchemy.dialects.postgresql import JSONB
     from sqlalchemy.ext.mutable import MutableDict
     import os
@@ -42,11 +41,8 @@ class RequestTable(table_base):
     input_data = Column(MutableDict.as_mutable(JSONB))
 
 
-class MetgetGenericMetadataTable(table_base):
-    from sqlalchemy import Column, Integer, String, DateTime
-
-    __tablename__ = "generic"
-
+class GfsTable(table_base):
+    __tablename__ = "gfs_ncep"
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
     forecasttime = Column(DateTime)
@@ -56,45 +52,88 @@ class MetgetGenericMetadataTable(table_base):
     accessed = Column(DateTime)
 
 
-class GfsTable(MetgetGenericMetadataTable):
-    __tablename__ = "gfs_ncep"
-
-
-class NamTable(MetgetGenericMetadataTable):
+class NamTable(table_base):
     __tablename__ = "nam_ncep"
+    index = Column("id", Integer, primary_key=True)
+    forecastcycle = Column(DateTime)
+    forecasttime = Column(DateTime)
+    tau = Column(Integer)
+    filepath = Column(String)
+    url = Column(String)
+    accessed = Column(DateTime)
 
 
-class HwrfTable(MetgetGenericMetadataTable):
-    from sqlalchemy import Column, String
-
+class HwrfTable(table_base):
     __tablename__ = "hwrf"
+    index = Column("id", Integer, primary_key=True)
+    forecastcycle = Column(DateTime)
     stormname = Column(String)
+    forecasttime = Column(DateTime)
+    tau = Column(Integer)
+    filepath = Column(String)
+    url = Column(String)
+    accessed = Column(DateTime)
 
 
-class GefsTable(MetgetGenericMetadataTable):
+class GefsTable(table_base):
     from sqlalchemy import Column, String
 
     __tablename__ = "gefs_fcst"
+    index = Column("id", Integer, primary_key=True)
+    forecastcycle = Column(DateTime)
     ensemble_member = Column(String)
+    forecasttime = Column(DateTime)
+    tau = Column(Integer)
+    filepath = Column(String)
+    url = Column(String)
+    accessed = Column(DateTime)
 
 
-class CoampsTable(MetgetGenericMetadataTable):
+class CoampsTable(table_base):
     from sqlalchemy import Column, String
 
     __tablename__ = "coamps_tc"
+    index = Column("id", Integer, primary_key=True)
+    forecastcycle = Column(DateTime)
     stormname = Column(String)
+    forecasttime = Column(DateTime)
+    tau = Column(Integer)
+    filepath = Column(String)
+    url = Column(String)
+    accessed = Column(DateTime)
 
 
-class HrrrTable(MetgetGenericMetadataTable):
+class HrrrTable(table_base):
     __tablename__ = "hrrr_ncep"
+    index = Column("id", Integer, primary_key=True)
+    forecastcycle = Column(DateTime)
+    forecasttime = Column(DateTime)
+    tau = Column(Integer)
+    filepath = Column(String)
+    url = Column(String)
+    accessed = Column(DateTime)
 
 
-class HrrrAlaskaTable(MetgetGenericMetadataTable):
+class HrrrAlaskaTable(table_base):
     __tablename__ = "hrrr_alaska_ncep"
+    index = Column("id", Integer, primary_key=True)
+    forecastcycle = Column(DateTime)
+    forecasttime = Column(DateTime)
+    tau = Column(Integer)
+    filepath = Column(String)
+    url = Column(String)
+    accessed = Column(DateTime)
 
 
 class WpcTable(table_base):
     __tablename__ = "wpc_ncep"
+    index = Column("id", Integer, primary_key=True)
+    forecastcycle = Column(DateTime)
+    forecasttime = Column(DateTime)
+    tau = Column(Integer)
+    filepath = Column(String)
+    url = Column(String)
+    accessed = Column(DateTime)
 
 
 class NhcBtkTable(table_base):

@@ -22,6 +22,10 @@ class MetGetStatus(Resource):
     data is currently available in the database
 
     This is found at the /status path
+
+    It may take url query arguments of:
+        model: Name of the meteorolgoical model to return. Default is 'gfs'
+        limit: Maximum number of days worth of data to return. Default is 31
     """
 
     def get(self):
@@ -40,7 +44,29 @@ class MetGetStatus(Resource):
         This method is used to check the status of the MetGet API and see what
         data is currently available in the database
         """
-        return {"message": "Success"}, 200
+        from metget_api.status import Status
+        import json
+        from datetime import timedelta
+
+        if "model" in request.args:
+            model = request.args["model"]
+        else:
+            model = "gfs"
+
+        if "limit" in request.args:
+            limit_days = request.args["limit"]
+            try:
+                limit_days_int = int(limit_days)
+            except ValueError as v:
+                return {"message": "ERROR: Invalid limit specified"}, 401
+        else:
+            limit_days_int = 7
+
+        time_limit = timedelta(days=limit_days_int)
+
+        s = Status()
+        status_data, status_code = s.get_status(model, time_limit)
+        return status_data, status_code
 
 
 class MetGetBuild(Resource):
