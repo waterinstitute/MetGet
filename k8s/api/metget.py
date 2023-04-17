@@ -1,19 +1,11 @@
 #!/usr/bin/env python3
 
-from flask import Flask, redirect, jsonify, request
-import logging
+from flask import Flask, redirect, request
 from metget_api.access_control import AccessControl
+from flask_restful import Resource, Api
 
 application = Flask(__name__)
-
-
-def check_authorization_token(headers) -> bool:
-    user_token = headers.get("x-api-key")
-    gatekeeper = AccessControl()
-    if gatekeeper.is_authorized(user_token):
-        return True
-    else:
-        return False
+api = Api(application)
 
 
 @application.route("/")
@@ -24,48 +16,82 @@ def index():
     return redirect(location="http://metget.org", code=302)
 
 
-@application.route("/status")
-def metget_status():
-    authorized = check_authorization_token(request.headers)
-    if authorized:
-        return metget_return_status()
-    else:
-        return jsonify({"message": "ERROR: Unauthorized"}), 401
+class MetGetStatus(Resource):
+    """
+    This class is used to check the status of the MetGet API and see what
+    data is currently available in the database
+
+    This is found at the /status path
+    """
+
+    def get(self):
+        """
+        This method is used to check the status of the MetGet API and see what
+        data is currently available in the database
+        """
+        authorized = AccessControl.check_authorization_token(request.headers)
+        if authorized:
+            return self.__get_status()
+        else:
+            return {"message": "ERROR: Unauthorized"}, 401
+
+    def __get_status(self):
+        """
+        This method is used to check the status of the MetGet API and see what
+        data is currently available in the database
+        """
+        return {"message": "Success"}, 200
 
 
-@application.route("/build", methods=["POST"])
-def metget_build():
-    authorized = check_authorization_token(request.headers)
-    if authorized:
-        return metget_generate_build(request)
-    else:
-        return jsonify({"message": "ERROR: Unauthorized"}), 401
+class MetGetBuild(Resource):
+    """
+    This class is used to build a new MetGet request into a 2d wind field
+
+    This is found at the /build path
+    """
+
+    def post(self):
+        """
+        This method is used to build a new MetGet request into a 2d wind field
+        """
+        authorized = AccessControl.check_authorization_token(request.headers)
+        if authorized:
+            return self.__build()
+        else:
+            return {"message": "ERROR: Unauthorized"}, 401
+
+    def __build(self):
+        """
+        This method is used to build a new MetGet request into a 2d wind field
+        """
+        import uuid
+
+        from metget_api.build_request import BuildRequest
+        from metget_api.tables import RequestEnum
+
+        request_uuid = str(uuid.uuid4())
+        request_api_key = request.headers.get("x-api-key")
+        request_source_ip = request.remote_addr
+        request_json = request.get_json()
+
+        request_json["source-ip"] = request_source_ip
+
+        request_obj = BuildRequest()
+        request_obj.add_request(
+            request_uuid,
+            RequestEnum.queued,
+            0,
+            request_api_key,
+            request_source_ip,
+            request_json,
+        )
+
+        return {"message": "Success", "request-id": request_uuid}, 200
 
 
-def metget_return_status():
-    return jsonify({"message": "Success"}), 200
+# ...Add the resources to the API
+api.add_resource(MetGetStatus, "/status")
+api.add_resource(MetGetBuild, "/build")
 
-
-def metget_generate_build(request_data):
-    import uuid
-    #import pika
-    from metget_api.request import Request, RequestEnum
-
-    request_uuid = str(uuid.uuid4())
-    request_api_key = request_data.headers.get("x-api-key")
-    request_source_ip = request_data.remote_addr
-    request_json = request_data.get_json()
-
-    request_json["source-ip"] = request_source_ip
-
-    request_obj = Request()
-    request_obj.add_request(
-        request_uuid,
-        RequestEnum.queued,
-        0,
-        request_api_key,
-        request_source_ip,
-        request_json,
-    )
-
-    return jsonify({"message": "Success", "request-id": request_uuid})
+if __name__ == "__main__":
+    application.run(host="0.0.0.0", port=5000)
