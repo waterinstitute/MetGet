@@ -14,6 +14,16 @@ AVAILABLE_MET_MODELS = [
     "wpc",
 ]
 
+MET_MODEL_FORECAST_DURATION = {
+    "gfs": 384,
+    "nam": 84,
+    "hwrf": 126,
+    "hrrr": 48,
+    "hrrr-alaska": 48,
+    "coamps": 120,
+    "wpc": 162,
+}
+
 
 class Status:
     """
@@ -48,6 +58,16 @@ class Status:
         """
         This method is used to generate the status from the various sources
 
+        The types of status values that are valid are:
+            - gfs
+            - nam
+            - hwrf
+            - hrrr
+            - hrrr-alaska
+            - wpc
+            - nhc
+            - coamps
+
         Args:
             status_type: The type of status to generate
             limit: The limit in days to use when generating the status
@@ -57,27 +77,54 @@ class Status:
 
         """
 
-        if status_type not in AVAILABLE_MET_MODELS:
+        if status_type not in AVAILABLE_MET_MODELS and status_type != "all":
             return {
                 "message": "ERROR: Unknown model requested: '{:s}'".format(status_type)
             }, 400
 
         if status_type == "gfs":
-            return Status.__get_status_gfs(384, limit)
+            return Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], limit)
         elif status_type == "nam":
-            return Status.__get_status_nam(84, limit)
+            return Status.__get_status_nam(MET_MODEL_FORECAST_DURATION["nam"], limit)
         elif status_type == "hwrf":
-            return Status.__get_status_hwrf(126, limit)
+            return Status.__get_status_hwrf(MET_MODEL_FORECAST_DURATION["hwrf"], limit)
         elif status_type == "hrrr":
-            return Status.__get_status_hrrr(48, limit)
+            return Status.__get_status_hrrr(MET_MODEL_FORECAST_DURATION["hrrr"], limit)
         elif status_type == "hrrr-alaksa":
-            return Status.__get_status_hrrr_alaska(48, limit)
+            return Status.__get_status_hrrr_alaska(
+                MET_MODEL_FORECAST_DURATION["hrrr-alaska"], limit
+            )
         elif status_type == "wpc":
-            return Status.__get_status_wpc(162, limit)
+            return Status.__get_status_wpc(MET_MODEL_FORECAST_DURATION["wpc"], limit)
         elif status_type == "nhc":
             return Status.__get_status_nhc(limit)
         elif status_type == "coamps":
-            return Status.__get_status_coamps(126, limit)
+            return Status.__get_status_coamps(
+                MET_MODEL_FORECAST_DURATION["coamps"], limit
+            )
+        elif status_type == "all":
+            gfs, _ = Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], limit)
+            nam, _ = Status.__get_status_nam(MET_MODEL_FORECAST_DURATION["nam"], limit)
+            hwrf, _ = Status.__get_status_hwrf(MET_MODEL_FORECAST_DURATION["hwrf"], limit)
+            hrrr, _ = Status.__get_status_hrrr(MET_MODEL_FORECAST_DURATION["hrrr"], limit)
+            hrrr_alaska, _ = Status.__get_status_hrrr_alaska(
+                MET_MODEL_FORECAST_DURATION["hrrr-alaska"], limit
+            )
+            nhc, _ = Status.__get_status_nhc(limit)
+            wpc, _ = Status.__get_status_wpc(MET_MODEL_FORECAST_DURATION["wpc"], limit)
+            coamps, _ = Status.__get_status_coamps(
+                MET_MODEL_FORECAST_DURATION["coamps"], limit
+            )
+            return {
+                "gfs": gfs,
+                "nam": nam,
+                "hwrf": hwrf,
+                "hrrr": hrrr,
+                "hrrr-alaska": hrrr_alaska,
+                "nhc": nhc,
+                "wpc": wpc,
+                "coamps": coamps,
+            }, 200
 
     @staticmethod
     def __get_status_generic(
@@ -362,7 +409,7 @@ class Status:
 
             this_storm_cycles.reverse()
             this_storm_complete_cycles.reverse()
-            
+
             this_storm["cycles"] = this_storm_cycles
             this_storm["complete_cycles"] = this_storm_complete_cycles
 

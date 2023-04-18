@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from flask import Flask, redirect, request
+from flask import Flask, redirect, request, make_response, jsonify
 from metget_api.access_control import AccessControl
 from flask_restful import Resource, Api
-from flask_limiter import Limiter
+from flask_limiter import Limiter, RequestLimit
 from flask_limiter.util import get_remote_address
 
 application = Flask(__name__)
@@ -13,6 +13,9 @@ limiter = Limiter(
     app=application,
     storage_uri="memory://",
 )
+
+def ratelimit_error_responder(request_limit: RequestLimit):
+    return make_response(jsonify({"error": "rate_limit_exceeded"}), 429)
 
 @application.route("/")
 def index():
@@ -30,11 +33,11 @@ class MetGetStatus(Resource):
     This is found at the /status path
 
     It may take url query arguments of:
-        model: Name of the meteorolgoical model to return. Default is 'gfs'
-        limit: Maximum number of days worth of data to return. Default is 31
+        model: Name of the meteorolgoical model to return. Default is 'all'
+        limit: Maximum number of days worth of data to return. Default is 7
     """
 
-    decorators = [limiter.limit("10/second")]
+    decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
     def get(self):
         """
@@ -59,7 +62,7 @@ class MetGetStatus(Resource):
         if "model" in request.args:
             model = request.args["model"]
         else:
-            model = "gfs"
+            model = "all"
 
         if "limit" in request.args:
             limit_days = request.args["limit"]
@@ -84,7 +87,7 @@ class MetGetBuild(Resource):
     This is found at the /build path
     """
     
-    decorators = [limiter.limit("10/second")]
+    decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
     def post(self):
         """
