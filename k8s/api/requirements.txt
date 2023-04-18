@@ -3,3 +3,4 @@ sqlalchemy
 gunicorn
 requests
 flask
+pika

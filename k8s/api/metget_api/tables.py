@@ -11,6 +11,7 @@ class AuthTable(table_base):
     This class is used to create the table that holds the API keys
     which are used to authenticate users
     """
+
     import os
 
     __tablename__ = os.environ["METGET_API_KEY_TABLE"]
@@ -26,6 +27,7 @@ class RequestEnum(enum.Enum):
     This class is used to create the enum for the request status which
     is used to track the status of a request through the system
     """
+
     queued = 0
     running = 1
     error = 2
@@ -37,6 +39,7 @@ class RequestTable(table_base):
     This class is used to create the table that holds the requests which are currently
     being processed or have been fulfilled by the system
     """
+
     from sqlalchemy.dialects.postgresql import JSONB
     from sqlalchemy.ext.mutable import MutableDict
     import os
@@ -59,6 +62,7 @@ class GfsTable(table_base):
     This class is used to create the table that holds the GFS data which has been
     downloaded from the NCEP server
     """
+
     __tablename__ = "gfs_ncep"
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
@@ -74,6 +78,7 @@ class NamTable(table_base):
     This class is used to create the table that holds the NAM data which has been
     downloaded from the NCEP server
     """
+
     __tablename__ = "nam_ncep"
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
@@ -89,6 +94,7 @@ class HwrfTable(table_base):
     This class is used to create the table that holds the HWRF data which has been
     downloaded from the NCEP server
     """
+
     __tablename__ = "hwrf"
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
@@ -105,6 +111,7 @@ class GefsTable(table_base):
     This class is used to create the table that holds the GEFS data which has been
     downloaded from the NCEP server
     """
+
     __tablename__ = "gefs_fcst"
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
@@ -121,6 +128,7 @@ class CoampsTable(table_base):
     This class is used to create the table that holds the COAMPS data which has been
     downloaded from the NRL server
     """
+
     __tablename__ = "coamps_tc"
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
@@ -137,6 +145,7 @@ class HrrrTable(table_base):
     This class is used to create the table that holds the HRRR data which has beenq
     downloaded from the NCEP server
     """
+
     __tablename__ = "hrrr_ncep"
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
@@ -152,6 +161,7 @@ class HrrrAlaskaTable(table_base):
     This class is used to create the table that holds the HRRR Alaska data which has been
     downloaded from the NCEP server
     """
+
     __tablename__ = "hrrr_alaska_ncep"
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
@@ -167,6 +177,7 @@ class WpcTable(table_base):
     This class is used to create the table that holds the WPC data which has been
     downloaded from the NCEP server
     """
+
     __tablename__ = "wpc_ncep"
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
@@ -182,6 +193,7 @@ class NhcBtkTable(table_base):
     This class is used to create the table that holds the NHC Best Track data which has been
     downloaded from the NHC ftp server
     """
+
     from sqlalchemy import Column, Integer, String, DateTime
     from sqlalchemy.dialects.postgresql import JSONB
     from sqlalchemy.ext.mutable import MutableDict
@@ -206,6 +218,7 @@ class NhcFcstTable(table_base):
     This class is used to create the table that holds the NHC Forecast data which has been
     processed from the NHC RSS feed
     """
+
     from sqlalchemy import Column, Integer, String, DateTime
     from sqlalchemy.dialects.postgresql import JSONB
     from sqlalchemy.ext.mutable import MutableDict

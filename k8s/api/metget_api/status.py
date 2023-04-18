@@ -359,8 +359,13 @@ class Status:
             ]
             this_storm["latest_complete_cycle"] = this_storm_complete_cycles[-1]
             this_storm["complete_cycle_length"] = cycle_duration
-            this_storm["cycles"] = this_storm_cycles.reverse()
-            this_storm["complete_cycles"] = this_storm_complete_cycles.reverse()
+
+            this_storm_cycles.reverse()
+            this_storm_complete_cycles.reverse()
+            
+            this_storm["cycles"] = this_storm_cycles
+            this_storm["complete_cycles"] = this_storm_complete_cycles
+
             storms[storm_name] = this_storm
 
         return storms, 200
@@ -393,8 +398,162 @@ class Status:
 
         Returns:
             Dictionary containing the status information and the HTTP status code
-
-        Notes:
-            This method is not yet implemented
         """
-        return {}, 200
+        best_track = Status.__get_status_nhc_besttrack(limit)
+        forecast = Status.__get_status_nhc_forecast(limit)
+        return {"best_track": best_track, "forecast": forecast}, 200
+
+    @staticmethod
+    def __get_status_nhc_besttrack(limit: timedelta) -> dict:
+        """
+        This method is used to generate the status information for the
+        NHC best track data
+
+        Args:
+            limit: The limit in days to use when generating the status
+
+        Returns:
+            Dictionary containing the status information and the HTTP status code
+        """
+        from metget_api.database import Database
+        from metget_api.tables import NhcBtkTable
+
+        db = Database()
+        session = db.session()
+
+        limit_time = datetime.utcnow() - limit
+
+        basins = (
+            session.query(NhcBtkTable.basin)
+            .distinct()
+            .filter(NhcBtkTable.advisory_end > limit_time)
+            .all()
+        )
+        storm_years = (
+            session.query(NhcBtkTable.storm_year)
+            .distinct()
+            .filter(NhcBtkTable.advisory_end > limit_time)
+            .all()
+        )
+        storms = (
+            session.query(
+                NhcBtkTable.basin,
+                NhcBtkTable.storm_year,
+                NhcBtkTable.storm,
+                NhcBtkTable.advisory_start,
+                NhcBtkTable.advisory_end,
+                NhcBtkTable.advisory_duration_hr,
+            )
+            .filter(NhcBtkTable.advisory_end > limit_time)
+            .order_by(NhcBtkTable.basin, NhcBtkTable.storm)
+            .all()
+        )
+
+        storm_data = {}
+        for y in storm_years:
+            storm_data[y[0]] = {}
+            for b in basins:
+                storm_data[y[0]][b[0]] = {}
+
+        for storm in storms:
+            b = storm[0]
+            y = storm[1]
+            n = storm[2]
+            start = Status.d2s(storm[3])
+            end = Status.d2s(storm[4])
+            duration = storm[5]
+            storm_data[y][b][n] = {
+                "best_track_start": start,
+                "best_track_end": end,
+                "duration": duration,
+            }
+
+        return storm_data
+
+    @staticmethod
+    def __get_status_nhc_forecast(limit: timedelta) -> dict:
+        """
+        Method to generate the status data for NHC forecast data
+
+        Args:
+            limit: The limit in days to use when generating the status
+
+        Returns:
+            Dictionary containing the status information and the HTTP status code
+        """
+        from metget_api.database import Database
+        from metget_api.tables import NhcFcstTable
+
+        db = Database()
+        session = db.session()
+
+        limit_time = datetime.utcnow() - limit
+
+        basins = (
+            session.query(NhcFcstTable.basin)
+            .distinct()
+            .filter(NhcFcstTable.advisory_end > limit_time)
+            .all()
+        )
+        storm_years = (
+            session.query(NhcFcstTable.storm_year)
+            .distinct()
+            .filter(NhcFcstTable.advisory_end > limit_time)
+            .all()
+        )
+
+        storms = (
+            session.query(
+                NhcFcstTable.basin,
+                NhcFcstTable.storm_year,
+                NhcFcstTable.storm,
+            )
+            .distinct()
+            .filter(NhcFcstTable.advisory_end > limit_time)
+            .order_by(NhcFcstTable.basin, NhcFcstTable.storm)
+            .all()
+        )
+
+        storm_data = {}
+        for y in storm_years:
+            storm_data[y[0]] = {}
+            for b in basins:
+                storm_data[y[0]][b[0]] = {}
+
+        for storm in storms:
+            b = storm[0]
+            y = storm[1]
+            n = storm[2]
+
+            this_storm = (
+                session.query(
+                    NhcFcstTable.advisory,
+                    NhcFcstTable.advisory_start,
+                    NhcFcstTable.advisory_end,
+                    NhcFcstTable.advisory_duration_hr,
+                )
+                .filter(
+                    NhcFcstTable.basin == b,
+                    NhcFcstTable.storm_year == y,
+                    NhcFcstTable.storm == n,
+                )
+                .order_by(NhcFcstTable.advisory)
+                .all()
+            )
+
+            advisory_list = {}
+            for adv in this_storm:
+                a = int(adv[0])
+                adv_str = "{:03d}".format(a)
+                start = adv[1]
+                end = adv[2]
+                duration = adv[3]
+                advisory_list[adv_str] = {
+                    "advisory_start": Status.d2s(start),
+                    "advisory_end": Status.d2s(end),
+                    "duration": duration,
+                }
+
+            storm_data[y][b][n] = advisory_list
+
+        return storm_data
