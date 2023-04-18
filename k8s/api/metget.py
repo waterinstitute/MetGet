@@ -3,10 +3,16 @@
 from flask import Flask, redirect, request
 from metget_api.access_control import AccessControl
 from flask_restful import Resource, Api
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 application = Flask(__name__)
 api = Api(application)
-
+limiter = Limiter(
+    get_remote_address,
+    app=application,
+    storage_uri="memory://",
+)
 
 @application.route("/")
 def index():
@@ -27,6 +33,8 @@ class MetGetStatus(Resource):
         model: Name of the meteorolgoical model to return. Default is 'gfs'
         limit: Maximum number of days worth of data to return. Default is 31
     """
+
+    decorators = [limiter.limit("10/second")]
 
     def get(self):
         """
@@ -75,6 +83,8 @@ class MetGetBuild(Resource):
 
     This is found at the /build path
     """
+    
+    decorators = [limiter.limit("10/second")]
 
     def post(self):
         """

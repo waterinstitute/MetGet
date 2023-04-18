@@ -3,4 +3,6 @@ sqlalchemy
 gunicorn
 requests
 flask
+flask-limiter
+flask-restful
 pika
