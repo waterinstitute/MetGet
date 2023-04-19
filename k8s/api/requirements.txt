@@ -5,4 +5,5 @@ requests
 flask
 flask-limiter
 flask-restful
+flask-cors
 pika

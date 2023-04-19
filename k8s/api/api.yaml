@@ -35,8 +35,6 @@ spec:
           value: metget
         - name: METGET_REQUEST_TABLE
           value: requests
-        - name: METGET_API_KEY_TABLE
-          value: apikeys
         ports:
         - containerPort: 8080
           name: metget-api-port

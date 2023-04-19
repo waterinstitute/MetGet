@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 from flask import Flask, redirect, request, make_response, jsonify
-from metget_api.access_control import AccessControl
 from flask_restful import Resource, Api
 from flask_limiter import Limiter, RequestLimit
 from flask_limiter.util import get_remote_address
+from flask_cors import CORS
+from metget_api.access_control import AccessControl
 
 application = Flask(__name__)
 api = Api(application)
@@ -14,8 +15,12 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
+CORS(application)
+
+
 def ratelimit_error_responder(request_limit: RequestLimit):
     return make_response(jsonify({"error": "rate_limit_exceeded"}), 429)
+
 
 @application.route("/")
 def index():
@@ -48,7 +53,7 @@ class MetGetStatus(Resource):
         if authorized:
             return self.__get_status()
         else:
-            return {"message": "ERROR: Unauthorized"}, 401
+            return AccessControl.unauthorized_response()
 
     def __get_status(self):
         """
@@ -69,7 +74,10 @@ class MetGetStatus(Resource):
             try:
                 limit_days_int = int(limit_days)
             except ValueError as v:
-                return {"message": "ERROR: Invalid limit specified"}, 401
+                return {
+                    "statusCode": 400,
+                    "body": {"message": "ERROR: Invalid limit specified"},
+                }, 400
         else:
             limit_days_int = 7
 
@@ -77,7 +85,7 @@ class MetGetStatus(Resource):
 
         s = Status()
         status_data, status_code = s.get_status(model, time_limit)
-        return status_data, status_code
+        return {"statusCode": status_code, "body": status_data}, status_code
 
 
 class MetGetBuild(Resource):
@@ -86,7 +94,7 @@ class MetGetBuild(Resource):
 
     This is found at the /build path
     """
-    
+
     decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
     def post(self):
@@ -97,7 +105,7 @@ class MetGetBuild(Resource):
         if authorized:
             return self.__build()
         else:
-            return {"message": "ERROR: Unauthorized"}, 401
+            return AccessControl.unauthorized_response()
 
     def __build(self):
         """
@@ -125,12 +133,141 @@ class MetGetBuild(Resource):
             request_json,
         )
 
-        return {"message": "Success", "request-id": request_uuid}, 200
+        return {
+            "statusCode": 200,
+            "body": {"message": "Success", "request-id": request_uuid},
+        }, 200
+
+
+class MetGetTrack(Resource):
+    """
+    Allows users to query a storm track in geojson format from the MetGet database
+
+    The endpoint takes the following query parameters:
+        - advisory - The nhc advisory number
+        - basin - The nhc basin (i.e. al, wp)
+        - storm - The nhc storm number
+        - type - Type of track to return (best or forecast)
+        - year - The year that the storm occurs
+
+    """
+
+    decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
+
+    def get(self):
+        authorized = AccessControl.check_authorization_token(request.headers)
+        if authorized:
+            return self.__get_storm_track()
+        else:
+            return AccessControl.unauthorized_response()
+
+    def __get_storm_track(self):
+        from metget_api.database import Database
+        from metget_api.tables import NhcBtkTable, NhcFcstTable
+
+        advisory = None
+        basin = None
+        storm = None
+        year = None
+        track_type = None
+
+        if "type" in request.args:
+            track_type = request.args["type"]
+            if track_type != "best" and track_type != "forecast":
+                return {
+                    "statusCode": 400,
+                    "body": {
+                        "message": "ERROR: Invalid track type specified: {:s}".format(
+                            track_type
+                        )
+                    },
+                }, 400
+        else:
+            return {
+                "statusCode": 400,
+                "body": {
+                    "message": "ERROR: Query string parameter 'type' not provided"
+                },
+            }, 400
+
+        if track_type == "forecast":
+            if "advisory" in request.args:
+                advisory = request.args["advisory"]
+            else:
+                return {
+                    "statusCode": 400,
+                    "body": {
+                        "message": "ERROR: Query string parameter 'advisory' not provided"
+                    },
+                }, 400
+
+        if "basin" in request.args:
+            basin = request.args["basin"]
+        else:
+            return {
+                "statusCode": 400,
+                "body": {
+                    "message": "ERROR: Query string parameter 'basin' not provided"
+                },
+            }, 400
+
+        if "storm" in request.args:
+            storm = request.args["storm"]
+        else:
+            return {
+                "statusCode": 400,
+                "body": {
+                    "message": "ERROR: Query string parameter 'storm' not provided"
+                },
+            }, 400
+
+        if "year" in request.args:
+            year = request.args["year"]
+        else:
+            return {
+                "statusCode": 400,
+                "body": {
+                    "message": "ERROR: Query string parameter 'year' not provided"
+                },
+            }, 400
+
+        db = Database()
+        session = db.session()
+
+        if track_type == "forecast":
+            query_result = (
+                session.query(NhcFcstTable.geometry_data)
+                .filter(
+                    NhcFcstTable.storm_year == year,
+                    NhcFcstTable.basin == basin,
+                    NhcFcstTable.storm == storm,
+                    NhcFcstTable.advisory == advisory,
+                )
+                .all()
+            )
+        else:
+            query_result = (
+                session.query(NhcBtkTable.geometry_data)
+                .filter(
+                    NhcBtkTable.storm_year == year,
+                    NhcBtkTable.basin == basin,
+                    NhcBtkTable.storm == storm,
+                )
+                .all()
+            )
+
+        if len(query_result) == 0:
+            return {"statusCode": 400, "body": "ERROR: No data found to match request"}, 400
+        elif len(query_result) > 1:
+            return {"statusCode": 400, "body": "ERROR: Too many records found matching request"}, 400
+        else:
+            return {"statusCode": 200, "body": {"geojson": query_result[0][0]}}, 200
 
 
 # ...Add the resources to the API
 api.add_resource(MetGetStatus, "/status")
 api.add_resource(MetGetBuild, "/build")
+api.add_resource(MetGetTrack, "/stormtrack")
 
 if __name__ == "__main__":
     application.run(host="0.0.0.0", port=5000)

@@ -1,3 +1,6 @@
+from flask import make_response, Response
+
+
 class AccessControl:
     def __init__(self):
         from metget_api.database import Database
@@ -23,3 +26,8 @@ class AccessControl:
             return True
         else:
             return False
+
+    @staticmethod
+    def unauthorized_response():
+        status = 401
+        return {"statusCode": status, "body": {"message": "ERROR: Unauthorized"}}, status

@@ -78,35 +78,35 @@ class Status:
         """
 
         if status_type not in AVAILABLE_MET_MODELS and status_type != "all":
-            return {
-                "message": "ERROR: Unknown model requested: '{:s}'".format(status_type)
-            }, 400
+            return {"message": "ERROR: Unknown model requested: '{:s}'".format(status_type)}, 400
 
         if status_type == "gfs":
-            return Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], limit)
+            s = Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], limit)
         elif status_type == "nam":
-            return Status.__get_status_nam(MET_MODEL_FORECAST_DURATION["nam"], limit)
+            s = Status.__get_status_nam(MET_MODEL_FORECAST_DURATION["nam"], limit)
         elif status_type == "hwrf":
-            return Status.__get_status_hwrf(MET_MODEL_FORECAST_DURATION["hwrf"], limit)
+            s = Status.__get_status_hwrf(MET_MODEL_FORECAST_DURATION["hwrf"], limit)
         elif status_type == "hrrr":
-            return Status.__get_status_hrrr(MET_MODEL_FORECAST_DURATION["hrrr"], limit)
+            s = Status.__get_status_hrrr(MET_MODEL_FORECAST_DURATION["hrrr"], limit)
         elif status_type == "hrrr-alaksa":
-            return Status.__get_status_hrrr_alaska(
+            s = Status.__get_status_hrrr_alaska(
                 MET_MODEL_FORECAST_DURATION["hrrr-alaska"], limit
             )
         elif status_type == "wpc":
-            return Status.__get_status_wpc(MET_MODEL_FORECAST_DURATION["wpc"], limit)
+            s = Status.__get_status_wpc(MET_MODEL_FORECAST_DURATION["wpc"], limit)
         elif status_type == "nhc":
-            return Status.__get_status_nhc(limit)
+            s = Status.__get_status_nhc(limit)
         elif status_type == "coamps":
-            return Status.__get_status_coamps(
-                MET_MODEL_FORECAST_DURATION["coamps"], limit
-            )
+            s = Status.__get_status_coamps(MET_MODEL_FORECAST_DURATION["coamps"], limit)
         elif status_type == "all":
             gfs, _ = Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], limit)
             nam, _ = Status.__get_status_nam(MET_MODEL_FORECAST_DURATION["nam"], limit)
-            hwrf, _ = Status.__get_status_hwrf(MET_MODEL_FORECAST_DURATION["hwrf"], limit)
-            hrrr, _ = Status.__get_status_hrrr(MET_MODEL_FORECAST_DURATION["hrrr"], limit)
+            hwrf, _ = Status.__get_status_hwrf(
+                MET_MODEL_FORECAST_DURATION["hwrf"], limit
+            )
+            hrrr, _ = Status.__get_status_hrrr(
+                MET_MODEL_FORECAST_DURATION["hrrr"], limit
+            )
             hrrr_alaska, _ = Status.__get_status_hrrr_alaska(
                 MET_MODEL_FORECAST_DURATION["hrrr-alaska"], limit
             )
@@ -115,7 +115,7 @@ class Status:
             coamps, _ = Status.__get_status_coamps(
                 MET_MODEL_FORECAST_DURATION["coamps"], limit
             )
-            return {
+            s = {
                 "gfs": gfs,
                 "nam": nam,
                 "hwrf": hwrf,
@@ -124,7 +124,9 @@ class Status:
                 "nhc": nhc,
                 "wpc": wpc,
                 "coamps": coamps,
-            }, 200
+            }
+
+        return s, 200
 
     @staticmethod
     def __get_status_generic(
@@ -132,7 +134,7 @@ class Status:
         table_type: any,
         cycle_duration: int,
         limit: timedelta,
-    ) -> Tuple[dict, int]:
+    ) -> dict:
         """
         This method is used to generate the status for the generic models (i.e. GFS, NAM, WPC, etc.)
 
@@ -172,7 +174,7 @@ class Status:
                 "complete_cycle_length": cycle_duration,
                 "cycles_complete": None,
                 "cycles": None,
-            }, 200
+            }
 
         cycle_minimum = unique_cycles[-1][0]
         cycle_maximum = unique_cycles[0][0]
@@ -234,10 +236,10 @@ class Status:
             "complete_cycle_length": cycle_duration,
             "cycles_complete": complete_cycles,
             "cycles": cycle_list,
-        }, 200
+        }
 
     @staticmethod
-    def __get_status_gfs(cycle_length: int, limit: timedelta) -> Tuple[dict, int]:
+    def __get_status_gfs(cycle_length: int, limit: timedelta) -> dict:
         """
         This method is used to generate the status for the GFS model
 
@@ -253,7 +255,7 @@ class Status:
         return Status.__get_status_generic("gfs", GfsTable, cycle_length, limit)
 
     @staticmethod
-    def __get_status_nam(cycle_length: int, limit: timedelta) -> Tuple[dict, int]:
+    def __get_status_nam(cycle_length: int, limit: timedelta) -> dict:
         """
         This method is used to generate the status for the NAM model
 
@@ -269,7 +271,7 @@ class Status:
         return Status.__get_status_generic("nam", NamTable, cycle_length, limit)
 
     @staticmethod
-    def __get_status_hrrr(cycle_length: int, limit: timedelta) -> Tuple[dict, int]:
+    def __get_status_hrrr(cycle_length: int, limit: timedelta) -> dict:
         """
         This method is used to generate the status for the HRRR model
 
@@ -287,7 +289,7 @@ class Status:
     @staticmethod
     def __get_status_hrrr_alaska(
         cycle_length: int, limit: timedelta
-    ) -> Tuple[dict, int]:
+    ) -> dict:
         """
         This method is used to generate the status for the HRRR Alaska model
 
@@ -305,7 +307,7 @@ class Status:
         )
 
     @staticmethod
-    def __get_status_wpc(cycle_length: int, limit: timedelta) -> Tuple[dict, int]:
+    def __get_status_wpc(cycle_length: int, limit: timedelta) -> dict:
         """
         This method is used to generate the status for the WPC QPF data
 
@@ -321,7 +323,7 @@ class Status:
         return Status.__get_status_generic("wpc", WpcTable, cycle_length, limit)
 
     @staticmethod
-    def __get_status_hwrf(cycle_duration: int, limit: timedelta) -> Tuple[dict, int]:
+    def __get_status_hwrf(cycle_duration: int, limit: timedelta) -> dict:
         """
         This method is used to generate the status for the HWRF model
 
@@ -415,10 +417,10 @@ class Status:
 
             storms[storm_name] = this_storm
 
-        return storms, 200
+        return storms
 
     @staticmethod
-    def __get_status_coamps(cycle_duration: int, limit: timedelta) -> Tuple[dict, int]:
+    def __get_status_coamps(cycle_duration: int, limit: timedelta) -> dict:
         """
         This method is used to generate the status for the COAMPS-TC model
 
@@ -433,10 +435,10 @@ class Status:
             This method is not yet implemented
 
         """
-        return {}, 200
+        return {}
 
     @staticmethod
-    def __get_status_nhc(limit: timedelta) -> Tuple[dict, int]:
+    def __get_status_nhc(limit: timedelta) -> dict:
         """
         This method is used to generate the status for the NHC model
 
@@ -448,7 +450,7 @@ class Status:
         """
         best_track = Status.__get_status_nhc_besttrack(limit)
         forecast = Status.__get_status_nhc_forecast(limit)
-        return {"best_track": best_track, "forecast": forecast}, 200
+        return {"best_track": best_track, "forecast": forecast}
 
     @staticmethod
     def __get_status_nhc_besttrack(limit: timedelta) -> dict:
