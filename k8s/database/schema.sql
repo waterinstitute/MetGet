@@ -123,5 +123,6 @@ CREATE TABLE requests(
   last_date TIMESTAMP NOT NULL, 
   api_key VARCHAR(128) NOT NULL, 
   source_ip VARCHAR(128) NOT NULL,, 
-  input_data JSON NOT NULL
+  input_data JSON NOT NULL,
+  message JSON NOT NULL
 );

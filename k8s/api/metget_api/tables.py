@@ -55,6 +55,7 @@ class RequestTable(table_base):
     api_key = Column(String)
     source_ip = Column(String)
     input_data = Column(MutableDict.as_mutable(JSONB))
+    message = Column(MutableDict.as_mutable(JSONB))
 
 
 class GfsTable(table_base):

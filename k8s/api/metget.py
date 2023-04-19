@@ -139,6 +139,86 @@ class MetGetBuild(Resource):
         }, 200
 
 
+class MetGetCheckRequest(Resource):
+    """
+    Allows users to check on the status of a request that is currently being built
+
+    The request is specified as a query string parameter "request-id" to the get method
+    """
+
+    decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
+
+    def get(self):
+        authorized = AccessControl.check_authorization_token(request.headers)
+        if authorized:
+            return self.__get_request_status()
+        else:
+            return AccessControl.unauthorized_response()
+
+    def __get_request_status(self):
+        from metget_api.database import Database
+        from metget_api.tables import RequestTable, RequestEnum
+        import os
+
+        if "request-id" in request.args:
+            request_id = request.args["request-id"]
+        else:
+            return {
+                "statusCode": 400,
+                "body": {
+                    "message": "ERROR: Query string parameter 'request-id' not found"
+                },
+            }, 400
+
+        db = Database()
+        session = db.session()
+
+        query_result = (
+            session.query(
+                RequestTable.try_count,
+                RequestTable.status,
+                RequestTable.start_date,
+                RequestTable.last_date,
+                RequestTable.message,
+            )
+            .filter(RequestTable.request_id == request_id)
+            .all()
+        )
+
+        if len(query_result) == 0:
+            return {
+                "statusCode": 400,
+                "body": {
+                    "message": "ERROR: Request '{:s}' was not found".format(request_id)
+                },
+            }, 400
+        elif len(query_result) > 1:
+            return {
+                "statusCode": 400,
+                "body": {
+                    "message": "ERROR: Request '{:s}' is ambiguous".format(request_id)
+                },
+            }, 400
+        else:
+            row = query_result[0]
+            bucket_name = os.environ["METGET_S3_BUCKET"]
+            upload_destination = "https://{:s}.s3.amazonaws.com/{:s}".format(
+                bucket_name, request_id
+            )
+            return {
+                "statusCode": 200,
+                "body": {
+                    "request-id": request_id,
+                    "status": row[1].name,
+                    "message": row[4],
+                    "try_count": row[0],
+                    "start": row[2].strftime("%Y-%m-%d %H:%M:%S"),
+                    "last_update": row[3].strftime("%Y-%m-%d %H:%M:%S"),
+                    "destination": upload_destination,
+                },
+            }, 200
+
+
 class MetGetTrack(Resource):
     """
     Allows users to query a storm track in geojson format from the MetGet database
@@ -155,11 +235,16 @@ class MetGetTrack(Resource):
     decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
     def get(self):
-        authorized = AccessControl.check_authorization_token(request.headers)
-        if authorized:
-            return self.__get_storm_track()
-        else:
-            return AccessControl.unauthorized_response()
+        #authorized = AccessControl.check_authorization_token(request.headers)
+        #if authorized:
+        #    return self.__get_storm_track()
+        #else:
+        #    return AccessControl.unauthorized_response()
+        #...We currently have the stormtrack endpoint without authorization so that
+        # web portals can use freely. One day it can be locked up if desired using
+        # the above
+        return self.__get_storm_track()
+        
 
     def __get_storm_track(self):
         from metget_api.database import Database
@@ -257,9 +342,15 @@ class MetGetTrack(Resource):
             )
 
         if len(query_result) == 0:
-            return {"statusCode": 400, "body": "ERROR: No data found to match request"}, 400
+            return {
+                "statusCode": 400,
+                "body": "ERROR: No data found to match request",
+            }, 400
         elif len(query_result) > 1:
-            return {"statusCode": 400, "body": "ERROR: Too many records found matching request"}, 400
+            return {
+                "statusCode": 400,
+                "body": "ERROR: Too many records found matching request",
+            }, 400
         else:
             return {"statusCode": 200, "body": {"geojson": query_result[0][0]}}, 200
 
@@ -267,6 +358,7 @@ class MetGetTrack(Resource):
 # ...Add the resources to the API
 api.add_resource(MetGetStatus, "/status")
 api.add_resource(MetGetBuild, "/build")
+api.add_resource(MetGetCheckRequest, "/check")
 api.add_resource(MetGetTrack, "/stormtrack")
 
 if __name__ == "__main__":

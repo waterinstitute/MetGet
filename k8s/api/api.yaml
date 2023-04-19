@@ -35,6 +35,8 @@ spec:
           value: metget
         - name: METGET_REQUEST_TABLE
           value: requests
+        - name: METGET_S3_BUCKET
+          value: metget-data-dev
         ports:
         - containerPort: 8080
           name: metget-api-port
