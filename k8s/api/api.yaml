@@ -3,15 +3,17 @@ kind: Deployment
 metadata:
   name: metget-api
   namespace: metget
+  labels:
+    app.kubernetes.io/name: metget-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: metget-api
+      app.kubernetes.io/name: metget-api
   template:
     metadata:
       labels:
-        app: metget-api
+        app.kubernetes.io/name: metget-api
     spec:
       terminationGracePeriodSeconds: 5
       containers:
@@ -19,8 +21,14 @@ spec:
         imagePullPolicy: Always
         name: metget-api
         env:
+        - name: METGET_S3_BUCKET
+          value: metget-data-dev
+        - name: METGET_S3_BUCKET_UPLOAD
+          value: metget-dev-upload 
         - name: METGET_API_KEY_TABLE
           value: "apikeys"
+        - name: METGET_REQUEST_TABLE
+          value: "requests"
         - name: METGET_DATABASE_USER
           valueFrom:
             secretKeyRef:
@@ -38,8 +46,8 @@ spec:
         - name: METGET_S3_BUCKET
           value: metget-data-dev
         ports:
-        - containerPort: 8080
-          name: metget-api-port
+        - name: metget-api-port
+          containerPort: 8080
 ---
 apiVersion: v1
 kind: Service
@@ -47,10 +55,12 @@ metadata:
   name: metget-api
   namespace: metget
   labels: 
-    app: metget-api
+    app.kubernetes.io/name: metget-api
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
-  - port: 8080
+    - port: 80
+      targetPort: metget-api-port
+      protocol: TCP
   selector:
-    app: metget-api
+    app.kubernetes.io/name: metget-api

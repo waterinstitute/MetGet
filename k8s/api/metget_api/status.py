@@ -147,7 +147,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.database import Database
+        from metget_api.metbuild.database import Database
 
         db = Database()
         session = db.session()
@@ -250,7 +250,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.tables import GfsTable
+        from metget_api.metbuild.tables import GfsTable
 
         return Status.__get_status_generic("gfs", GfsTable, cycle_length, limit)
 
@@ -266,7 +266,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.tables import NamTable
+        from metget_api.metbuild.tables import NamTable
 
         return Status.__get_status_generic("nam", NamTable, cycle_length, limit)
 
@@ -282,7 +282,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.tables import HrrrTable
+        from metget_api.metbuild.tables import HrrrTable
 
         return Status.__get_status_generic("hrrr", HrrrTable, cycle_length, limit)
 
@@ -300,7 +300,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.tables import HrrrAlaskaTable
+        from metget_api.metbuild.tables import HrrrAlaskaTable
 
         return Status.__get_status_generic(
             "hrrr-alaska", HrrrAlaskaTable, cycle_length, limit
@@ -318,7 +318,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.tables import WpcTable
+        from metget_api.metbuild.tables import WpcTable
 
         return Status.__get_status_generic("wpc", WpcTable, cycle_length, limit)
 
@@ -334,8 +334,8 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.database import Database
-        from metget_api.tables import HwrfTable
+        from metget_api.metbuild.database import Database
+        from metget_api.metbuild.tables import HwrfTable
 
         db = Database()
         session = db.session()

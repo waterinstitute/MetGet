@@ -42,26 +42,31 @@ class MetGetStatus(Resource):
         limit: Maximum number of days worth of data to return. Default is 7
     """
 
+<<<<<<< HEAD
     decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
     def get(self):
+=======
+    @staticmethod
+    def get():
+>>>>>>> 2a5324d (Adding build api functions/queries)
         """
         This method is used to check the status of the MetGet API and see what
         data is currently available in the database
         """
         authorized = AccessControl.check_authorization_token(request.headers)
         if authorized:
-            return self.__get_status()
+            return MetGetStatus.__get_status()
         else:
             return AccessControl.unauthorized_response()
 
-    def __get_status(self):
+    @staticmethod
+    def __get_status():
         """
         This method is used to check the status of the MetGet API and see what
         data is currently available in the database
         """
         from metget_api.status import Status
-        import json
         from datetime import timedelta
 
         if "model" in request.args:
@@ -75,9 +80,14 @@ class MetGetStatus(Resource):
                 limit_days_int = int(limit_days)
             except ValueError as v:
                 return {
+<<<<<<< HEAD
                     "statusCode": 400,
                     "body": {"message": "ERROR: Invalid limit specified"},
                 }, 400
+=======
+                    "message": "ERROR: Invalid limit specified: '{:s}'".format(v)
+                }, 401
+>>>>>>> 2a5324d (Adding build api functions/queries)
         else:
             limit_days_int = 7
 
@@ -97,24 +107,25 @@ class MetGetBuild(Resource):
 
     decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
-    def post(self):
+    @staticmethod
+    def post():
         """
         This method is used to build a new MetGet request into a 2d wind field
         """
         authorized = AccessControl.check_authorization_token(request.headers)
         if authorized:
-            return self.__build()
+            return MetGetBuild.__build()
         else:
             return AccessControl.unauthorized_response()
 
-    def __build(self):
+    @staticmethod
+    def __build():
         """
         This method is used to build a new MetGet request into a 2d wind field
         """
         import uuid
 
-        from metget_api.build_request import BuildRequest
-        from metget_api.tables import RequestEnum
+        from metget_api.metbuild import MetBuildRequest
 
         request_uuid = str(uuid.uuid4())
         request_api_key = request.headers.get("x-api-key")
@@ -123,16 +134,11 @@ class MetGetBuild(Resource):
 
         request_json["source-ip"] = request_source_ip
 
-        request_obj = BuildRequest()
-        request_obj.add_request(
-            request_uuid,
-            RequestEnum.queued,
-            0,
-            request_api_key,
-            request_source_ip,
-            request_json,
+        request_obj = MetBuildRequest(
+            request_uuid, request_api_key, request_source_ip, request_json
         )
 
+<<<<<<< HEAD
         return {
             "statusCode": 200,
             "body": {"message": "Success", "request-id": request_uuid},
@@ -353,6 +359,11 @@ class MetGetTrack(Resource):
             }, 400
         else:
             return {"statusCode": 200, "body": {"geojson": query_result[0][0]}}, 200
+=======
+        message, status_code = request_obj.generate_request()
+
+        return message, status_code
+>>>>>>> 2a5324d (Adding build api functions/queries)
 
 
 # ...Add the resources to the API

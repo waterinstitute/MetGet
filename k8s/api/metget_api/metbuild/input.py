@@ -1,5 +1,17 @@
 class Input:
+    """
+    This class is used to parse the input JSON data and validate it
+    for use in the MetBuild process
+    """
+
     def __init__(self, json_data):
+        """
+        Constructor for Input
+
+        Args:
+            json_data: A dictionary containing the json data for the input
+
+        """
         self.__json = json_data
         self.__start_date = None
         self.__end_date = None
@@ -19,60 +31,166 @@ class Input:
         self.__parse()
 
     def valid(self):
+        """
+        Returns whether the input is valid
+
+        Returns:
+            A boolean indicating whether the input is valid
+        """
         return self.__valid
 
     def dry_run(self):
+        """
+        Returns whether the input is a dry run
+
+        Returns:
+            A boolean indicating whether the input is a dry run
+        """
         return self.__dry_run
 
     def error(self):
+        """
+        Returns the error message
+
+        Returns:
+            The error message
+        """
         return self.__error
 
     def format(self):
+        """
+        Returns the format of the output data requested
+
+        Returns:
+            The format of the output data requested
+        """
         return self.__format
 
     def filename(self):
+        """
+        Returns the filename that will be used for the output data
+
+        Returns:
+            The filename that will be used for the output data
+        """
         return self.__filename
 
     def json(self):
+        """
+        Returns the json data that was provided in the input
+
+        Returns:
+            The json data that was provided in the input
+        """
         return self.__json
 
     def version(self):
+        """
+        Returns the version of the input data
+
+        Returns:
+            The version of the input data
+        """
         return self.__version
 
     def operator(self):
+        """
+        Returns the operator who provided the input data
+
+        Returns:
+            The operator who provided the input data
+        """
         return self.__operator
 
     def start_date(self):
+        """
+        Returns the start date of the input data
+
+        Returns:
+            The start date of the input data
+        """
         return self.__start_date
 
     def end_date(self):
+        """
+        Returns the end date of the input data
+
+        Returns:
+            The end date of the input data
+        """
         return self.__end_date
 
     def time_step(self):
+        """
+        Returns the time step of the input data
+
+        Returns:
+            The time step of the input data
+        """
         return self.__time_step
 
     def num_domains(self):
+        """
+        Returns the number of domains in the input data
+
+        Returns:
+            The number of domains in the input data
+        """
         return len(self.__domains)
 
     def domain(self, index):
+        """
+        Returns the domain at the specified index
+
+        Args:
+            index: The index of the domain to return
+        """
         return self.__domains[index]
 
     def nowcast(self):
+        """
+        Returns whether the data should only contain nowcast data
+
+        Returns:
+            A boolean indicating whether the data should only contain nowcast data
+        """
         return self.__nowcast
 
     def multiple_forecasts(self):
+        """
+        Returns whether the output data should contain multiple forecasts
+
+        Returns:
+            A boolean indicating whether the output data should contain multiple forecasts
+        """
         return self.__multiple_forecasts
 
     def backfill(self):
+        """
+        Returns whether the output data should be backfilled when the domain
+        extents are not available
+
+        Returns:
+            A boolean indicating whether the output data should be backfilled
+        """
         return self.__backfill
 
     def strict(self):
+        """
+        Returns whether the request should be handled strictly
+
+        Returns:
+            A boolean indicating whether the request should be handled strictly
+        """
         return self.__strict
 
     def __parse(self):
+        """
+        Parses the input data
+        """
         import sys
         import dateutil.parser
-        from metbuild.domain import Domain
+        from metget_api.metbuild.domain import Domain
 
         try:
             self.__version = self.__json["version"]
@@ -111,24 +229,13 @@ class Input:
             for i in range(ndomain):
                 name = self.__json["domains"][i]["name"]
                 service = self.__json["domains"][i]["service"]
-                d = Domain(
-                    name, service, self.__json["domains"][i], True,
-                )
+                d = Domain(name, service, self.__json["domains"][i])
                 if d.valid():
                     self.__domains.append(d)
                 else:
-                    if self.__log:
-                        self.__log.error("Could not parse domain " + str(i))
                     self.__valid = False
                     self.__error.append("Could not generate domain " + str(i))
 
         except Exception as e:
-            if self.__log:
-                self.__log.error("Could not parse the input json data: " + str(e))
-            else:
-                import traceback
-
-                print(traceback.format_exc())
-                print("[ERROR]: Could not parse the input json dataset: " + str(e))
             self.__valid = False
             self.__error.append("Could not parse the input json dataset: " + str(e))

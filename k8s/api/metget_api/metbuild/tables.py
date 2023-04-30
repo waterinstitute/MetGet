@@ -3,10 +3,10 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum
 import enum
 
 # This is the base class for all the tables
-table_base = declarative_base()
+TableBase = declarative_base()
 
 
-class AuthTable(table_base):
+class AuthTable(TableBase):
     """
     This class is used to create the table that holds the API keys
     which are used to authenticate users
@@ -34,7 +34,7 @@ class RequestEnum(enum.Enum):
     completed = 3
 
 
-class RequestTable(table_base):
+class RequestTable(TableBase):
     """
     This class is used to create the table that holds the requests which are currently
     being processed or have been fulfilled by the system
@@ -58,7 +58,7 @@ class RequestTable(table_base):
     message = Column(MutableDict.as_mutable(JSONB))
 
 
-class GfsTable(table_base):
+class GfsTable(TableBase):
     """
     This class is used to create the table that holds the GFS data which has been
     downloaded from the NCEP server
@@ -74,7 +74,7 @@ class GfsTable(table_base):
     accessed = Column(DateTime)
 
 
-class NamTable(table_base):
+class NamTable(TableBase):
     """
     This class is used to create the table that holds the NAM data which has been
     downloaded from the NCEP server
@@ -90,7 +90,7 @@ class NamTable(table_base):
     accessed = Column(DateTime)
 
 
-class HwrfTable(table_base):
+class HwrfTable(TableBase):
     """
     This class is used to create the table that holds the HWRF data which has been
     downloaded from the NCEP server
@@ -107,7 +107,7 @@ class HwrfTable(table_base):
     accessed = Column(DateTime)
 
 
-class GefsTable(table_base):
+class GefsTable(TableBase):
     """
     This class is used to create the table that holds the GEFS data which has been
     downloaded from the NCEP server
@@ -124,7 +124,7 @@ class GefsTable(table_base):
     accessed = Column(DateTime)
 
 
-class CoampsTable(table_base):
+class CoampsTable(TableBase):
     """
     This class is used to create the table that holds the COAMPS data which has been
     downloaded from the NRL server
@@ -141,7 +141,7 @@ class CoampsTable(table_base):
     accessed = Column(DateTime)
 
 
-class HrrrTable(table_base):
+class HrrrTable(TableBase):
     """
     This class is used to create the table that holds the HRRR data which has beenq
     downloaded from the NCEP server
@@ -157,7 +157,7 @@ class HrrrTable(table_base):
     accessed = Column(DateTime)
 
 
-class HrrrAlaskaTable(table_base):
+class HrrrAlaskaTable(TableBase):
     """
     This class is used to create the table that holds the HRRR Alaska data which has been
     downloaded from the NCEP server
@@ -173,7 +173,7 @@ class HrrrAlaskaTable(table_base):
     accessed = Column(DateTime)
 
 
-class WpcTable(table_base):
+class WpcTable(TableBase):
     """
     This class is used to create the table that holds the WPC data which has been
     downloaded from the NCEP server
@@ -189,7 +189,7 @@ class WpcTable(table_base):
     accessed = Column(DateTime)
 
 
-class NhcBtkTable(table_base):
+class NhcBtkTable(TableBase):
     """
     This class is used to create the table that holds the NHC Best Track data which has been
     downloaded from the NHC ftp server
@@ -214,7 +214,7 @@ class NhcBtkTable(table_base):
     geometry_data = Column(MutableDict.as_mutable(JSONB))
 
 
-class NhcFcstTable(table_base):
+class NhcFcstTable(TableBase):
     """
     This class is used to create the table that holds the NHC Forecast data which has been
     processed from the NHC RSS feed

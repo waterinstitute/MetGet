@@ -1,5 +1,17 @@
 class WindGrid:
+    """
+    WindGrid is a class that represents a wind grid and is used for
+    interpolation and other operations on the wind grid
+    """
+
     def __init__(self, json=None, no_construct=False):
+        """
+        Constructor for WindGrid
+
+        Args:
+            json: A dictionary containing the json data for the wind grid
+            no_construct: A boolean indicating whether to construct the wind grid in the c++ code
+        """
         self.__json = json
         self.__wg = None
         self.__no_construct = no_construct
@@ -10,40 +22,115 @@ class WindGrid:
             self.__valid = False
 
     def valid(self):
+        """
+        Returns whether the wind grid is valid
+
+        Returns:
+            A boolean indicating whether the wind grid is valid
+        """
         return self.__valid
 
     def grid_object(self):
+        """
+        Returns the grid object
+
+        Returns:
+            The grid object
+        """
         return self.__wg
 
     def bottom_left(self):
+        """
+        Returns the bottom left corner of the wind grid
+
+        Returns:
+            The bottom left corner of the wind grid
+        """
         return self.__wg.bottom_left()
 
     def bottom_right(self):
+        """
+        Returns the bottom right corner of the wind grid
+
+        Returns:
+            The bottom right corner of the wind grid
+        """
         return self.__wg.bottom_right()
 
     def top_left(self):
+        """
+        Returns the top left corner of the wind grid
+
+        Returns:
+            The top left corner of the wind grid
+        """
         return self.__wg.top_left()
 
     def top_right(self):
+        """
+        Returns the top right corner of the wind grid
+
+        Returns:
+            The top right corner of the wind grid
+        """
         return self.__wg.top_right()
 
     def di(self):
+        """
+        Returns the di value of the wind grid
+
+        Returns:
+            The di value of the wind grid
+        """
         return self.__wg.di()
 
     def dj(self):
+        """
+        Returns the dj value of the wind grid
+
+        Returns:
+            The dj value of the wind grid
+        """
         return self.__wg.dj()
 
     def rotation(self):
+        """
+        Returns the rotation of the wind grid
+
+        Returns:
+            The rotation of the wind grid
+        """
         return self.__wg.rotation()
 
     def nx(self):
+        """
+        Returns the nx value of the wind grid
+
+        Returns:
+            The nx value of the wind grid
+        """
         return self.__wg.nx()
 
     def ny(self):
+        """
+        Returns the ny value of the wind grid
+
+        Returns:
+            The ny value of the wind grid
+        """
         return self.__wg.ny()
 
     @staticmethod
-    def predefined_domain(predefined_domain_name):
+    def predefined_domain(predefined_domain_name: str):
+        """
+        Returns the predefined domain with the given name
+
+        Args:
+            predefined_domain_name: The name of the predefined domain
+
+        Returns:
+            The predefined domain with the given name
+        """
         predefined_domain_name = predefined_domain_name.lower()
         if predefined_domain_name == "wnat":
             return -98, 10, -60, 45, 0.25, 0.25
@@ -54,6 +141,9 @@ class WindGrid:
         raise RuntimeError("No matching predefined domain found")
 
     def __construct(self):
+        """
+        Constructs the wind grid
+        """
         xinit = None
         yinit = None
         xend = None

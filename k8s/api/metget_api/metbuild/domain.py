@@ -3,7 +3,7 @@ VALID_SERVICES = ["gfs-ncep", "gefs-ncep", "nam-ncep", "hwrf", "coamps-tc"]
 
 class Domain:
     def __init__(self, name, service, json):
-        from metbuild.windgrid import WindGrid
+        from metget_api.metbuild.windgrid import WindGrid
 
         self.__valid = True
         self.__name = name
