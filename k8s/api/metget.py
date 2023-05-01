@@ -150,8 +150,8 @@ class MetGetCheckRequest(Resource):
             return AccessControl.unauthorized_response()
 
     def __get_request_status(self):
-        from libraries.metbuild import Database
-        from libraries.metbuild import RequestTable
+        from metbuild.database import Database
+        from metbuild.tables import RequestTable
         import os
 
         if "request-id" in request.args:
@@ -229,16 +229,15 @@ class MetGetTrack(Resource):
     decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
     def get(self):
-        #authorized = AccessControl.check_authorization_token(request.headers)
-        #if authorized:
+        # authorized = AccessControl.check_authorization_token(request.headers)
+        # if authorized:
         #    return self.__get_storm_track()
-        #else:
+        # else:
         #    return AccessControl.unauthorized_response()
-        #...We currently have the stormtrack endpoint without authorization so that
+        # ...We currently have the stormtrack endpoint without authorization so that
         # web portals can use freely. One day it can be locked up if desired using
         # the above
         return self.__get_storm_track()
-        
 
     def __get_storm_track(self):
         from metget_api.database import Database
@@ -347,7 +346,6 @@ class MetGetTrack(Resource):
             }, 400
         else:
             return {"statusCode": 200, "body": {"geojson": query_result[0][0]}}, 200
-        return message, status_code
 
 
 # ...Add the resources to the API
