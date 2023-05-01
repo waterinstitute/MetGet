@@ -4,7 +4,7 @@ class Input:
     for use in the MetBuild process
     """
 
-    def __init__(self, json_data):
+    def __init__(self, json_data, no_construct: bool = False):
         """
         Constructor for Input
 
@@ -13,6 +13,7 @@ class Input:
 
         """
         self.__json = json_data
+        self.__no_construct = no_construct
         self.__start_date = None
         self.__end_date = None
         self.__operator = None
@@ -48,7 +49,7 @@ class Input:
         """
         return self.__dry_run
 
-    def error(self):
+    def error(self) -> list:
         """
         Returns the error message
 
@@ -229,12 +230,16 @@ class Input:
             for i in range(ndomain):
                 name = self.__json["domains"][i]["name"]
                 service = self.__json["domains"][i]["service"]
-                d = Domain(name, service, self.__json["domains"][i])
+                d = Domain(
+                    name, service, self.__json["domains"][i], self.__no_construct
+                )
                 if d.valid():
                     self.__domains.append(d)
                 else:
                     self.__valid = False
                     self.__error.append("Could not generate domain " + str(i))
+                    for e in d.error():
+                        self.__error.append(e)
 
         except Exception as e:
             self.__valid = False

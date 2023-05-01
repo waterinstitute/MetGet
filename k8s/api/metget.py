@@ -42,14 +42,10 @@ class MetGetStatus(Resource):
         limit: Maximum number of days worth of data to return. Default is 7
     """
 
-<<<<<<< HEAD
     decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
-    def get(self):
-=======
     @staticmethod
     def get():
->>>>>>> 2a5324d (Adding build api functions/queries)
         """
         This method is used to check the status of the MetGet API and see what
         data is currently available in the database
@@ -80,14 +76,9 @@ class MetGetStatus(Resource):
                 limit_days_int = int(limit_days)
             except ValueError as v:
                 return {
-<<<<<<< HEAD
                     "statusCode": 400,
                     "body": {"message": "ERROR: Invalid limit specified"},
                 }, 400
-=======
-                    "message": "ERROR: Invalid limit specified: '{:s}'".format(v)
-                }, 401
->>>>>>> 2a5324d (Adding build api functions/queries)
         else:
             limit_days_int = 7
 
@@ -125,7 +116,7 @@ class MetGetBuild(Resource):
         """
         import uuid
 
-        from metget_api.metbuild import MetBuildRequest
+        from metget_api.metbuildrequest import MetBuildRequest
 
         request_uuid = str(uuid.uuid4())
         request_api_key = request.headers.get("x-api-key")
@@ -135,14 +126,11 @@ class MetGetBuild(Resource):
         request_json["source-ip"] = request_source_ip
 
         request_obj = MetBuildRequest(
-            request_uuid, request_api_key, request_source_ip, request_json
+            request_api_key, request_source_ip, request_uuid, request_json
         )
+        message, status_code = request_obj.generate_request()
 
-<<<<<<< HEAD
-        return {
-            "statusCode": 200,
-            "body": {"message": "Success", "request-id": request_uuid},
-        }, 200
+        return message, status_code
 
 
 class MetGetCheckRequest(Resource):
@@ -162,8 +150,8 @@ class MetGetCheckRequest(Resource):
             return AccessControl.unauthorized_response()
 
     def __get_request_status(self):
-        from metget_api.database import Database
-        from metget_api.tables import RequestTable, RequestEnum
+        from metget_api.metbuild.database import Database
+        from metget_api.metbuild.tables import RequestTable, RequestEnum
         import os
 
         if "request-id" in request.args:
@@ -359,11 +347,7 @@ class MetGetTrack(Resource):
             }, 400
         else:
             return {"statusCode": 200, "body": {"geojson": query_result[0][0]}}, 200
-=======
-        message, status_code = request_obj.generate_request()
-
         return message, status_code
->>>>>>> 2a5324d (Adding build api functions/queries)
 
 
 # ...Add the resources to the API

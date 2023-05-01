@@ -18,8 +18,9 @@ class WindGrid:
         self.__valid = True
         try:
             self.__construct()
-        except:
+        except Exception as e:
             self.__valid = False
+            raise
 
     def valid(self):
         """

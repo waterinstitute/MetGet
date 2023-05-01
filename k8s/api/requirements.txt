@@ -7,3 +7,4 @@ flask-limiter
 flask-restful
 flask-cors
 pika
+python-dateutil

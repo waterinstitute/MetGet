@@ -21,6 +21,8 @@ spec:
         imagePullPolicy: Always
         name: metget-api
         env:
+        - name: METGET_RABBITMQ_QUEUE
+          value: metget-request
         - name: METGET_S3_BUCKET
           value: metget-data-dev
         - name: METGET_S3_BUCKET_UPLOAD

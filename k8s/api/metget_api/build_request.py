@@ -1,6 +1,7 @@
 from metget_api.metbuild.tables import RequestTable, RequestEnum
-from metbuild.input import Input
+from metget_api.metbuild.input import Input
 from typing import Union
+import logging
 
 
 class BuildRequest:
@@ -10,7 +11,12 @@ class BuildRequest:
     """
 
     def __init__(
-        self, request_id: str, api_key: str, source_ip: str, request_json: dict
+        self,
+        request_id: str,
+        api_key: str,
+        source_ip: str,
+        request_json: dict,
+        no_construct: bool,
     ) -> None:
         """
         Constructor for BuildRequest
@@ -20,6 +26,7 @@ class BuildRequest:
             api_key: A string containing the api key
             source_ip: A string containing the source ip
             request_json: A dictionary containing the json data for the request
+            no_construct: Set to true so that objects are not actually constructed, used for checking rather than running the process
 
         """
         from metget_api.metbuild.database import Database
@@ -30,7 +37,8 @@ class BuildRequest:
         self.__api_key = api_key
         self.__source_ip = source_ip
         self.__request_json = request_json
-        self.__input_obj = Input(self.__request_json)
+        self.__no_construct = no_construct
+        self.__input_obj = Input(self.__request_json, self.__no_construct)
         self.__error = []
 
     def error(self) -> list:
@@ -51,15 +59,37 @@ class BuildRequest:
     def input_obj(self) -> Input:
         return self.__input_obj
 
-    def __add_request(
+    def add_request(
         self,
         request_status: RequestEnum,
+        message: str,
+        transmit: bool,
     ) -> None:
         """
         This method is used to add a new request to the database and initiate
         the k8s process within argo
         """
         from datetime import datetime
+        import pika
+        import os
+        import json
+
+        log = logging.getLogger(__name__)
+
+        if transmit:
+            host = os.environ["RABBITMQ_SERVICE_SERVICE_HOST"]
+            queue = os.environ["METGET_RABBITMQ_QUEUE"]
+            params = pika.ConnectionParameters(host, 5672)
+            connection = pika.BlockingConnection(params)
+            channel = connection.channel()
+            channel.basic_publish(
+                exchange="metget",
+                routing_key=queue,
+                body=json.dumps(self.__request_json),
+            )
+            connection.close()
+        else:
+            log.warning("Request was not transmitted. Will only be added to database.")
 
         record = RequestTable(
             request_id=self.__request_id,
@@ -70,7 +100,7 @@ class BuildRequest:
             api_key=self.__api_key,
             source_ip=self.__source_ip,
             input_data=self.__request_json,
-            message="Message received and added to queue",
+            message={"message": message},
         )
 
         qry_object = self.__session.query(RequestTable).where(
@@ -81,7 +111,7 @@ class BuildRequest:
 
         self.__session.commit()
 
-    def __update_request(
+    def update_request(
         self,
         request_status: RequestEnum,
         try_count: int,
@@ -166,6 +196,8 @@ class BuildRequest:
         # ...Step 1: Check if the input was even parsed correctly
         if not self.__input_obj.valid():
             self.__error.append("Input data could not be parsed")
+            for e in self.__input_obj.error():
+                self.__error.append(e)
             return False
 
         # ...Step 2: Check if the options can be fulfilled
@@ -181,6 +213,8 @@ class BuildRequest:
                 "none",
                 self.__input_obj.start_date(),
                 self.__input_obj.end_date(),
+                d.tau(),
+                d.storm_year(),
                 d.storm(),
                 d.basin(),
                 d.advisory(),
@@ -238,6 +272,8 @@ class BuildRequest:
         param,
         start,
         end,
+        tau,
+        storm_year,
         storm,
         basin,
         advisory,
@@ -249,13 +285,15 @@ class BuildRequest:
         This method is used to generate a list of files that will be used
         to generate the requested data
         """
-        from metbuild.filelist import Filelist
+        from metget_api.metbuild.filelist import Filelist
 
         file_list = Filelist(
             service,
             param,
             start,
             end,
+            tau,
+            storm_year,
             storm,
             basin,
             advisory,

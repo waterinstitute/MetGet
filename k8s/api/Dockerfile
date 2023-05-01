@@ -8,8 +8,8 @@ RUN pip install --requirement /tmp/requirements.txt
 
 WORKDIR /app
 
-COPY metget.py /app/. 
 COPY metget_api /app/metget_api/.
+COPY metget.py /app/. 
 
 ENTRYPOINT ["gunicorn"]
 CMD ["-w","4","metget:application","--bind","0.0.0.0:8080"]

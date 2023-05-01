@@ -34,13 +34,17 @@ class AccessControl:
         """
         from metget_api.metbuild.tables import AuthTable
 
-        api_key_hash = AccessControl.hash_access_token(api_key)
+        api_key_hash = AccessControl.hash_access_token(str(api_key))
         api_key_db = (
             self.__session.query(AuthTable.id, AuthTable.key)
             .filter_by(key=api_key)
             .first()
         )
-        api_key_db_hash = AccessControl.hash_access_token(api_key_db.key)
+
+        if api_key_db == None:
+            return False
+
+        api_key_db_hash = AccessControl.hash_access_token(api_key_db.key.strip())
 
         if api_key_db_hash == api_key_hash:
             return True

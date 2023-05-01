@@ -22,7 +22,7 @@ class MetBuildRequest:
         self.__api_key = api_key
         self.__source_ip = source_ip
         self.__request_id = request_id
-        self.__output_bucket = os.environ["METGET_OUTPUT_BUCKET"]
+        self.__output_bucket = os.environ["METGET_S3_BUCKET_UPLOAD"]
         self.__build_request = None
         self.__error = []
 
@@ -35,9 +35,10 @@ class MetBuildRequest:
             A tuple containing the response message and status code
         """
         from metget_api.build_request import BuildRequest
+        from metget_api.metbuild.tables import RequestEnum
 
         self.__build_request = BuildRequest(
-            self.__request_id, self.__api_key, self.__source_ip, self.__json_data
+            self.__request_id, self.__api_key, self.__source_ip, self.__json_data, True
         )
 
         statuscode = 200
@@ -48,7 +49,7 @@ class MetBuildRequest:
                 "message": "empty",
                 "request_id": "empty",
                 "request_url": "empty",
-                "error_text": "empty",
+                "error_text": [],
             },
         }
 
@@ -59,7 +60,7 @@ class MetBuildRequest:
                 msg["body"]["message"] = "dry run successful"
                 msg["body"]["request_id"] = self.__build_request.request_id()
                 msg["body"]["request_url"] = "n/a"
-                msg["body"]["error_text"] = "n/a"
+                msg["body"]["error_text"] = []
             else:
                 msg["body"]["status"] = "success"
                 msg["body"]["message"] = "Request added to queue"
@@ -69,7 +70,11 @@ class MetBuildRequest:
                 ] = "https://{:s}.s3.amazonaws.com/{:s}".format(
                     self.__output_bucket, self.__build_request.request_id()
                 )
-                msg["body"]["error_text"] = "n/a"
+                msg["body"]["error_text"] = []
+
+                self.__build_request.add_request(
+                    RequestEnum.queued, "Request added to queue", True
+                )
 
         else:
             statuscode = 401
@@ -78,6 +83,6 @@ class MetBuildRequest:
             msg["body"]["message"] = "Request could not be added to queue"
             msg["body"]["request_id"] = self.__build_request.request_id()
             msg["body"]["request_url"] = "n/a"
-            msg["body"]["error_text"] = ";".join(self.__build_request.error())
+            msg["body"]["error_text"] = self.__build_request.error()
 
         return msg, statuscode
