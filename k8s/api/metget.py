@@ -19,6 +19,16 @@ CORS(application)
 
 
 def ratelimit_error_responder(request_limit: RequestLimit):
+    """
+    This method is used to return a 429 error when the user has exceeded the
+    rate limit
+
+    Args:
+        request_limit: The request limit object
+
+    Returns:
+        A 429 error response
+    """
     return make_response(jsonify({"error": "rate_limit_exceeded"}), 429)
 
 
@@ -355,4 +365,9 @@ api.add_resource(MetGetCheckRequest, "/check")
 api.add_resource(MetGetTrack, "/stormtrack")
 
 if __name__ == "__main__":
+    """
+    If the script is run directly, start the application server
+    using flask's built-in server. This is for testing purposes
+    only and should not be used in production.
+    """
     application.run(host="0.0.0.0", port=5000)
