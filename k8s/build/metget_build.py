@@ -23,6 +23,7 @@
 
 import logging
 from datetime import datetime, timedelta
+
 from metbuild.input import Input
 
 
@@ -679,13 +680,17 @@ def main():
     """
     Main entry point for the script
     """
-    from metbuild.database import Database
-    import sys
     import os
     import json
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s :: %(levelname)s :: %(filename)s :: %(funcName)s :: %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S%Z",
+    )
+
     log = logging.getLogger(__name__)
-    log.debug("Beginning execution")
+    log.info("Beginning execution")
 
     # ...Get the input data from the environment.
     # This variable is set by the argo template
@@ -702,7 +707,7 @@ def main():
     except KeyError as e:
         log.error("Encountered malformed json input: " + str(e))
 
-    log.debug("Exiting script with status 0")
+    log.info("Exiting script with status 0")
     exit(0)
 
 
