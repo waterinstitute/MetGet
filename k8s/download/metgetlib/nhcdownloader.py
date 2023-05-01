@@ -719,7 +719,7 @@ class NhcDownloader:
                         if not entry_found:
                             logger.info(
                                 "Downloading NHC forecast for Basin: {:s}, Year: {:s}, Storm: {:s}, Advisory: {:s}".format(
-                                    basin2string(basin_str),
+                                    basin2string(basin),
                                     str(year),
                                     str(storm),
                                     current_advisory,
