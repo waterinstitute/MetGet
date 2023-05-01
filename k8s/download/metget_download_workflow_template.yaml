@@ -4,6 +4,10 @@ metadata:
   name: metget-download-template
 spec:
   entrypoint: metget-download-runner
+  ttlStrategy:
+    secondsAfterCompletion: 10 # Time to live after workflow is completed, replaces ttlSecondsAfterFinished
+    secondsAfterSuccess: 10    # Time to live after workflow is successful
+    secondsAfterFailure: 3600  # Time to live after workflow fails
   templates:
   - name: metget-download-runner
     inputs:
@@ -41,6 +45,6 @@ spec:
         - name: METGET_DATABASE
           value: metget
         - name: METGET_S3_BUCKET
-          value: metget-data-dev
+          value: metget-data-store
       command: [python3, metget_download.py]
       args: ["--service", "{{inputs.parameters.service}}"]
