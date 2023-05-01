@@ -54,7 +54,7 @@ class Status:
             return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     @staticmethod
-    def get_status(status_type: str, limit: timedelta) -> Tuple[dict, int]:
+    def get_status(request) -> Tuple[dict, int]:
         """
         This method is used to generate the status from the various sources
 
@@ -69,12 +69,31 @@ class Status:
             - coamps
 
         Args:
-            status_type: The type of status to generate
-            limit: The limit in days to use when generating the status
+            request: A flask request object
 
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
+        from datetime import timedelta
+
+        if "model" in request.args:
+            status_type = request.args["model"]
+        else:
+            status_type = "all"
+
+        if "limit" in request.args:
+            limit_days = request.args["limit"]
+            try:
+                limit_days_int = int(limit_days)
+            except ValueError as v:
+                return {
+                    "statusCode": 400,
+                    "body": {"message": "ERROR: Invalid limit specified"},
+                }, 400
+        else:
+            limit_days_int = 7
+
+        time_limit = timedelta(days=limit_days_int)
 
         s = None
 
@@ -84,39 +103,49 @@ class Status:
             }, 400
 
         if status_type == "gfs":
-            s = Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], limit)
+            s = Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], time_limit)
         elif status_type == "nam":
-            s = Status.__get_status_nam(MET_MODEL_FORECAST_DURATION["nam"], limit)
+            s = Status.__get_status_nam(MET_MODEL_FORECAST_DURATION["nam"], time_limit)
         elif status_type == "hwrf":
-            s = Status.__get_status_hwrf(MET_MODEL_FORECAST_DURATION["hwrf"], limit)
-        elif status_type == "hrrr":
-            s = Status.__get_status_hrrr(MET_MODEL_FORECAST_DURATION["hrrr"], limit)
-        elif status_type == "hrrr-alaksa":
-            s = Status.__get_status_hrrr_alaska(
-                MET_MODEL_FORECAST_DURATION["hrrr-alaska"], limit
+            s = Status.__get_status_hwrf(
+                MET_MODEL_FORECAST_DURATION["hwrf"], time_limit
             )
+        elif status_type == "hrrr":
+            s = Status.__get_status_hrrr(
+                MET_MODEL_FORECAST_DURATION["hrrr"], time_limit
+            )
+        elif status_type == "hrrr-alaksa":
+            s = Status.__get_status_hrrr_alaska(time_limit)
         elif status_type == "wpc":
-            s = Status.__get_status_wpc(MET_MODEL_FORECAST_DURATION["wpc"], limit)
+            s = Status.__get_status_wpc(MET_MODEL_FORECAST_DURATION["wpc"], time_limit)
         elif status_type == "nhc":
-            s = Status.__get_status_nhc(limit)
+            s = Status.__get_status_nhc(time_limit)
         elif status_type == "coamps":
-            s = Status.__get_status_coamps(MET_MODEL_FORECAST_DURATION["coamps"], limit)
+            s = Status.__get_status_coamps(
+                MET_MODEL_FORECAST_DURATION["coamps"], time_limit
+            )
         elif status_type == "all":
-            gfs, _ = Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], limit)
-            nam, _ = Status.__get_status_nam(MET_MODEL_FORECAST_DURATION["nam"], limit)
+            gfs, _ = Status.__get_status_gfs(
+                MET_MODEL_FORECAST_DURATION["gfs"], time_limit
+            )
+            nam, _ = Status.__get_status_nam(
+                MET_MODEL_FORECAST_DURATION["nam"], time_limit
+            )
             hwrf, _ = Status.__get_status_hwrf(
-                MET_MODEL_FORECAST_DURATION["hwrf"], limit
+                MET_MODEL_FORECAST_DURATION["hwrf"], time_limit
             )
             hrrr, _ = Status.__get_status_hrrr(
-                MET_MODEL_FORECAST_DURATION["hrrr"], limit
+                MET_MODEL_FORECAST_DURATION["hrrr"], time_limit
             )
             hrrr_alaska, _ = Status.__get_status_hrrr_alaska(
-                MET_MODEL_FORECAST_DURATION["hrrr-alaska"], limit
+                MET_MODEL_FORECAST_DURATION["hrrr-alaska"], time_limit
             )
-            nhc, _ = Status.__get_status_nhc(limit)
-            wpc, _ = Status.__get_status_wpc(MET_MODEL_FORECAST_DURATION["wpc"], limit)
+            nhc, _ = Status.__get_status_nhc(time_limit)
+            wpc, _ = Status.__get_status_wpc(
+                MET_MODEL_FORECAST_DURATION["wpc"], time_limit
+            )
             coamps, _ = Status.__get_status_coamps(
-                MET_MODEL_FORECAST_DURATION["coamps"], limit
+                MET_MODEL_FORECAST_DURATION["coamps"], time_limit
             )
             s = {
                 "gfs": gfs,

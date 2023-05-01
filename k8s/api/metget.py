@@ -62,41 +62,13 @@ class MetGetStatus(Resource):
         """
         authorized = AccessControl.check_authorization_token(request.headers)
         if authorized:
-            return MetGetStatus.__get_status()
+            from metget_api.status import Status
+
+            s = Status()
+            status_data, status_code = s.get_status(request)
+            return {"statusCode": status_code, "body": status_data}, status_code
         else:
             return AccessControl.unauthorized_response()
-
-    @staticmethod
-    def __get_status():
-        """
-        This method is used to check the status of the MetGet API and see what
-        data is currently available in the database
-        """
-        from metget_api.status import Status
-        from datetime import timedelta
-
-        if "model" in request.args:
-            model = request.args["model"]
-        else:
-            model = "all"
-
-        if "limit" in request.args:
-            limit_days = request.args["limit"]
-            try:
-                limit_days_int = int(limit_days)
-            except ValueError as v:
-                return {
-                    "statusCode": 400,
-                    "body": {"message": "ERROR: Invalid limit specified"},
-                }, 400
-        else:
-            limit_days_int = 7
-
-        time_limit = timedelta(days=limit_days_int)
-
-        s = Status()
-        status_data, status_code = s.get_status(model, time_limit)
-        return {"statusCode": status_code, "body": status_data}, status_code
 
 
 class MetGetBuild(Resource):
@@ -152,75 +124,17 @@ class MetGetCheckRequest(Resource):
 
     decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
-    def get(self):
+    @staticmethod
+    def get():
         authorized = AccessControl.check_authorization_token(request.headers)
         if authorized:
-            return self.__get_request_status()
+            from metget_api.check_request import CheckRequest
+
+            c = CheckRequest()
+            message, status = c.get(request)
+            return message, status
         else:
             return AccessControl.unauthorized_response()
-
-    def __get_request_status(self):
-        from metbuild.database import Database
-        from metbuild.tables import RequestTable
-        import os
-
-        if "request-id" in request.args:
-            request_id = request.args["request-id"]
-        else:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Query string parameter 'request-id' not found"
-                },
-            }, 400
-
-        db = Database()
-        session = db.session()
-
-        query_result = (
-            session.query(
-                RequestTable.try_count,
-                RequestTable.status,
-                RequestTable.start_date,
-                RequestTable.last_date,
-                RequestTable.message,
-            )
-            .filter(RequestTable.request_id == request_id)
-            .all()
-        )
-
-        if len(query_result) == 0:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Request '{:s}' was not found".format(request_id)
-                },
-            }, 400
-        elif len(query_result) > 1:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Request '{:s}' is ambiguous".format(request_id)
-                },
-            }, 400
-        else:
-            row = query_result[0]
-            bucket_name = os.environ["METGET_S3_BUCKET"]
-            upload_destination = "https://{:s}.s3.amazonaws.com/{:s}".format(
-                bucket_name, request_id
-            )
-            return {
-                "statusCode": 200,
-                "body": {
-                    "request-id": request_id,
-                    "status": row[1].name,
-                    "message": row[4],
-                    "try_count": row[0],
-                    "start": row[2].strftime("%Y-%m-%d %H:%M:%S"),
-                    "last_update": row[3].strftime("%Y-%m-%d %H:%M:%S"),
-                    "destination": upload_destination,
-                },
-            }, 200
 
 
 class MetGetTrack(Resource):
@@ -238,7 +152,10 @@ class MetGetTrack(Resource):
 
     decorators = [limiter.limit("10/second", on_breach=ratelimit_error_responder)]
 
-    def get(self):
+    @staticmethod
+    def get():
+        from metget_api.stormtrack import StormTrack
+
         # authorized = AccessControl.check_authorization_token(request.headers)
         # if authorized:
         #    return self.__get_storm_track()
@@ -247,115 +164,10 @@ class MetGetTrack(Resource):
         # ...We currently have the stormtrack endpoint without authorization so that
         # web portals can use freely. One day it can be locked up if desired using
         # the above
-        return self.__get_storm_track()
 
-    def __get_storm_track(self):
-        from metget_api.database import Database
-        from metget_api.tables import NhcBtkTable, NhcFcstTable
-
-        advisory = None
-        basin = None
-        storm = None
-        year = None
-        track_type = None
-
-        if "type" in request.args:
-            track_type = request.args["type"]
-            if track_type != "best" and track_type != "forecast":
-                return {
-                    "statusCode": 400,
-                    "body": {
-                        "message": "ERROR: Invalid track type specified: {:s}".format(
-                            track_type
-                        )
-                    },
-                }, 400
-        else:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Query string parameter 'type' not provided"
-                },
-            }, 400
-
-        if track_type == "forecast":
-            if "advisory" in request.args:
-                advisory = request.args["advisory"]
-            else:
-                return {
-                    "statusCode": 400,
-                    "body": {
-                        "message": "ERROR: Query string parameter 'advisory' not provided"
-                    },
-                }, 400
-
-        if "basin" in request.args:
-            basin = request.args["basin"]
-        else:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Query string parameter 'basin' not provided"
-                },
-            }, 400
-
-        if "storm" in request.args:
-            storm = request.args["storm"]
-        else:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Query string parameter 'storm' not provided"
-                },
-            }, 400
-
-        if "year" in request.args:
-            year = request.args["year"]
-        else:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Query string parameter 'year' not provided"
-                },
-            }, 400
-
-        db = Database()
-        session = db.session()
-
-        if track_type == "forecast":
-            query_result = (
-                session.query(NhcFcstTable.geometry_data)
-                .filter(
-                    NhcFcstTable.storm_year == year,
-                    NhcFcstTable.basin == basin,
-                    NhcFcstTable.storm == storm,
-                    NhcFcstTable.advisory == advisory,
-                )
-                .all()
-            )
-        else:
-            query_result = (
-                session.query(NhcBtkTable.geometry_data)
-                .filter(
-                    NhcBtkTable.storm_year == year,
-                    NhcBtkTable.basin == basin,
-                    NhcBtkTable.storm == storm,
-                )
-                .all()
-            )
-
-        if len(query_result) == 0:
-            return {
-                "statusCode": 400,
-                "body": "ERROR: No data found to match request",
-            }, 400
-        elif len(query_result) > 1:
-            return {
-                "statusCode": 400,
-                "body": "ERROR: Too many records found matching request",
-            }, 400
-        else:
-            return {"statusCode": 200, "body": {"geojson": query_result[0][0]}}, 200
+        s = StormTrack()
+        message, status = s.get(request)
+        return message, status
 
 
 # ...Add the resources to the API
