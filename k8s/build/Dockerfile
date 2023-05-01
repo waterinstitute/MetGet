@@ -9,7 +9,7 @@ WORKDIR /app
 RUN git clone https://github.com/adcirc/metget
 RUN mkdir /app/metget/libraries/libmetbuild/build
 WORKDIR /app/metget/libraries/libmetbuild/build
-RUN cmake .. -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ ; make -j ; make install; cd .. ; rm -rf build
+RUN cmake .. -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ ; make -j2 ; make install; cd .. ; rm -rf build
 
 WORKDIR /app
 
