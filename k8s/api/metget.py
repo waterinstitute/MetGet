@@ -150,8 +150,8 @@ class MetGetCheckRequest(Resource):
             return AccessControl.unauthorized_response()
 
     def __get_request_status(self):
-        from metget_api.metbuild.database import Database
-        from metget_api.metbuild.tables import RequestTable, RequestEnum
+        from libraries.metbuild import Database
+        from libraries.metbuild import RequestTable
         import os
 
         if "request-id" in request.args:

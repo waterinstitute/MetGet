@@ -30,8 +30,5 @@ class Database:
     def engine(self):
         return self.__engine
 
-    def connection(self):
-        return self.__connection
-
     def session(self):
         return self.__session

@@ -3,7 +3,7 @@ VALID_SERVICES = ["gfs-ncep", "gefs-ncep", "nam-ncep", "hwrf", "coamps-tc"]
 
 class Domain:
     def __init__(self, name, service, json, no_construct=False):
-        from metget_api.metbuild.windgrid import WindGrid
+        from .windgrid import WindGrid
 
         self.__valid = True
         self.__name = name
@@ -92,11 +92,13 @@ class Domain:
             self.__advisory = None
 
     def __get_storm_year(self):
+        from datetime import datetime
+
         if self.service() == "nhc":
             if "storm_year" in self.__json:
                 self.__storm_year = self.__json["storm_year"]
             else:
-                self.__storm_year = self.__start_date.year()
+                self.__storm_year = datetime.now().year
         else:
             self.__storm_year = None
 

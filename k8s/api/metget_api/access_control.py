@@ -1,6 +1,3 @@
-from flask import make_response, Response
-
-
 class AccessControl:
     """
     This class is used to check if the user is authorized to use the API
@@ -11,7 +8,7 @@ class AccessControl:
         This method is used to initialize the class. It creates a database
         connection and a session object
         """
-        from metget_api.metbuild.database import Database
+        from metbuild.database import Database
 
         self.__db = Database()
         self.__session = self.__db.session()
@@ -32,7 +29,7 @@ class AccessControl:
         Keys are hashed before being compared to the database to prevent
         accidental exposure of the keys and/or sql injection
         """
-        from metget_api.metbuild.tables import AuthTable
+        from metbuild.tables import AuthTable
 
         api_key_hash = AccessControl.hash_access_token(str(api_key))
         api_key_db = (
@@ -41,7 +38,7 @@ class AccessControl:
             .first()
         )
 
-        if api_key_db == None:
+        if api_key_db is None:
             return False
 
         api_key_db_hash = AccessControl.hash_access_token(api_key_db.key.strip())
@@ -67,4 +64,7 @@ class AccessControl:
     @staticmethod
     def unauthorized_response():
         status = 401
-        return {"statusCode": status, "body": {"message": "ERROR: Unauthorized"}}, status
+        return {
+            "statusCode": status,
+            "body": {"message": "ERROR: Unauthorized"},
+        }, status

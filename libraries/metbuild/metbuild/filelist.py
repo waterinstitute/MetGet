@@ -1,6 +1,6 @@
 from sqlalchemy import func
 from datetime import datetime
-from metget_api.metbuild.tables import TableBase
+from .tables import TableBase
 from typing import Union
 
 
@@ -43,7 +43,7 @@ class Filelist:
             ensemble_member (str): The ensemble member that is being requested
 
         """
-        from metget_api.metbuild.database import Database
+        from .database import Database
 
         self.__service = service
         self.__param = param
@@ -335,7 +335,7 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-        from metget_api.metbuild.tables import GfsTable
+        from .tables import GfsTable
 
         return self.__query_generic_file_list(GfsTable)
 
@@ -347,7 +347,7 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-        from metget_api.metbuild.tables import NamTable
+        from .tables import NamTable
 
         return self.__query_generic_file_list(NamTable)
 
@@ -359,7 +359,7 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-        from metget_api.metbuild.tables import HrrrTable
+        from .tables import HrrrTable
 
         return self.__query_generic_file_list(HrrrTable)
 
@@ -371,7 +371,7 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-        from metget_api.metbuild.tables import HrrrAlaskaTable
+        from .tables import HrrrAlaskaTable
 
         return self.__query_generic_file_list(HrrrAlaskaTable)
 
@@ -403,7 +403,7 @@ class Filelist:
 
         """
 
-        from metget_api.metbuild.tables import GefsTable
+        from .tables import GefsTable
 
         t2 = (
             self.__session.query(
@@ -469,7 +469,7 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-        from metget_api.metbuild.tables import GefsTable
+        from .tables import GefsTable
 
         t2 = (
             self.__session.query(
@@ -510,7 +510,7 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-        from metget_api.metbuild.tables import GefsTable
+        from .tables import GefsTable
 
         t2 = (
             self.__session.query(
@@ -551,7 +551,7 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-        from metget_api.metbuild.tables import HwrfTable
+        from .tables import HwrfTable
 
         return self.__query_storm_file_list(HwrfTable)
 
@@ -563,7 +563,7 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-        from metget_api.metbuild.tables import CoampsTable
+        from .tables import CoampsTable
 
         return self.__query_storm_file_list(CoampsTable)
 
@@ -750,7 +750,7 @@ class Filelist:
             list: The list of files that will be used to generate the requested forcing
         """
 
-        from metget_api.metbuild.tables import NhcBtkTable, NhcFcstTable
+        from .tables import NhcBtkTable, NhcFcstTable
 
         best_track_query = (
             self.__session.query(NhcBtkTable)

@@ -1,5 +1,5 @@
-from metget_api.metbuild.tables import RequestTable, RequestEnum
-from metget_api.metbuild.input import Input
+from metbuild.tables import RequestTable, RequestEnum
+from metbuild.input import Input
 from typing import Union
 import logging
 
@@ -29,7 +29,7 @@ class BuildRequest:
             no_construct: Set to true so that objects are not actually constructed, used for checking rather than running the process
 
         """
-        from metget_api.metbuild.database import Database
+        from metbuild.database import Database
 
         self.__db = Database()
         self.__session = self.__db.session()
@@ -285,7 +285,7 @@ class BuildRequest:
         This method is used to generate a list of files that will be used
         to generate the requested data
         """
-        from metget_api.metbuild.filelist import Filelist
+        from metbuild.filelist import Filelist
 
         file_list = Filelist(
             service,

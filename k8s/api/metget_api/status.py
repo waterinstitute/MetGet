@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from datetime import datetime, timedelta
-from typing import Tuple
+from typing import Tuple, Union
 
 AVAILABLE_MET_MODELS = [
     "gfs",
@@ -36,7 +36,7 @@ class Status:
         pass
 
     @staticmethod
-    def d2s(dt: datetime) -> str:
+    def d2s(dt: datetime) -> Union[str, None]:
         """
         This method is used to convert a datetime object to a string so that it can
         be returned to the user in the JSON response
@@ -74,11 +74,14 @@ class Status:
 
         Returns:
             Dictionary containing the status information and the HTTP status code
-
         """
 
+        s = None
+
         if status_type not in AVAILABLE_MET_MODELS and status_type != "all":
-            return {"message": "ERROR: Unknown model requested: '{:s}'".format(status_type)}, 400
+            return {
+                "message": "ERROR: Unknown model requested: '{:s}'".format(status_type)
+            }, 400
 
         if status_type == "gfs":
             s = Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], limit)
@@ -147,7 +150,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.metbuild.database import Database
+        from metbuild.database import Database
 
         db = Database()
         session = db.session()
@@ -250,7 +253,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.metbuild.tables import GfsTable
+        from metbuild.tables import GfsTable
 
         return Status.__get_status_generic("gfs", GfsTable, cycle_length, limit)
 
@@ -266,7 +269,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.metbuild.tables import NamTable
+        from metbuild.tables import NamTable
 
         return Status.__get_status_generic("nam", NamTable, cycle_length, limit)
 
@@ -282,14 +285,12 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.metbuild.tables import HrrrTable
+        from metbuild.tables import HrrrTable
 
         return Status.__get_status_generic("hrrr", HrrrTable, cycle_length, limit)
 
     @staticmethod
-    def __get_status_hrrr_alaska(
-        cycle_length: int, limit: timedelta
-    ) -> dict:
+    def __get_status_hrrr_alaska(cycle_length: int, limit: timedelta) -> dict:
         """
         This method is used to generate the status for the HRRR Alaska model
 
@@ -300,7 +301,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.metbuild.tables import HrrrAlaskaTable
+        from metbuild.tables import HrrrAlaskaTable
 
         return Status.__get_status_generic(
             "hrrr-alaska", HrrrAlaskaTable, cycle_length, limit
@@ -318,7 +319,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.metbuild.tables import WpcTable
+        from metbuild.tables import WpcTable
 
         return Status.__get_status_generic("wpc", WpcTable, cycle_length, limit)
 
@@ -334,8 +335,8 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.metbuild.database import Database
-        from metget_api.metbuild.tables import HwrfTable
+        from metbuild.tables import Database
+        from metbuild.tables import HwrfTable
 
         db = Database()
         session = db.session()
@@ -464,8 +465,8 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.database import Database
-        from metget_api.tables import NhcBtkTable
+        from metbuild.database import Database
+        from metbuild.tables import NhcBtkTable
 
         db = Database()
         session = db.session()
@@ -530,8 +531,8 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metget_api.database import Database
-        from metget_api.tables import NhcFcstTable
+        from metbuild.database import Database
+        from metbuild.tables import NhcFcstTable
 
         db = Database()
         session = db.session()

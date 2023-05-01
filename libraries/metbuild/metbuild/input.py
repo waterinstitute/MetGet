@@ -189,9 +189,8 @@ class Input:
         """
         Parses the input data
         """
-        import sys
         import dateutil.parser
-        from metget_api.metbuild.domain import Domain
+        from .domain import Domain
 
         try:
             self.__version = self.__json["version"]

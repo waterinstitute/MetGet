@@ -35,7 +35,7 @@ class MetBuildRequest:
             A tuple containing the response message and status code
         """
         from metget_api.build_request import BuildRequest
-        from metget_api.metbuild.tables import RequestEnum
+        from metbuild.tables import RequestEnum
 
         self.__build_request = BuildRequest(
             self.__request_id, self.__api_key, self.__source_ip, self.__json_data, True
