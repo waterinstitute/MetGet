@@ -216,6 +216,7 @@ class Filelist:
                 table.forecasttime >= self.__start,
                 table.forecasttime <= self.__end,
             )
+            .order_by(table.forecasttime)
             .all()
         )
 
@@ -272,6 +273,7 @@ class Filelist:
                 table.forecasttime >= self.__start,
                 table.forecasttime <= self.__end,
             )
+            .order_by(table.forecasttime)
             .all()
         )
 
@@ -324,6 +326,7 @@ class Filelist:
                 table.forecasttime >= self.__start,
                 table.forecasttime <= self.__end,
             )
+            .order_by(table.forecasttime)
             .all()
         )
 
@@ -446,6 +449,7 @@ class Filelist:
                 GefsTable.forecasttime >= self.__start,
                 GefsTable.forecasttime <= self.__end,
             )
+            .order_by(GefsTable.forecasttime)
             .all()
         )
 
@@ -499,6 +503,7 @@ class Filelist:
                 GefsTable.forecasttime >= self.__start,
                 GefsTable.forecasttime <= self.__end,
             )
+            .order_by(GefsTable.forecasttime)
             .all()
         )
 
@@ -540,6 +545,7 @@ class Filelist:
                 GefsTable.forecasttime >= self.__start,
                 GefsTable.forecasttime <= self.__end,
             )
+            .order_by(GefsTable.forecasttime)
             .all()
         )
 
@@ -642,6 +648,7 @@ class Filelist:
                 table.forecasttime >= self.__start,
                 table.forecasttime <= self.__end,
             )
+            .order_by(table.forecasttime)
             .all()
         )
 
@@ -696,6 +703,7 @@ class Filelist:
                 table.forecasttime >= self.__start,
                 table.forecasttime <= self.__end,
             )
+            .order_by(table.forecasttime)
             .all()
         )
 
@@ -737,6 +745,7 @@ class Filelist:
                 table.forecasttime >= self.__start,
                 table.forecasttime <= self.__end,
             )
+            .order_by(table.forecasttime)
             .all()
         )
 

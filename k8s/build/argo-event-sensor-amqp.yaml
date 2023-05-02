@@ -85,7 +85,7 @@ spec:
                           valueFrom:
                             configMapKeyRef:
                               name: metget-configmap
-                              key: upload_bucket 
+                              key: s3.upload_bucket 
                         - name: METGET_RABBITMQ_QUEUE
                           valueFrom:
                             configMapKeyRef:
@@ -94,6 +94,13 @@ spec:
                         - name: METGET_REQUEST_JSON
                           value: '{{inputs.parameters.message}}'
                       command: [python3, metget_build.py]
+                      resources:
+                        requests:
+                          memory: 2Gi
+                          ephemeral-storage: 4Gi
+                        limits:
+                          memory: 3Gi
+                          ephemeral-storage: 8Gi
                 dnsConfig:
                   options:
                     - name: ndots

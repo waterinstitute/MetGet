@@ -9,7 +9,12 @@ WORKDIR /app
 RUN git clone https://github.com/adcirc/metget
 RUN mkdir /app/metget/libraries/libmetbuild/build
 WORKDIR /app/metget/libraries/libmetbuild/build
-RUN cmake .. -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ ; make -j2 ; make install; cd .. ; rm -rf build
+RUN cmake .. -DCMAKE_C_COMPILER=gcc \
+             -DCMAKE_CXX_COMPILER=g++ \
+             -DCMAKE_BUILD_TYPE=Release \
+             -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -march=core-avx2 -mtune=core-avx2" \
+             -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG -march=core-avx2 -mtune=core-avx2"; \
+             make -j2 ; make install; cd .. ; rm -rf build
 
 WORKDIR /app
 

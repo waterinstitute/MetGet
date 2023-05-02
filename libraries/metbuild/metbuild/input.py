@@ -2,6 +2,7 @@ from datetime import datetime
 
 VALID_DATA_TYPES = ["wind_pressure", "rain", "ice", "humidity", "temperature"]
 
+
 class Input:
     """
     This class is used to parse the input JSON data and validate it
@@ -50,6 +51,16 @@ class Input:
             A boolean indicating whether the input is valid
         """
         return self.__valid
+
+    def epsg(self) -> int:
+        """
+        Returns the epsg projection code that the user
+        requested the data be returned in
+
+        Returns:
+            epsg code of output data
+        """
+        return self.__epsg
 
     def data_type(self) -> str:
         """

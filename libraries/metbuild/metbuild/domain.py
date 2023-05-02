@@ -18,16 +18,24 @@ class Domain:
         self.__tau = None
         self.__no_construct = no_construct
         if self.__service not in VALID_SERVICES:
-            log.warning("Domain invalid because {:s} is not a valid service".format(self.__service))
+            log.warning(
+                "Domain invalid because {:s} is not a valid service".format(
+                    self.__service
+                )
+            )
             self.__valid = False
         self.__json = json
         try:
             self.__grid = WindGrid(self.__json, self.__no_construct)
             if not self.__grid.valid():
-                log.warning("Domain invalid because a valid WindGrid object could not be constructed")
+                log.warning(
+                    "Domain invalid because a valid WindGrid object could not be constructed"
+                )
                 self.__valid = False
         except Exception as e:
-            log.warning("Domain invalid because exception was thrown: {:s}".format(str(e)))
+            log.warning(
+                "Domain invalid because exception was thrown: {:s}".format(str(e))
+            )
             self.__valid = False
             raise
         self.__storm = None

@@ -22,6 +22,7 @@
 # SOFTWARE.
 
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Tuple
 
@@ -289,7 +290,6 @@ def process_message(json_message: dict) -> bool:
     Returns:
         True if the message was processed successfully, False otherwise
     """
-    import os
     import json
 
     filelist_name = "filelist.json"
@@ -297,7 +297,6 @@ def process_message(json_message: dict) -> bool:
     log = logging.getLogger(__name__)
 
     db = Database()
-    s3 = S3file(os.environ["METGET_S3_BUCKET_UPLOAD"])
 
     log.info("Processing message")
     log.info(json.dumps(json_message))
@@ -329,10 +328,12 @@ def process_message(json_message: dict) -> bool:
 
     # ...Take a first pass on the data and check for restore status
     for i in range(input_data.num_domains()):
-        log.info("Processing pass 1 on domain {:d}".format(i))
         if met_field:
+            log.info("Generating met domain object for domain {:d}".format(i))
             generate_met_domain(input_data, met_field, i)
         d = input_data.domain(i)
+
+        log.info("Querying database for available data")
         filelist = Filelist(
             d.service(),
             input_data.data_type(),
@@ -357,7 +358,7 @@ def process_message(json_message: dict) -> bool:
             if len(f) < 2:
                 log.error("No data found for domain " + str(i) + ". Giving up.")
                 raise RuntimeError("No data found for domain")
-            ongoing_restore = check_glacier_restore(d, f, s3)
+            ongoing_restore = check_glacier_restore(d, f)
 
     # ...If restore ongoing, this is where we stop
     if ongoing_restore:
@@ -402,16 +403,17 @@ def process_message(json_message: dict) -> bool:
     }
 
     # ...Posts the data out to the correct S3 location
+    s3up = S3file(os.environ["METGET_S3_BUCKET_UPLOAD"])
     for f in output_file_list:
         path = os.path.join(input_data.request_id(), f)
-        s3.upload_file(f, path)
+        s3up.upload_file(f, path)
         os.remove(f)
 
     with open(filelist_name, "w") as of:
         of.write(json.dumps(output_file_dict, indent=2))
 
     filelist_path = os.path.join(input_data.request_id(), filelist_name)
-    s3.upload_file(filelist_name, filelist_path)
+    s3up.upload_file(filelist_name, filelist_path)
     log.info("Finished processing message with id")
     os.remove(filelist_name)
 
@@ -444,7 +446,6 @@ def interpolate_wind_fields(
     Returns:
         Tuple[list, dict]: The list of output files and the list of files used
     """
-    import os
     from datetime import timedelta
 
     log = logging.getLogger(__name__)
@@ -531,10 +532,21 @@ def interpolate_wind_fields(
                 )
             )
 
+            log.info(
+                "Interpolating domain {:d}, snap {:s} to grid".format(
+                    i, t.strftime("%Y-%m-%d %H:%M")
+                )
+            )
             if input_data.data_type() == "wind_pressure":
                 values = met.to_wind_grid(weight)
             else:
                 values = met.to_grid(weight)
+
+            log.info(
+                "Writing domain {:d}, snap {:s} to disk".format(
+                    i, t.strftime("%Y-%m-%d %H:%M")
+                )
+            )
             met_field.write(Input.date_to_pmb(t), i, values)
 
         files_used_list[input_data.domain(i).name()] = domain_files_used
@@ -609,9 +621,10 @@ def get_2d_forcing_files(domain, db, db_files, domain_data, index, met_field) ->
         None
 
     """
-    import os
 
     log = logging.getLogger(__name__)
+
+    s3 = S3file(os.environ["METGET_S3_BUCKET"])
 
     f = db_files[index]
     if len(f) < 2:
@@ -622,20 +635,26 @@ def get_2d_forcing_files(domain, db, db_files, domain_data, index, met_field) ->
             files = item[1].split(",")
             local_file_list = []
             for ff in files:
-                local_file = db.get_file(ff, domain.service(), item[0])
+                local_file = s3.download(ff, domain.service(), item["forecasttime"])
                 if not met_field:
                     new_file = os.path.basename(local_file)
                     os.rename(local_file, new_file)
                     local_file = new_file
                 local_file_list.append(local_file)
-            domain_data[index].append({"time": item[0], "filepath": local_file_list})
+            domain_data[index].append(
+                {"time": item["forecasttime"], "filepath": local_file_list}
+            )
         else:
-            local_file = db.get_file(item[1], domain.service(), item[0])
+            local_file = s3.download(
+                item["filepath"], domain.service(), item["forecasttime"]
+            )
             if not met_field:
                 new_file = os.path.basename(local_file)
                 os.rename(local_file, new_file)
                 local_file = new_file
-            domain_data[index].append({"time": item[0], "filepath": local_file})
+            domain_data[index].append(
+                {"time": item["forecasttime"], "filepath": local_file}
+            )
 
 
 def print_file_status(filepath: any, time: datetime) -> None:
@@ -646,7 +665,6 @@ def print_file_status(filepath: any, time: datetime) -> None:
         filepath: The file being processed
         time: The time of the file being processed
     """
-    import os
 
     log = logging.getLogger(__name__)
 
@@ -697,9 +715,10 @@ def generate_merged_nhc_files(
     Returns:
         None
     """
-    import os
 
     log = logging.getLogger(__name__)
+
+    s3 = S3file(os.environ["METGET_S3_BUCKET"])
 
     if not nhc_data[index]["best_track"] and not nhc_data[index]["forecast_track"]:
         log.error("No data found for domain {:d}. Giving up".format(index))
@@ -707,7 +726,7 @@ def generate_merged_nhc_files(
     local_file_besttrack = None
     local_file_forecast = None
     if nhc_data[index]["best_track"]:
-        local_file_besttrack = db.get_file(
+        local_file_besttrack = s3.download(
             nhc_data[index]["best_track"]["filepath"], "nhc"
         )
         if not met_field:
@@ -721,7 +740,7 @@ def generate_merged_nhc_files(
             }
         )
     if nhc_data[index]["forecast_track"]:
-        local_file_forecast = db.get_file(
+        local_file_forecast = s3.download(
             nhc_data[index]["forecast_track"]["filepath"], "nhc"
         )
         if not met_field:
@@ -752,7 +771,7 @@ def generate_merged_nhc_files(
         )
 
 
-def check_glacier_restore(domain: Domain, filelist: list, s3: S3file) -> bool:
+def check_glacier_restore(domain: Domain, filelist: list) -> bool:
     """
     Checks the list of files to see if any are currently being restored from Glacier
 
@@ -760,12 +779,12 @@ def check_glacier_restore(domain: Domain, filelist: list, s3: S3file) -> bool:
         domain (Domain): Domain object
         filelist (list): List of dictionaries containing the filepaths of the
             files to be processed
-        s3 (S3File): S3File object
 
     Returns:
         bool: True if any files are currently being restored from Glacier
 
     """
+    s3 = S3file(os.environ["METGET_S3_BUCKET"])
     ongoing_restore = False
     for item in filelist:
         if domain.service() == "coamps-tc":
@@ -788,7 +807,6 @@ def cleanup_temp_files(data: list):
     Args:
         data (list): List of dictionaries containing the filepaths of the
     """
-    import os
     from os.path import exists
 
     for domain in data:
@@ -806,7 +824,6 @@ def main():
     """
     Main entry point for the script
     """
-    import os
     import json
 
     logging.basicConfig(
@@ -825,11 +842,45 @@ def main():
     json_data = json.loads(message)
 
     try:
+        RequestTable.update_request(
+            json_data["request_id"],
+            "running",
+            json_data["api_key"],
+            json_data["source_ip"],
+            json_data,
+            "Job is in running",
+        )
+
         process_message(json_data)
+
+        RequestTable.update_request(
+            json_data["request_id"],
+            "completed",
+            json_data["api_key"],
+            json_data["source_ip"],
+            json_data,
+            "Job completed successfully",
+        )
     except RuntimeError as e:
         log.error("Encountered error during processing: " + str(e))
+        RequestTable.update_request(
+            json_data["request_id"],
+            "error",
+            json_data["api_key"],
+            json_data["source_ip"],
+            json_data,
+            "Job encountered an error: {:s}".format(str(e)),
+        )
     except KeyError as e:
         log.error("Encountered malformed json input: " + str(e))
+        RequestTable.update_request(
+            json_data["request_id"],
+            "error",
+            json_data["api_key"],
+            json_data["source_ip"],
+            json_data,
+            "Job encountered an error: {:s}".format(str(e)),
+        )
 
     log.info("Exiting script with status 0")
     exit(0)

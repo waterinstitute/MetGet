@@ -25,6 +25,7 @@ import boto3
 import botocore
 from botocore.exceptions import ClientError
 import logging
+from datetime import datetime
 
 
 class S3file:
@@ -56,12 +57,49 @@ class S3file:
         """
         log = logging.getLogger(__name__)
         try:
+            log.info(
+                "Uploading file {:s} to s3://{:s}/{:s}".format(
+                    local_file, self.__bucket, remote_path
+                )
+            )
             response = self.__client.upload_file(local_file, self.__bucket, remote_path)
         except ClientError as e:
             log.error(e)
             return False
 
         return True
+
+    def download(self, remote_path: str, service: str, time: datetime = None) -> str:
+        """
+        Download a file from Amazon S3
+
+        Args:
+            remote_path: remote path to the file
+            local_path: Location where file will be downloaded
+
+        Returns:
+            Returns the path to the downloaded file
+        """
+        import tempfile
+        import os
+
+        log = logging.getLogger(__name__)
+        tempdir = tempfile.gettempdir()
+        fn = os.path.split("/")[-1]
+        if time:
+            fname = "{:s}.{:s}.{:s}".format(service, time.strftime("%Y%m%d%H%M"), fn)
+            local_path = os.path.join(tempdir, fname)
+        else:
+            local_path = os.path.join(tempdir, fn)
+
+        log.info(
+            "Downloading from s3://{:s}/{:s} to {:s}".format(
+                self.__bucket, remote_path, local_path
+            )
+        )
+        self.__client.download_file(self.__bucket, remote_path, local_path)
+
+        return local_path
 
     def exists(self, path: str) -> bool:
         """
@@ -93,8 +131,19 @@ class S3file:
         Returns:
             bool: True if file exists in S3 or is in glacier storage, else False
         """
+        log = logging.getLogger(__name__)
+        log.info(
+            "Checking glacier status for {:s} in bucket {:s}".format(
+                path, self.__bucket
+            )
+        )
         metadata = self.__client.head_object(Bucket=self.__bucket, Key=path)
         if "x-amz-archive-status" in metadata["ResponseMetadata"]["HTTPHeaders"].keys():
+            log.info(
+                "File {:s} in bucket {:s} was found in Amazon Glacier".format(
+                    path, self.__bucket
+                )
+            )
             return True
         else:
             return False
