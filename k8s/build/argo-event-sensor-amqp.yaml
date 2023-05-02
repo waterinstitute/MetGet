@@ -62,15 +62,38 @@ spec:
                               name: aws-region
                               key: password
                         - name: METGET_DATABASE
-                          value: metget
+                          valueFrom:
+                            configMapKeyRef:
+                              name: metget-configmap
+                              key: database.name
+                        - name: METGET_REQUEST_TABLE
+                          valueFrom:
+                            configMapKeyRef:
+                              name: metget-configmap
+                              key: database.request_table
+                        - name: METGET_API_KEY_TABLE
+                          valueFrom:
+                            configMapKeyRef:
+                              name: metget-configmap
+                              key: database.apikey_table
                         - name: METGET_S3_BUCKET
-                          value: metget-data-dev
+                          valueFrom:
+                            configMapKeyRef:
+                              name: metget-configmap
+                              key: s3.storage_bucket
                         - name: METGET_S3_BUCKET_UPLOAD
-                          value: metget-dev-upload
+                          valueFrom:
+                            configMapKeyRef:
+                              name: metget-configmap
+                              key: upload_bucket 
+                        - name: METGET_RABBITMQ_QUEUE
+                          valueFrom:
+                            configMapKeyRef:
+                              name: metget-configmap
+                              key: rabbit.queue 
                         - name: METGET_REQUEST_JSON
                           value: '{{inputs.parameters.message}}'
                       command: [python3, metget_build.py]
-                      args: ["--input", "'{{inputs.parameters.message}}'"]
                 dnsConfig:
                   options:
                     - name: ndots

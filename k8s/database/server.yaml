@@ -30,7 +30,10 @@ spec:
               name: metget-database-secret
               key: password
         - name: POSTGRES_DB
-          value: metget
+          valueFrom:
+            configMapKeyRef:
+              name: metget-configmap
+              key: database.name
         ports:
         - containerPort: 5432
           name: metget-db-port

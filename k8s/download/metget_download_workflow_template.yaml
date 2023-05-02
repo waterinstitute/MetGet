@@ -42,9 +42,15 @@ spec:
             secretKeyRef:
               name: aws-region
               key: password
-        - name: METGET_DATABASE
-          value: metget
         - name: METGET_S3_BUCKET
-          value: metget-data-store
+          valueFrom:
+            configMapKeyRef:
+              name: metget-configmap
+              key: s3.storage_bucket
+        - name: METGET_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: metget-configmap
+              key: database.name
       command: [python3, metget_download.py]
       args: ["--service", "{{inputs.parameters.service}}"]

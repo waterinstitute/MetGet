@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metget-configmap
+  namespace: metget
+data:
+  database: |
+    name=metget
+    request_table=requests
+    apikey_table=apikeys
+  s3: |
+    storage_bucket=metget-data-store
+    upload_bucket=metget-data-upload
+  rabbit: |
+    queue=metget-request
