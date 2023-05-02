@@ -23,8 +23,15 @@
 
 import logging
 from datetime import datetime, timedelta
+from typing import Tuple
 
+import pymetbuild
+from metbuild.database import Database
+from metbuild.domain import Domain
+from metbuild.filelist import Filelist
 from metbuild.input import Input
+from metbuild.s3file import S3file
+from metbuild.tables import RequestTable
 
 
 def date_span(start_date: datetime, end_date: datetime, delta: timedelta):
@@ -39,10 +46,10 @@ def date_span(start_date: datetime, end_date: datetime, delta: timedelta):
     Returns:
         A generator object that yields a series of dates between the start and end
     """
-    currentDate = start_date
-    while currentDate <= end_date:
-        yield currentDate
-        currentDate += delta
+    current_date = start_date
+    while current_date <= end_date:
+        yield current_date
+        current_date += delta
 
 
 def generate_datatype_key(data_type: str) -> int:
@@ -55,8 +62,6 @@ def generate_datatype_key(data_type: str) -> int:
     Returns:
         The key for the data type
     """
-    import pymetbuild
-
     if data_type == "wind_pressure":
         return pymetbuild.WIND_PRESSURE
     elif data_type == "pressure":
@@ -85,8 +90,6 @@ def generate_data_source_key(data_source) -> int:
     Returns:
         The key for the data source
     """
-    import pymetbuild
-
     if data_source == "gfs-ncep":
         return pymetbuild.Meteorology.GFS
     elif data_source == "gefs-ncep":
@@ -118,9 +121,8 @@ def generate_met_field(
         end: The end date
         time_step: The time step in seconds
         filename: The filename to write to
-        compression: Whether or not to compress the output
+        compression: Whether to compress the output
     """
-    import pymetbuild
 
     if (
         output_format == "ascii"
@@ -137,7 +139,7 @@ def generate_met_field(
     elif output_format == "raw":
         return None
     else:
-        raise RuntimeError("Invalid output format selected: " + output_format)
+        raise RuntimeError("Invalid output format selected: {:s}".format(output_format))
 
 
 def generate_met_domain(input_data: Input, met_object, index: int):
@@ -287,20 +289,15 @@ def process_message(json_message: dict) -> bool:
     Returns:
         True if the message was processed successfully, False otherwise
     """
-    import pymetbuild
-    import datetime
     import os
     import json
-    from metbuild.input import Input
-    from metbuild.database import Database
-    from metbuild.s3file import S3file
-    from metbuild.filelist import FileList
 
     filelist_name = "filelist.json"
 
     log = logging.getLogger(__name__)
 
     db = Database()
+    s3 = S3file(os.environ["METGET_S3_BUCKET_UPLOAD"])
 
     log.info("Processing message")
     log.info(json.dumps(json_message))
@@ -312,8 +309,6 @@ def process_message(json_message: dict) -> bool:
     end_date = input_data.end_date()
     end_date_pmb = input_data.end_date_pmb()
     time_step = input_data.time_step()
-
-    s3 = S3file(os.environ["METGET_S3_BUCKET_UPLOAD"])
 
     met_field = generate_met_field(
         input_data.format(),
@@ -331,29 +326,29 @@ def process_message(json_message: dict) -> bool:
     ongoing_restore = False
     nhc_data = {}
     db_files = []
+
     # ...Take a first pass on the data and check for restore status
     for i in range(input_data.num_domains()):
         log.info("Processing pass 1 on domain {:d}".format(i))
         if met_field:
             generate_met_domain(input_data, met_field, i)
         d = input_data.domain(i)
-        filelist = Filelist(d.service(), 
-                input_data.data_type(),
-                start_date,
-                end_date,
-                d.tau(),
-                d.storm_year(),
-                d.storm(),
-                d.basin(),
-                d.advisory(),
-                input_data.nowcast(),
-                input_data.multiple_forecasts(),
-                d.ensemble_member(),
-                )
-        f = files() 
+        filelist = Filelist(
+            d.service(),
+            input_data.data_type(),
+            start_date,
+            end_date,
+            d.tau(),
+            d.storm_year(),
+            d.storm(),
+            d.basin(),
+            d.advisory(),
+            input_data.nowcast(),
+            input_data.multiple_forecasts(),
+            d.ensemble_member(),
+        )
+        f = filelist.files()
         log.info("Selected {:d} files for interpolation".format(len(f)))
-
-        print(f)
 
         if d.service() == "nhc":
             nhc_data[i] = f
@@ -362,32 +357,18 @@ def process_message(json_message: dict) -> bool:
             if len(f) < 2:
                 log.error("No data found for domain " + str(i) + ". Giving up.")
                 raise RuntimeError("No data found for domain")
-
-            for item in f:
-                if d.service() == "coamps-tc":
-                    files = item[1].split(",")
-                    for ff in files:
-                        ongoing_restore_this = db.check_initiate_restore(
-                            ff, d.service(), item[0]
-                        )
-                        if ongoing_restore_this:
-                            ongoing_restore = True
-                else:
-                    ongoing_restore_this = db.check_initiate_restore(
-                        item[1], d.service(), item[0]
-                    )
-                    if ongoing_restore_this:
-                        ongoing_restore = True
+            ongoing_restore = check_glacier_restore(d, f, s3)
 
     # ...If restore ongoing, this is where we stop
     if ongoing_restore:
         log.info("Request is currently in restore status")
-        db.update_request_status(
-            json_message["MessageId"],
+        RequestTable.update_request(
+            input_data.request_id(),
             "restore",
-            "Job is in archive restore status",
+            json_message["api_key"],
+            json_message["source_ip"],
             json_message,
-            False,
+            "Job is in archive restore status",
         )
         if met_field:
             ff = met_field.filenames()
@@ -396,241 +377,23 @@ def process_message(json_message: dict) -> bool:
             cleanup_temp_files(domain_data)
         return False
 
-    output_file_list = []
-    files_used_list = {}
-
     # ...Begin downloading data from s3
-    for i in range(input_data.num_domains()):
-        d = input_data.domain(i)
-        domain_data.append([])
-
-        if d.service() == "nhc":
-
-            if not nhc_data[i]["best_track"] and not nhc_data[i]["forecast_track"]:
-                log.error("No data found for domain {:d}. Giving up".format(i))
-                raise RuntimeError("No data found for domain {:d}. Giving up".format(i))
-
-            local_file_besttrack = None
-            local_file_forecast = None
-
-            if nhc_data[i]["best_track"]:
-                local_file_besttrack = db.get_file(
-                    nhc_data[i]["best_track"]["filepath"], "nhc"
-                )
-                if not met_field:
-                    new_file = os.path.basename(local_file_besttrack)
-                    os.rename(local_file_besttrack, new_file)
-                    local_file_besttrack = new_file
-                domain_data[i].append(
-                    {
-                        "time": nhc_data[i]["best_track"]["start"],
-                        "filepath": local_file_besttrack,
-                    }
-                )
-
-            if nhc_data[i]["forecast_track"]:
-                local_file_forecast = db.get_file(
-                    nhc_data[i]["forecast_track"]["filepath"], "nhc"
-                )
-                if not met_field:
-                    new_file = os.path.basename(local_file_forecast)
-                    os.rename(local_file_forecast, new_file)
-                    local_file_forecast = new_file
-                domain_data[i].append(
-                    {
-                        "time": nhc_data[i]["forecast_track"]["start"],
-                        "filepath": local_file_forecast,
-                    }
-                )
-
-            if nhc_data[i]["best_track"] and nhc_data[i]["forecast_track"]:
-                merge_file = "nhc_merge_{:04d}_{:s}_{:s}_{:s}.trk".format(
-                    nhc_data[i]["best_track"]["start"].year,
-                    d.basin(),
-                    d.storm(),
-                    d.advisory(),
-                )
-                local_file_merged = merge_nhc_tracks(
-                    local_file_besttrack, local_file_forecast, merge_file
-                )
-                domain_data[i].append(
-                    {
-                        "time": nhc_data[i]["best_track"]["start"],
-                        "filepath": local_file_merged,
-                    }
-                )
-
-        else:
-            f = db_files[i]
-            if len(f) < 2:
-                log.error("No data found for domain {:d}. Giving up.".format(i))
-                raise RuntimeError(
-                    "No data found for domain {:d}. Giving up.".format(i)
-                )
-
-            for item in f:
-                if d.service() == "coamps-tc":
-                    files = item[1].split(",")
-                    local_file_list = []
-                    for ff in files:
-                        local_file = db.get_file(ff, d.service(), item[0])
-                        if not met_field:
-                            new_file = os.path.basename(local_file)
-                            os.rename(local_file, new_file)
-                            local_file = new_file
-                        local_file_list.append(local_file)
-                    domain_data[i].append(
-                        {"time": item[0], "filepath": local_file_list}
-                    )
-                else:
-                    local_file = db.get_file(item[1], d.service(), item[0])
-                    if not met_field:
-                        new_file = os.path.basename(local_file)
-                        os.rename(local_file, new_file)
-                        local_file = new_file
-                    domain_data[i].append({"time": item[0], "filepath": local_file})
-
-    def print_file_status(filepath: any, time: datetime) -> None:
-        """
-        Print the status of the file being processed to the screen
-
-        Args:
-            filepath: The file being processed
-            time: The time of the file being processed
-        """
-        import os
-
-        if type(filepath) == list:
-            fnames = ""
-            for fff in filepath:
-                if fnames == "":
-                    fnames += os.path.basename(fff)
-                else:
-                    fnames += ", " + os.path.basename(fff)
-        else:
-            fnames = filepath
-        log.info(
-            "Processing next file: {:s} ({:s})".format(
-                fnames, time.strftime("%Y-%m-%d %H:%M")
-            )
-        )
-
-    def get_next_file_index(time: datetime, domain_data):
-        """
-        Get the index of the next file to process in the domain data list
-
-        Args:
-            time: The time of the file being processed
-            domain_data: The list of files to process
-        """
-        for ii in range(len(domain_data)):
-            if time <= domain_data[ii]["time"]:
-                return ii
-        return len(domain_data) - 1
+    download_files_from_s3(db, db_files, domain_data, input_data, met_field, nhc_data)
 
     if not met_field:
-        for i in range(input_data.num_domains()):
-            for pr in domain_data[i]:
-                output_file_list.append(pr["filepath"])
-        files_used_list[input_data.domain(i).name()] = output_file_list
+        output_file_list, files_used_list = generate_raw_files_list(
+            domain_data, input_data
+        )
     else:
-        for i in range(input_data.num_domains()):
-            d = input_data.domain(i)
-
-            if d.service() == "nhc":
-                log.error("NHC to gridded data not implemented")
-                raise RuntimeError("NHC to gridded data no implemented")
-
-            source_key = generate_data_source_key(d.service())
-            met = pymetbuild.Meteorology(
-                d.grid().grid_object(),
-                source_key,
-                data_type_key,
-                input_data.backfill(),
-                input_data.epsg(),
-            )
-
-            t0 = domain_data[i][0]["time"]
-
-            domain_files_used = []
-            next_time = start_date + datetime.timedelta(seconds=time_step)
-            index = get_next_file_index(next_time, domain_data[i])
-
-            t1 = domain_data[i][index]["time"]
-            t0_pmb = Input.date_to_pmb(t0)
-            t1_pmb = Input.date_to_pmb(t1)
-
-            ff = domain_data[i][0]["filepath"]
-            print_file_status(ff, t0)
-
-            met.set_next_file(ff)
-            if d.service() == "coamps-tc":
-                for ff in domain_data[i][0]["filepath"]:
-                    domain_files_used.append(os.path.basename(ff))
-            else:
-                domain_files_used.append(
-                    os.path.basename(domain_data[i][0]["filepath"])
-                )
-
-            met.set_next_file(domain_data[i][index]["filepath"])
-            ff = domain_data[i][index]["filepath"]
-            print_file_status(ff, t1)
-            met.process_data()
-            if d.service() == "coamps-tc":
-                for ff in domain_data[i][index]["filepath"]:
-                    domain_files_used.append(os.path.basename(ff))
-            else:
-                domain_files_used.append(
-                    os.path.basename(domain_data[i][index]["filepath"])
-                )
-
-            for t in date_span(
-                start_date, end_date, datetime.timedelta(seconds=time_step)
-            ):
-                if t > t1:
-                    index = get_next_file_index(t, domain_data[i])
-                    t0 = t1
-                    t1 = domain_data[i][index]["time"]
-                    ff = domain_data[i][index]["filepath"]
-                    print_file_status(ff, t1)
-                    met.set_next_file(domain_data[i][index]["filepath"])
-                    if t0 != t1:
-                        if d.service() == "coamps-tc":
-                            for ff in domain_data[i][index]["filepath"]:
-                                domain_files_used.append(os.path.basename(ff))
-                        else:
-                            domain_files_used.append(
-                                os.path.basename(domain_data[i][index]["filepath"])
-                            )
-                    met.process_data()
-
-                if t < t0 or t > t1:
-                    weight = -1.0
-                elif t0 == t1:
-                    weight = 0.0
-                else:
-                    weight = met.generate_time_weight(
-                        Input.date_to_pmb(t0),
-                        Input.date_to_pmb(t1),
-                        Input.date_to_pmb(t),
-                    )
-
-                log.info(
-                    "Processing time {:s}, weight = {:f}".format(
-                        t.strftime("%Y-%m-%d %H:%M"), weight
-                    )
-                )
-
-                if input_data.data_type() == "wind_pressure":
-                    values = met.to_wind_grid(weight)
-                else:
-                    values = met.to_grid(weight)
-                met_field.write(Input.date_to_pmb(t), i, values)
-
-            files_used_list[input_data.domain(i).name()] = domain_files_used
-
-        output_file_list = met_field.filenames()
-        met_field = None  # ...Closes all open files
+        output_file_list, files_used_list = interpolate_wind_fields(
+            input_data,
+            met_field,
+            data_type_key,
+            domain_data,
+            start_date,
+            end_date,
+            time_step,
+        )
 
     output_file_dict = {
         "input": input_data.json(),
@@ -647,7 +410,7 @@ def process_message(json_message: dict) -> bool:
     with open(filelist_name, "w") as of:
         of.write(json.dumps(output_file_dict, indent=2))
 
-    filelist_path = input_data.request_id() + "/" + filelist_name
+    filelist_path = os.path.join(input_data.request_id(), filelist_name)
     s3.upload_file(filelist_name, filelist_path)
     log.info("Finished processing message with id")
     os.remove(filelist_name)
@@ -655,6 +418,367 @@ def process_message(json_message: dict) -> bool:
     cleanup_temp_files(domain_data)
 
     return True
+
+
+def interpolate_wind_fields(
+    input_data,
+    met_field,
+    data_type_key,
+    domain_data,
+    start_date,
+    end_date,
+    time_step,
+) -> Tuple[list, dict]:
+    """
+    Interpolates the wind fields for the given domains
+
+    Args:
+        input_data (Input): The input data
+        met_field (Meteorology): The meteorology object
+        data_type_key (int): The data type key
+        domain_data (list): The list of domain data
+        start_date (datetime): The start date
+        end_date (datetime): The end date
+        time_step (int): The time step
+
+    Returns:
+        Tuple[list, dict]: The list of output files and the list of files used
+    """
+    import os
+    from datetime import timedelta
+
+    log = logging.getLogger(__name__)
+
+    files_used_list = {}
+
+    for i in range(input_data.num_domains()):
+        d = input_data.domain(i)
+
+        if d.service() == "nhc":
+            log.error("NHC to gridded data not implemented")
+            raise RuntimeError("NHC to gridded data no implemented")
+
+        source_key = generate_data_source_key(d.service())
+        met = pymetbuild.Meteorology(
+            d.grid().grid_object(),
+            source_key,
+            data_type_key,
+            input_data.backfill(),
+            input_data.epsg(),
+        )
+
+        t0 = domain_data[i][0]["time"]
+
+        domain_files_used = []
+        next_time = start_date + timedelta(seconds=time_step)
+        index = get_next_file_index(next_time, domain_data[i])
+
+        t1 = domain_data[i][index]["time"]
+        ff = domain_data[i][0]["filepath"]
+        print_file_status(ff, t0)
+
+        met.set_next_file(ff)
+        if d.service() == "coamps-tc":
+            for ff in domain_data[i][0]["filepath"]:
+                domain_files_used.append(os.path.basename(ff))
+        else:
+            domain_files_used.append(os.path.basename(domain_data[i][0]["filepath"]))
+
+        met.set_next_file(domain_data[i][index]["filepath"])
+        ff = domain_data[i][index]["filepath"]
+        print_file_status(ff, t1)
+        met.process_data()
+        if d.service() == "coamps-tc":
+            for ff in domain_data[i][index]["filepath"]:
+                domain_files_used.append(os.path.basename(ff))
+        else:
+            domain_files_used.append(
+                os.path.basename(domain_data[i][index]["filepath"])
+            )
+
+        for t in date_span(start_date, end_date, timedelta(seconds=time_step)):
+            if t > t1:
+                index = get_next_file_index(t, domain_data[i])
+                t0 = t1
+                t1 = domain_data[i][index]["time"]
+                ff = domain_data[i][index]["filepath"]
+                print_file_status(ff, t1)
+                met.set_next_file(domain_data[i][index]["filepath"])
+                if t0 != t1:
+                    if d.service() == "coamps-tc":
+                        for ff in domain_data[i][index]["filepath"]:
+                            domain_files_used.append(os.path.basename(ff))
+                    else:
+                        domain_files_used.append(
+                            os.path.basename(domain_data[i][index]["filepath"])
+                        )
+                met.process_data()
+
+            if t < t0 or t > t1:
+                weight = -1.0
+            elif t0 == t1:
+                weight = 0.0
+            else:
+                weight = met.generate_time_weight(
+                    Input.date_to_pmb(t0),
+                    Input.date_to_pmb(t1),
+                    Input.date_to_pmb(t),
+                )
+
+            log.info(
+                "Processing time {:s}, weight = {:f}".format(
+                    t.strftime("%Y-%m-%d %H:%M"), weight
+                )
+            )
+
+            if input_data.data_type() == "wind_pressure":
+                values = met.to_wind_grid(weight)
+            else:
+                values = met.to_grid(weight)
+            met_field.write(Input.date_to_pmb(t), i, values)
+
+        files_used_list[input_data.domain(i).name()] = domain_files_used
+
+    output_file_list = met_field.filenames()
+
+    met_field = None  # ... This assignment closes all open files
+
+    return output_file_list, files_used_list
+
+
+def generate_raw_files_list(domain_data, input_data) -> Tuple[list, dict]:
+    """
+    Generates the list of raw files used for the given domains
+
+    Args:
+        domain_data (list): The list of domain data
+        input_data (Input): The input data
+
+    Returns:
+        Tuple[list, dict]: The list of raw files and the list of files used
+    """
+    output_file_list = []
+    files_used_list = {}
+    for i in range(input_data.num_domains()):
+        for pr in domain_data[i]:
+            output_file_list.append(pr["filepath"])
+        files_used_list[input_data.domain(i).name()] = output_file_list
+    return output_file_list, files_used_list
+
+
+def download_files_from_s3(
+    db, db_files, domain_data, input_data, met_field, nhc_data
+) -> None:
+    """
+    Downloads the files from S3 and generates the list of files used
+
+    Args:
+        db (Database): The database
+        db_files (list): The list of files from the database
+        domain_data (list): The list of domain data
+        input_data (Input): The input data
+        met_field (MeteorologyField): The meteorology field
+        nhc_data (dict): The list of NHC data
+
+    Returns:
+        None
+    """
+    for i in range(input_data.num_domains()):
+        d = input_data.domain(i)
+        domain_data.append([])
+
+        if d.service() == "nhc":
+            generate_merged_nhc_files(d, db, domain_data, i, met_field, nhc_data)
+        else:
+            get_2d_forcing_files(d, db, db_files, domain_data, i, met_field)
+
+
+def get_2d_forcing_files(domain, db, db_files, domain_data, index, met_field) -> None:
+    """
+    Gets the 2D forcing files from s3
+
+    Args:
+        domain (Domain): The domain
+        db (Database): The database
+        db_files (list): The list of files from the database
+        domain_data (list): The list of domain data
+        index (int): The index of the domain
+        met_field (MeteorologyField): The meteorology field
+
+    Returns:
+        None
+
+    """
+    import os
+
+    log = logging.getLogger(__name__)
+
+    f = db_files[index]
+    if len(f) < 2:
+        log.error("No data found for domain {:d}. Giving up.".format(index))
+        raise RuntimeError("No data found for domain {:d}. Giving up.".format(index))
+    for item in f:
+        if domain.service() == "coamps-tc":
+            files = item[1].split(",")
+            local_file_list = []
+            for ff in files:
+                local_file = db.get_file(ff, domain.service(), item[0])
+                if not met_field:
+                    new_file = os.path.basename(local_file)
+                    os.rename(local_file, new_file)
+                    local_file = new_file
+                local_file_list.append(local_file)
+            domain_data[index].append({"time": item[0], "filepath": local_file_list})
+        else:
+            local_file = db.get_file(item[1], domain.service(), item[0])
+            if not met_field:
+                new_file = os.path.basename(local_file)
+                os.rename(local_file, new_file)
+                local_file = new_file
+            domain_data[index].append({"time": item[0], "filepath": local_file})
+
+
+def print_file_status(filepath: any, time: datetime) -> None:
+    """
+    Print the status of the file being processed to the screen
+
+    Args:
+        filepath: The file being processed
+        time: The time of the file being processed
+    """
+    import os
+
+    log = logging.getLogger(__name__)
+
+    if type(filepath) == list:
+        fnames = ""
+        for fff in filepath:
+            if fnames == "":
+                fnames += os.path.basename(fff)
+            else:
+                fnames += ", " + os.path.basename(fff)
+    else:
+        fnames = filepath
+    log.info(
+        "Processing next file: {:s} ({:s})".format(
+            fnames, time.strftime("%Y-%m-%d %H:%M")
+        )
+    )
+
+
+def get_next_file_index(time: datetime, domain_data):
+    """
+    Get the index of the next file to process in the domain data list
+
+    Args:
+        time: The time of the file being processed
+        domain_data: The list of files to process
+    """
+    for ii in range(len(domain_data)):
+        if time <= domain_data[ii]["time"]:
+            return ii
+    return len(domain_data) - 1
+
+
+def generate_merged_nhc_files(
+    domain, db, domain_data, index, met_field, nhc_data
+) -> None:
+    """
+    Generates the merged NHC files for the given domain which are returned
+
+    Args:
+        domain (Domain): The domain
+        db (Database): The database
+        domain_data (list): The list of domain data
+        index (int): The index of the domain
+        met_field (MeteorologyField): The meteorology field
+        nhc_data (dict): The list of NHC data
+
+    Returns:
+        None
+    """
+    import os
+
+    log = logging.getLogger(__name__)
+
+    if not nhc_data[index]["best_track"] and not nhc_data[index]["forecast_track"]:
+        log.error("No data found for domain {:d}. Giving up".format(index))
+        raise RuntimeError("No data found for domain {:d}. Giving up".format(index))
+    local_file_besttrack = None
+    local_file_forecast = None
+    if nhc_data[index]["best_track"]:
+        local_file_besttrack = db.get_file(
+            nhc_data[index]["best_track"]["filepath"], "nhc"
+        )
+        if not met_field:
+            new_file = os.path.basename(local_file_besttrack)
+            os.rename(local_file_besttrack, new_file)
+            local_file_besttrack = new_file
+        domain_data[index].append(
+            {
+                "time": nhc_data[index]["best_track"]["start"],
+                "filepath": local_file_besttrack,
+            }
+        )
+    if nhc_data[index]["forecast_track"]:
+        local_file_forecast = db.get_file(
+            nhc_data[index]["forecast_track"]["filepath"], "nhc"
+        )
+        if not met_field:
+            new_file = os.path.basename(local_file_forecast)
+            os.rename(local_file_forecast, new_file)
+            local_file_forecast = new_file
+        domain_data[index].append(
+            {
+                "time": nhc_data[index]["forecast_track"]["start"],
+                "filepath": local_file_forecast,
+            }
+        )
+    if nhc_data[index]["best_track"] and nhc_data[index]["forecast_track"]:
+        merge_file = "nhc_merge_{:04d}_{:s}_{:s}_{:s}.trk".format(
+            nhc_data[index]["best_track"]["start"].year,
+            domain.basin(),
+            domain.storm(),
+            domain.advisory(),
+        )
+        local_file_merged = merge_nhc_tracks(
+            local_file_besttrack, local_file_forecast, merge_file
+        )
+        domain_data[index].append(
+            {
+                "time": nhc_data[index]["best_track"]["start"],
+                "filepath": local_file_merged,
+            }
+        )
+
+
+def check_glacier_restore(domain: Domain, filelist: list, s3: S3file) -> bool:
+    """
+    Checks the list of files to see if any are currently being restored from Glacier
+
+    Args:
+        domain (Domain): Domain object
+        filelist (list): List of dictionaries containing the filepaths of the
+            files to be processed
+        s3 (S3File): S3File object
+
+    Returns:
+        bool: True if any files are currently being restored from Glacier
+
+    """
+    ongoing_restore = False
+    for item in filelist:
+        if domain.service() == "coamps-tc":
+            files = item["filepath"].split(",")
+            for ff in files:
+                ongoing_restore_this = s3.check_archive_initiate_restore(ff)
+                if ongoing_restore_this:
+                    ongoing_restore = True
+        else:
+            ongoing_restore_this = s3.check_archive_initiate_restore(item["filepath"])
+            if ongoing_restore_this:
+                ongoing_restore = True
+    return ongoing_restore
 
 
 def cleanup_temp_files(data: list):

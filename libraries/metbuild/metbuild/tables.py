@@ -57,6 +57,102 @@ class RequestTable(TableBase):
     input_data = Column(MutableDict.as_mutable(JSONB))
     message = Column(MutableDict.as_mutable(JSONB))
 
+    @staticmethod
+    def add_request(
+        request_id: str,
+        request_status: RequestEnum,
+        api_key: str,
+        source_ip: str,
+        input_data: dict,
+        message: str,
+    ) -> None:
+        """
+        This method is used to add a new request to the database
+
+        Args:
+            request_id (str): The request ID
+            request_status (RequestEnum): The status of the request
+            api_key (str): The API key used to authenticate the request
+            source_ip (str): The IP address of the source of the request
+            input_data (dict): The input data for the request
+            message (str): The message for the request
+
+        Returns:
+            None
+        """
+        from datetime import datetime
+        from metbuild.database import Database
+
+        db = Database()
+        session = db.session()
+
+        record = RequestTable(
+            request_id=request_id,
+            try_count=0,
+            status=request_status,
+            start_date=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            last_date=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            api_key=api_key,
+            source_ip=source_ip,
+            input_data=input_data,
+            message={"message": message},
+        )
+
+        qry_object = session.query(RequestTable).where(
+            RequestTable.request_id == record.request_id
+        )
+        if qry_object.first() is None:
+            session.add(record)
+
+        session.commit()
+
+    @staticmethod
+    def update_request(
+        request_id: str,
+        request_status: RequestEnum,
+        api_key: str,
+        source_ip: str,
+        input_data: dict,
+        message: str,
+    ) -> None:
+        """
+        This method is used to update a request in the database
+
+        Args:
+            request_id (str): The request ID
+            request_status (RequestEnum): The status of the request
+            api_key (str): The API key used to authenticate the request
+            source_ip (str): The IP address of the source of the request
+            input_data (dict): The input data for the request
+            message (str): The message for the request
+
+        Returns:
+            None
+        """
+        from datetime import datetime
+        from metbuild.database import Database
+
+        db = Database()
+        session = db.session()
+
+        record = (
+            session.query(RequestTable)
+            .where(RequestTable.request_id == request_id)
+            .first()
+        )
+
+        if record is None:
+            RequestTable.add_request(
+                request_id, request_status, api_key, source_ip, input_data, message
+            )
+        else:
+            record.try_count += 1
+            record.status = request_status
+            record.last_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            record.message = {"message": message}
+
+        session.commit()
+
 
 class GfsTable(TableBase):
     """

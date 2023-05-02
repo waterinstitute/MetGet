@@ -69,7 +69,6 @@ class BuildRequest:
         This method is used to add a new request to the database and initiate
         the k8s process within argo
         """
-        from datetime import datetime
         import pika
         import os
         import json
@@ -91,54 +90,14 @@ class BuildRequest:
         else:
             log.warning("Request was not transmitted. Will only be added to database.")
 
-        record = RequestTable(
-            request_id=self.__request_id,
-            try_count=0,
-            status=request_status,
-            start_date=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
-            last_date=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
-            api_key=self.__api_key,
-            source_ip=self.__source_ip,
-            input_data=self.__request_json,
-            message={"message": message},
+        RequestTable.add_request(
+            self.__request_id,
+            request_status,
+            self.__api_key,
+            self.__source_ip,
+            self.__request_json,
+            message,
         )
-
-        qry_object = self.__session.query(RequestTable).where(
-            RequestTable.request_id == record.request_id
-        )
-        if qry_object.first() is None:
-            self.__session.add(record)
-
-        self.__session.commit()
-
-    def update_request(
-        self,
-        request_status: RequestEnum,
-        try_count: int,
-        message: str,
-    ) -> None:
-        """
-        This method is used to update a request in the database that has
-        begun processing
-        """
-        from datetime import datetime
-
-        qry_object = self.__session.query(RequestTable).where(
-            RequestTable.request_id == self.__request_id
-        )
-        if qry_object.first() is not None:
-            qry_object.update(
-                {
-                    RequestTable.try_count: try_count,
-                    RequestTable.status: request_status,
-                    RequestTable.last_date: datetime.utcnow().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
-                    RequestTable.message: message,
-                }
-            )
-
-        self.__session.commit()
 
     @staticmethod
     def __count_forecasts(data: list) -> int:

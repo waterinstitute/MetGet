@@ -26,10 +26,12 @@ import botocore
 from botocore.exceptions import ClientError
 import logging
 
+
 class S3file:
     """
     Class to handle S3 file operations
     """
+
     def __init__(self, bucket_name: str):
         """
         Constructor
@@ -80,3 +82,76 @@ class S3file:
                 log.error(e)
                 raise
         return True
+
+    def check_glacier_status(self, path: str) -> bool:
+        """
+        Check if a file currently exists in the S3 bucket or is in glacier storage
+
+        Args:
+            path (str): path to the file in the S3 bucket
+
+        Returns:
+            bool: True if file exists in S3 or is in glacier storage, else False
+        """
+        metadata = self.__client.head_object(Bucket=self.__bucket, Key=path)
+        if "x-amz-archive-status" in metadata["ResponseMetadata"]["HTTPHeaders"].keys():
+            return True
+        else:
+            return False
+
+    def check_ongoing_glacier_restore(self, path: str) -> bool:
+        """
+        Check if a file is currently being restored from glacier storage
+
+        Args:
+            path (str): path to the file in the S3 bucket
+
+        Returns:
+            bool: True if file is currently being restored, else False
+        """
+        metadata = self.__client.head_object(Bucket=self.__bucket, Key=path)
+        if "x-amz-restore" in metadata["ResponseMetadata"]["HTTPHeaders"].keys():
+            ongoing = metadata["ResponseMetadata"]["HTTPHeaders"]["x-amz-restore"]
+            if ongoing == 'ongoing-request="true"':
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def initiate_restore(self, path: str) -> bool:
+        """
+        Initiate a restore request for a file in glacier storage
+
+        Args:
+            path (str): path to the file in the S3 bucket
+
+        Returns:
+            bool: True if restore request was successful, else False
+        """
+        log = logging.getLogger(__name__)
+        if not self.check_ongoing_glacier_restore(path):
+            self.__client.restore_object(
+                Bucket=self.__bucket,
+                Key=path,
+                RestoreRequest={"GlacierJobParameters": {"Tier": "Standard"}},
+            )
+            log.info("Restore request initiated for {:s}".format(path))
+
+    def check_archive_initiate_restore(self, path: str) -> bool:
+        """
+        Check if a file is currently being restored from glacier storage
+        and initiate a restore request if not
+
+        Args:
+            path (str): path to the file in the S3 bucket
+
+        Returns:
+            bool: True if file is currently being restored, else False
+        """
+        if self.check_glacier_status(path):
+            if not self.check_ongoing_glacier_restore(path):
+                self.initiate_restore(path)
+            return True
+        else:
+            return False
