@@ -105,8 +105,6 @@ class MetGetBuild(Resource):
         request_source_ip = request.remote_addr
         request_json = request.get_json()
 
-        request_json["source-ip"] = request_source_ip
-
         request_obj = MetBuildRequest(
             request_api_key, request_source_ip, request_uuid, request_json
         )

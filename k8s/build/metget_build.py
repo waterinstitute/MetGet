@@ -294,16 +294,18 @@ def process_message(json_message: dict) -> bool:
     from metbuild.input import Input
     from metbuild.database import Database
     from metbuild.s3file import S3file
+    from metbuild.filelist import FileList
 
     filelist_name = "filelist.json"
 
-    logger = logging.getLogger(__name__)
+    log = logging.getLogger(__name__)
 
     db = Database()
 
-    logger.info("Processing message")
-    logger.info(json.dumps(json_message["Body"]))
-    input_data = Input(json_message["Body"])
+    log.info("Processing message")
+    log.info(json.dumps(json_message))
+    input_data = Input(json_message)
+    log.info("Found {:d} domains in input request".format(input_data.num_domains()))
 
     start_date = input_data.start_date()
     start_date_pmb = input_data.start_date_pmb()
@@ -322,9 +324,7 @@ def process_message(json_message: dict) -> bool:
         input_data.compression(),
     )
 
-    nowcast = input_data.nowcast()
-    multiple_forecasts = input_data.multiple_forecasts()
-
+    log.info("Generating type key for {:s}".format(input_data.data_type()))
     data_type_key = generate_datatype_key(input_data.data_type())
 
     domain_data = []
@@ -333,30 +333,34 @@ def process_message(json_message: dict) -> bool:
     db_files = []
     # ...Take a first pass on the data and check for restore status
     for i in range(input_data.num_domains()):
+        log.info("Processing pass 1 on domain {:d}".format(i))
         if met_field:
             generate_met_domain(input_data, met_field, i)
         d = input_data.domain(i)
-        ensemble_member = input_data.domain(i).ensemble_member()
-        f = db.generate_file_list(
-            d.service(),
-            input_data.data_type(),
-            start_date,
-            end_date,
-            d.storm(),
-            d.basin(),
-            d.advisory(),
-            d.tau(),
-            nowcast,
-            multiple_forecasts,
-            ensemble_member,
-        )
+        filelist = Filelist(d.service(), 
+                input_data.data_type(),
+                start_date,
+                end_date,
+                d.tau(),
+                d.storm_year(),
+                d.storm(),
+                d.basin(),
+                d.advisory(),
+                input_data.nowcast(),
+                input_data.multiple_forecasts(),
+                d.ensemble_member(),
+                )
+        f = files() 
+        log.info("Selected {:d} files for interpolation".format(len(f)))
+
+        print(f)
 
         if d.service() == "nhc":
             nhc_data[i] = f
         else:
             db_files.append(f)
             if len(f) < 2:
-                logger.error("No data found for domain " + str(i) + ". Giving up.")
+                log.error("No data found for domain " + str(i) + ". Giving up.")
                 raise RuntimeError("No data found for domain")
 
             for item in f:
@@ -377,11 +381,12 @@ def process_message(json_message: dict) -> bool:
 
     # ...If restore ongoing, this is where we stop
     if ongoing_restore:
+        log.info("Request is currently in restore status")
         db.update_request_status(
             json_message["MessageId"],
             "restore",
             "Job is in archive restore status",
-            json_message["Body"],
+            json_message,
             False,
         )
         if met_field:
@@ -402,7 +407,7 @@ def process_message(json_message: dict) -> bool:
         if d.service() == "nhc":
 
             if not nhc_data[i]["best_track"] and not nhc_data[i]["forecast_track"]:
-                logger.error("No data found for domain {:d}. Giving up".format(i))
+                log.error("No data found for domain {:d}. Giving up".format(i))
                 raise RuntimeError("No data found for domain {:d}. Giving up".format(i))
 
             local_file_besttrack = None
@@ -458,7 +463,7 @@ def process_message(json_message: dict) -> bool:
         else:
             f = db_files[i]
             if len(f) < 2:
-                logger.error("No data found for domain {:d}. Giving up.".format(i))
+                log.error("No data found for domain {:d}. Giving up.".format(i))
                 raise RuntimeError(
                     "No data found for domain {:d}. Giving up.".format(i)
                 )
@@ -504,7 +509,7 @@ def process_message(json_message: dict) -> bool:
                     fnames += ", " + os.path.basename(fff)
         else:
             fnames = filepath
-        logger.info(
+        log.info(
             "Processing next file: {:s} ({:s})".format(
                 fnames, time.strftime("%Y-%m-%d %H:%M")
             )
@@ -533,7 +538,7 @@ def process_message(json_message: dict) -> bool:
             d = input_data.domain(i)
 
             if d.service() == "nhc":
-                logger.error("NHC to gridded data not implemented")
+                log.error("NHC to gridded data not implemented")
                 raise RuntimeError("NHC to gridded data no implemented")
 
             source_key = generate_data_source_key(d.service())
@@ -610,7 +615,7 @@ def process_message(json_message: dict) -> bool:
                         Input.date_to_pmb(t),
                     )
 
-                logger.info(
+                log.info(
                     "Processing time {:s}, weight = {:f}".format(
                         t.strftime("%Y-%m-%d %H:%M"), weight
                     )
@@ -633,21 +638,18 @@ def process_message(json_message: dict) -> bool:
         "output_files": output_file_list,
     }
 
-    # ...TODO: This should come from the apigateway
-    message_id = input_data.uuid()
-
     # ...Posts the data out to the correct S3 location
     for f in output_file_list:
-        path = os.path.join(message_id, f)
+        path = os.path.join(input_data.request_id(), f)
         s3.upload_file(f, path)
         os.remove(f)
 
     with open(filelist_name, "w") as of:
         of.write(json.dumps(output_file_dict, indent=2))
 
-    filelist_path = message_id + "/" + filelist_name
+    filelist_path = input_data.request_id() + "/" + filelist_name
     s3.upload_file(filelist_name, filelist_path)
-    logger.info("Finished processing message with id")
+    log.info("Finished processing message with id")
     os.remove(filelist_name)
 
     cleanup_temp_files(domain_data)
@@ -696,8 +698,6 @@ def main():
     # This variable is set by the argo template
     # and comes from rabbitmq
     message = os.environ["METGET_REQUEST_JSON"]
-    log.info(message)
-
     json_data = json.loads(message)
 
     try:

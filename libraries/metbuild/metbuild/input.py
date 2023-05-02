@@ -1,3 +1,7 @@
+from datetime import datetime
+
+VALID_DATA_TYPES = ["wind_pressure", "rain", "ice", "humidity", "temperature"]
+
 class Input:
     """
     This class is used to parse the input JSON data and validate it
@@ -13,6 +17,7 @@ class Input:
 
         """
         self.__json = json_data
+        self.__data_type = "wind_pressure"
         self.__no_construct = no_construct
         self.__start_date = None
         self.__end_date = None
@@ -27,9 +32,15 @@ class Input:
         self.__multiple_forecasts = True
         self.__valid = True
         self.__dry_run = False
+        self.__compression = False
+        self.__epsg = 4326
+        self.__request_id = None
         self.__error = []
         self.__domains = []
         self.__parse()
+
+    def request_id(self) -> str:
+        return self.__request_id
 
     def valid(self):
         """
@@ -40,6 +51,15 @@ class Input:
         """
         return self.__valid
 
+    def data_type(self) -> str:
+        """
+        Returns the data type that has been requested
+
+        Returns:
+            data type requested by the user request
+        """
+        return self.__data_type
+
     def dry_run(self):
         """
         Returns whether the input is a dry run
@@ -48,6 +68,15 @@ class Input:
             A boolean indicating whether the input is a dry run
         """
         return self.__dry_run
+
+    def compression(self) -> bool:
+        """
+        Returns the option for using ascii file compression in output
+
+        Returns:
+            boolean indicating if compression should be turned on/off
+        """
+        return self.__compression
 
     def error(self) -> list:
         """
@@ -102,6 +131,39 @@ class Input:
             The operator who provided the input data
         """
         return self.__operator
+
+    @staticmethod
+    def date_to_pmb(date: datetime):
+        """
+        Converts a date into the pymetbuild date object
+
+        Args:
+            datetime object
+
+        Returns:
+            pymetbuild.Date object
+        """
+        import pymetbuild
+
+        return pymetbuild.Date(date.year, date.month, date.day, date.hour, date.minute)
+
+    def start_date_pmb(self):
+        """
+        Returns the start date as a pymetbuild object
+
+        Returns:
+            start date as a pymetbuild object
+        """
+        return Input.date_to_pmb(self.__start_date)
+
+    def end_date_pmb(self):
+        """
+        Returns the end date as a pymetbuild object
+
+        Returns:
+            end date as a pymetbuild object
+        """
+        return Input.date_to_pmb(self.__end_date)
 
     def start_date(self):
         """
@@ -195,6 +257,7 @@ class Input:
         try:
             self.__version = self.__json["version"]
             self.__operator = self.__json["creator"]
+            self.__request_id = self.__json["request_id"]
             self.__start_date = dateutil.parser.parse(self.__json["start_date"])
             self.__start_date = self.__start_date.replace(tzinfo=None)
             self.__end_date = dateutil.parser.parse(self.__json["end_date"])
@@ -203,11 +266,26 @@ class Input:
             self.__filename = self.__json["filename"]
             self.__format = self.__json["format"]
 
+            if self.__format == "owi-netcdf" or self.__format == "hec-netcdf":
+                if not self.__filename[-3:-1] == "nc":
+                    self.__filename = self.__filename + ".nc"
+
+            if "data_type" in self.__json.keys():
+                self.__data_type = self.__json["data_type"]
+                if self.__data_type not in VALID_DATA_TYPES:
+                    raise RuntimeError("Invalid data type specified")
+
             if "dry_run" in self.__json.keys():
                 self.__dry_run = self.__json["dry_run"]
 
+            if "compression" in self.__json.keys():
+                self.__compression = self.__json["compression"]
+
             if "backfill" in self.__json.keys():
                 self.__backfill = self.__json["backfill"]
+
+            if "epsg" in self.__json.keys():
+                self.__epsg = self.__json["epsg"]
 
             if "nowcast" in self.__json.keys():
                 self.__nowcast = self.__json["nowcast"]

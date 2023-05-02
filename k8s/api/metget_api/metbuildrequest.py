@@ -26,6 +26,10 @@ class MetBuildRequest:
         self.__build_request = None
         self.__error = []
 
+        self.__json_data["request_id"] = self.__request_id
+        self.__json_data["api_key"] = self.__api_key
+        self.__json_data["source_ip"] = self.__source_ip
+
     def generate_request(self) -> Tuple[dict, int]:
         """
         This method is used to add a new request to the database and initiate

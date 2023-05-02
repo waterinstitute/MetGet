@@ -210,7 +210,7 @@ class WindGrid:
             if not self.__no_construct:
                 import pymetbuild
 
-                self.__wg = pymetbuild.WindGrid(xinit, yinit, xend, yend, dx, dy)
+                self.__wg = pymetbuild.Grid(xinit, yinit, xend, yend, dx, dy)
         elif (
             xinit is not None
             and yinit is not None
@@ -226,4 +226,4 @@ class WindGrid:
             if not self.__no_construct:
                 import pymetbuild
 
-                self.__wg = pymetbuild.WindGrid(xinit, yinit, nx, ny, dx, dy, rotation)
+                self.__wg = pymetbuild.Grid(xinit, yinit, nx, ny, dx, dy, rotation)
