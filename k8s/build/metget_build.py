@@ -61,7 +61,7 @@ def main():
             json_data["api_key"],
             json_data["source_ip"],
             json_data,
-            "Job is in running",
+            "Job is running",
         )
 
         status = False

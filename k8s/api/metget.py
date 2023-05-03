@@ -102,7 +102,7 @@ class MetGetBuild(Resource):
 
         request_uuid = str(uuid.uuid4())
         request_api_key = request.headers.get("x-api-key")
-        request_source_ip = request.remote_addr
+        request_source_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
         request_json = request.get_json()
 
         request_obj = MetBuildRequest(
