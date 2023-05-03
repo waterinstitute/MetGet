@@ -76,7 +76,7 @@ class BuildRequest:
         log = logging.getLogger(__name__)
 
         if transmit:
-            host = os.environ["RABBITMQ_SERVICE_SERVICE_HOST"]
+            host = os.environ["METGET_RABBITMQ_SERVICE_SERVICE_HOST"]
             queue = os.environ["METGET_RABBITMQ_QUEUE"]
             params = pika.ConnectionParameters(host, 5672)
             connection = pika.BlockingConnection(params)
