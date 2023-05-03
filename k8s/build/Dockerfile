@@ -21,4 +21,4 @@ WORKDIR /app
 COPY libraries/metbuild /tmp/metbuild/.
 RUN pip install /tmp/metbuild/. && rm -rf /tmp/metbuild
 
-COPY k8s/build/metget_build.py /app/. 
+COPY k8s/build/*.py /app/. 
