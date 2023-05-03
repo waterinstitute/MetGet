@@ -68,3 +68,53 @@ class AccessControl:
             "statusCode": status,
             "body": {"message": "ERROR: Unauthorized"},
         }, status
+
+    @staticmethod
+    def get_credit_balance(api_key: str) -> dict:
+        """
+        This method is used to get the credit balance for the user
+
+        Args:
+            api_key (str): The API key used to authenticate the request
+
+        Returns:
+            dict: A dictionary containing the credit limit, credits used, and credit balance
+        """
+        from metbuild.tables import RequestTable
+        from metbuild.tables import AuthTable
+        from metbuild.database import Database
+        from datetime import datetime, timedelta
+        from sqlalchemy import func, or_
+
+        db = Database()
+        session = db.session()
+
+        # ...Queries the database for the credit limit for the user
+        credit_limit = (
+            session.query(AuthTable.credit_limit).filter_by(key=api_key).first()[0]
+        )
+
+        # ...Queries the database for the credit used for the user over the last 30 days
+        start_date = datetime.utcnow() - timedelta(days=30)
+        credit_used = (
+            session.query(func.sum(RequestTable.credit_usage))
+            .filter(RequestTable.last_date >= start_date)
+            .filter(RequestTable.api_key == api_key)
+            .filter(
+                or_(
+                    RequestTable.status == "completed", RequestTable.status == "running"
+                )
+            )
+            .first()[0]
+        )
+
+        if credit_used is None:
+            credit_used = 0
+
+        credit_balance = credit_limit - credit_used
+
+        return {
+            "credit_limit": credit_limit,
+            "credits_used": credit_used,
+            "credit_balance": credit_balance,
+        }

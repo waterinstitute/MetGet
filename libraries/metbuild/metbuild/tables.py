@@ -19,6 +19,7 @@ class AuthTable(TableBase):
     key = Column(String)
     username = Column(String)
     description = Column(String)
+    credit_limit = Column(Integer)
     enabled = Column(Boolean)
 
 
@@ -54,6 +55,7 @@ class RequestTable(TableBase):
     last_date = Column(DateTime)
     api_key = Column(String)
     source_ip = Column(String)
+    credit_usage = Column(Integer)
     input_data = Column(MutableDict.as_mutable(JSONB))
     message = Column(MutableDict.as_mutable(JSONB))
 
@@ -65,6 +67,7 @@ class RequestTable(TableBase):
         source_ip: str,
         input_data: dict,
         message: str,
+        credit: int,
     ) -> None:
         """
         This method is used to add a new request to the database
@@ -76,6 +79,7 @@ class RequestTable(TableBase):
             source_ip (str): The IP address of the source of the request
             input_data (dict): The input data for the request
             message (str): The message for the request
+            credit (int): The number of credits used for the request
 
         Returns:
             None
@@ -95,6 +99,7 @@ class RequestTable(TableBase):
             api_key=api_key,
             source_ip=source_ip,
             input_data=input_data,
+            credit_usage=credit,
             message={"message": message},
         )
 
@@ -114,6 +119,7 @@ class RequestTable(TableBase):
         source_ip: str,
         input_data: dict,
         message: str,
+        credit: int,
     ) -> None:
         """
         This method is used to update a request in the database
@@ -125,6 +131,7 @@ class RequestTable(TableBase):
             source_ip (str): The IP address of the source of the request
             input_data (dict): The input data for the request
             message (str): The message for the request
+            credit (int): The number of credits used for the request
 
         Returns:
             None
@@ -143,7 +150,13 @@ class RequestTable(TableBase):
 
         if record is None:
             RequestTable.add_request(
-                request_id, request_status, api_key, source_ip, input_data, message
+                request_id,
+                request_status,
+                api_key,
+                source_ip,
+                input_data,
+                message,
+                credit,
             )
         else:
             record.try_count += 1

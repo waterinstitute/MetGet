@@ -61,6 +61,8 @@ spec:
             configMapKeyRef:
               name: metget-configmap
               key: rabbit.queue 
+        - name: METGET_ENFORCE_CREDIT_LIMITS
+          value: "true"
         ports:
         - name: metget-api-port
           containerPort: 8080

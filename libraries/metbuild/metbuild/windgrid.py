@@ -16,6 +16,8 @@ class WindGrid:
         self.__wg = None
         self.__no_construct = no_construct
         self.__valid = True
+        self.__nx = 0
+        self.__ny = 0
         try:
             self.__construct()
         except Exception as e:
@@ -39,6 +41,30 @@ class WindGrid:
             The grid object
         """
         return self.__wg
+
+    def nx(self) -> int:
+        """
+        Returns the number of grid points in the x direction
+
+        Returns:
+            The number of grid points in the x direction
+        """
+        if self.__wg:
+            return self.__wg.ni()
+        else:
+            return self.__nx
+
+    def ny(self) -> int:
+        """
+        Returns the number of grid points in the y direction
+
+        Returns:
+            The number of grid points in the y direction
+        """
+        if self.__wg:
+            return self.__wg.nj()
+        else:
+            return self.__ny
 
     def bottom_left(self):
         """
@@ -102,24 +128,6 @@ class WindGrid:
             The rotation of the wind grid
         """
         return self.__wg.rotation()
-
-    def nx(self):
-        """
-        Returns the nx value of the wind grid
-
-        Returns:
-            The nx value of the wind grid
-        """
-        return self.__wg.nx()
-
-    def ny(self):
-        """
-        Returns the ny value of the wind grid
-
-        Returns:
-            The ny value of the wind grid
-        """
-        return self.__wg.ny()
 
     @staticmethod
     def predefined_domain(predefined_domain_name: str):
@@ -207,6 +215,10 @@ class WindGrid:
                 raise RuntimeError("x-init/x-end pair must be logical")
             if yend - yinit <= 0:
                 raise RuntimeError("y-init/y-end pair must be logical")
+
+            self.__nx = int((xend - xinit) / dx)
+            self.__ny = int((yend - yinit) / dy)
+
             if not self.__no_construct:
                 import pymetbuild
 
@@ -223,6 +235,10 @@ class WindGrid:
                 raise RuntimeError("ny must be greater than 0")
             if rotation is not None:
                 rotation = 0.0
+
+            self.__nx = nx
+            self.__ny = ny
+
             if not self.__no_construct:
                 import pymetbuild
 

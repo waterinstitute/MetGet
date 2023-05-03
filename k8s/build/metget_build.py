@@ -54,7 +54,13 @@ def main():
     message = os.environ["METGET_REQUEST_JSON"]
     json_data = json.loads(message)
 
+    credit_cost = 0
+
     try:
+
+        handler = MessageHandler(json_data)
+        credit_cost = handler.input().credit_usage()
+
         RequestTable.update_request(
             json_data["request_id"],
             "running",
@@ -62,11 +68,10 @@ def main():
             json_data["source_ip"],
             json_data,
             "Job is running",
+            credit_cost,
         )
 
         status = False
-
-        handler = MessageHandler(json_data)
 
         start_time = datetime.now()
 
@@ -91,6 +96,7 @@ def main():
             json_data["source_ip"],
             json_data,
             "Job completed successfully",
+            credit_cost,
         )
     except RuntimeError as e:
         log.error("Encountered error during processing: " + str(e))
@@ -101,6 +107,7 @@ def main():
             json_data["source_ip"],
             json_data,
             "Job encountered an error: {:s}".format(str(e)),
+            credit_cost,
         )
     except KeyError as e:
         log.error("Encountered malformed json input: " + str(e))
@@ -111,6 +118,7 @@ def main():
             json_data["source_ip"],
             json_data,
             "Job encountered an error: {:s}".format(str(e)),
+            credit_cost,
         )
     except Exception as e:
         log.error("Encountered unexpected error: " + str(e))
@@ -120,8 +128,10 @@ def main():
             json_data["api_key"],
             json_data["source_ip"],
             json_data,
-            "Job encountered an error: {:s}".format(str(e)),
+            "Job encountered an unhandled error: {:s}".format(str(e)),
+            credit_cost,
         )
+        raise
 
     log.info("Exiting script with status 0")
     exit(0)

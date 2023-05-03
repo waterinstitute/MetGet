@@ -19,6 +19,16 @@ class MessageHandler:
 
     def __init__(self, message: dict) -> None:
         self.__message = message
+        self.__input = Input(self.__message)
+
+    def input(self) -> Input:
+        """
+        Returns the input object that was created from the message
+
+        Returns:
+            Input: The input object
+        """
+        return self.__input
 
     def process_message(self) -> bool:
         """
@@ -35,26 +45,28 @@ class MessageHandler:
 
         log.info("Processing message")
         log.info(json.dumps(self.__message))
-        input_data = Input(self.__message)
-        log.info("Found {:d} domains in input request".format(input_data.num_domains()))
 
-        start_date = input_data.start_date()
-        start_date_pmb = input_data.start_date_pmb()
-        end_date = input_data.end_date()
-        end_date_pmb = input_data.end_date_pmb()
-        time_step = input_data.time_step()
+        log.info(
+            "Found {:d} domains in input request".format(self.__input.num_domains())
+        )
+
+        start_date = self.__input.start_date()
+        start_date_pmb = self.__input.start_date_pmb()
+        end_date = self.__input.end_date()
+        end_date_pmb = self.__input.end_date_pmb()
+        time_step = self.__input.time_step()
 
         met_field = MessageHandler.__generate_met_field(
-            input_data.format(),
+            self.__input.format(),
             start_date_pmb,
             end_date_pmb,
             time_step,
-            input_data.filename(),
-            input_data.compression(),
+            self.__input.filename(),
+            self.__input.compression(),
         )
 
-        log.info("Generating type key for {:s}".format(input_data.data_type()))
-        data_type_key = MessageHandler.__generate_datatype_key(input_data.data_type())
+        log.info("Generating type key for {:s}".format(self.__input.data_type()))
+        data_type_key = MessageHandler.__generate_datatype_key(self.__input.data_type())
 
         domain_data = []
         ongoing_restore = False
@@ -62,16 +74,16 @@ class MessageHandler:
         db_files = []
 
         # ...Take a first pass on the data and check for restore status
-        for i in range(input_data.num_domains()):
+        for i in range(self.__input.num_domains()):
             if met_field:
                 log.info("Generating met domain object for domain {:d}".format(i))
-                MessageHandler.__generate_met_domain(input_data, met_field, i)
-            d = input_data.domain(i)
+                MessageHandler.__generate_met_domain(self.__input, met_field, i)
+            d = self.__input.domain(i)
 
             log.info("Querying database for available data")
             filelist = Filelist(
                 d.service(),
-                input_data.data_type(),
+                self.__input.data_type(),
                 start_date,
                 end_date,
                 d.tau(),
@@ -79,8 +91,8 @@ class MessageHandler:
                 d.storm(),
                 d.basin(),
                 d.advisory(),
-                input_data.nowcast(),
-                input_data.multiple_forecasts(),
+                self.__input.nowcast(),
+                self.__input.multiple_forecasts(),
                 d.ensemble_member(),
             )
             f = filelist.files()
@@ -99,7 +111,7 @@ class MessageHandler:
         if ongoing_restore:
             log.info("Request is currently in restore status")
             RequestTable.update_request(
-                input_data.request_id(),
+                self.__input.request_id(),
                 "restore",
                 self.__message["api_key"],
                 self.__message["source_ip"],
@@ -115,20 +127,20 @@ class MessageHandler:
 
         # ...Begin downloading data from s3
         MessageHandler.__download_files_from_s3(
-            db_files, domain_data, input_data, met_field, nhc_data
+            db_files, domain_data, self.__input, met_field, nhc_data
         )
 
         if not met_field:
             (
                 output_file_list,
                 files_used_list,
-            ) = MessageHandler.__generate_raw_files_list(domain_data, input_data)
+            ) = MessageHandler.__generate_raw_files_list(domain_data, self.__input)
         else:
             (
                 output_file_list,
                 files_used_list,
             ) = MessageHandler.__interpolate_wind_fields(
-                input_data,
+                self.__input,
                 met_field,
                 data_type_key,
                 domain_data,
@@ -138,7 +150,7 @@ class MessageHandler:
             )
 
         output_file_dict = {
-            "input": input_data.json(),
+            "input": self.__input.json(),
             "input_files": files_used_list,
             "output_files": output_file_list,
         }
@@ -146,14 +158,14 @@ class MessageHandler:
         # ...Posts the data out to the correct S3 location
         s3up = S3file(os.environ["METGET_S3_BUCKET_UPLOAD"])
         for f in output_file_list:
-            path = os.path.join(input_data.request_id(), f)
+            path = os.path.join(self.__input.request_id(), f)
             s3up.upload_file(f, path)
             os.remove(f)
 
         with open(filelist_name, "w") as of:
             of.write(json.dumps(output_file_dict, indent=2))
 
-        filelist_path = os.path.join(input_data.request_id(), filelist_name)
+        filelist_path = os.path.join(self.__input.request_id(), filelist_name)
         s3up.upload_file(filelist_name, filelist_path)
         log.info("Finished processing message with id")
         os.remove(filelist_name)

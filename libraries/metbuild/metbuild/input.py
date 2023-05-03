@@ -39,9 +39,25 @@ class Input:
         self.__error = []
         self.__domains = []
         self.__parse()
+        self.__credit_usage = self.__calculate_credit_usage()
 
     def request_id(self) -> str:
+        """
+        Returns the request id
+
+        Returns:
+            The request id
+        """
         return self.__request_id
+
+    def credit_usage(self) -> int:
+        """
+        Returns the credit cost of the request
+
+        Returns:
+            The credit cost of the request
+        """
+        return self.__credit_usage
 
     def valid(self):
         """
@@ -326,9 +342,32 @@ class Input:
                 else:
                     self.__valid = False
                     self.__error.append("Could not generate domain " + str(i))
-                    for e in d.error():
-                        self.__error.append(e)
 
         except Exception as e:
             self.__valid = False
             self.__error.append("Could not parse the input json dataset: " + str(e))
+
+    def __calculate_credit_usage(self) -> int:
+        """
+        Calculates the credit usage of the request
+
+        Credits are calculated as the number of grid cells
+        multiplied by the number of time steps
+
+        Returns:
+            The credit usage of the request
+        """
+        credit_usage = 0
+        num_time_steps = int(
+            (self.__end_date - self.__start_date).total_seconds() / self.__time_step
+        )
+        for d in self.__domains:
+            if d.service() != "nhc" and self.format() != "raw":
+                num_cells = d.grid().nx() * d.grid().ny()
+                credit_usage += num_cells * num_time_steps
+            else:
+                if d.service() == "nhc":
+                    credit_usage += 100 * 100 * 24
+                else:
+                    credit_usage += 100 * 100 * 24 * num_time_steps
+        return credit_usage

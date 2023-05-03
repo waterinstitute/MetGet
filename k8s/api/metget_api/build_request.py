@@ -64,10 +64,20 @@ class BuildRequest:
         request_status: RequestEnum,
         message: str,
         transmit: bool,
+        credits: int,
     ) -> None:
         """
         This method is used to add a new request to the database and initiate
         the k8s process within argo
+
+        Args:
+            request_status: The status of the request
+            message: The message to be added to the database
+            transmit: Whether to transmit the request to the queue
+            credits: The number of credits to be deducted from the user's account
+
+        Returns:
+            None
         """
         import pika
         import os
@@ -97,6 +107,7 @@ class BuildRequest:
             self.__source_ip,
             self.__request_json,
             message,
+            credits,
         )
 
     @staticmethod
