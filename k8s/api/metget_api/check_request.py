@@ -62,7 +62,7 @@ class CheckRequest:
             }, 400
         else:
             row = query_result[0]
-            bucket_name = os.environ["METGET_S3_BUCKET"]
+            bucket_name = os.environ["METGET_S3_BUCKET_UPLOAD"]
             upload_destination = "https://{:s}.s3.amazonaws.com/{:s}".format(
                 bucket_name, request_id
             )

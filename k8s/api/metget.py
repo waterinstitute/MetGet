@@ -37,7 +37,7 @@ def index():
     """
     When the user hits the root path, redirect them to the MetGet homepage
     """
-    return redirect(location="http://metget.org", code=302)
+    return redirect(location="http://thewaterinstitute.org", code=302)
 
 
 class MetGetStatus(Resource):
@@ -178,9 +178,11 @@ class MetGetCredits(Resource):
     def get():
         authorized = AccessControl.check_authorization_token(request.headers)
         if authorized:
-            user_token = headers.get("x-api-key")
+            user_token = request.headers.get("x-api-key")
             credit_data = AccessControl.get_credit_balance(user_token)
-            return {"statusCode": status_code, "body": credit_data}, status_code
+            if credit_data["credit_limit"] == 0.0:
+                credit_data["credit_balance"] = 0.0
+            return {"statusCode": 200, "body": credit_data}, 200
         else:
             return AccessControl.unauthorized_response()
 
