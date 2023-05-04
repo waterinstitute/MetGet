@@ -86,6 +86,8 @@ class AccessControl:
         from datetime import datetime, timedelta
         from sqlalchemy import func, or_
 
+        credit_multiplier = 100000.0
+
         db = Database()
         session = db.session()
 
@@ -93,6 +95,7 @@ class AccessControl:
         credit_limit = (
             session.query(AuthTable.credit_limit).filter_by(key=api_key).first()[0]
         )
+        credit_limit = float(credit_limit) / credit_multiplier
 
         # ...Queries the database for the credit used for the user over the last 30 days
         start_date = datetime.utcnow() - timedelta(days=30)
@@ -109,7 +112,9 @@ class AccessControl:
         )
 
         if credit_used is None:
-            credit_used = 0
+            credit_used = 0.0
+        else:
+            credit_used = float(credit_used) / credit_multiplier
 
         credit_balance = credit_limit - credit_used
 

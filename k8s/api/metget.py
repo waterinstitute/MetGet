@@ -167,12 +167,31 @@ class MetGetTrack(Resource):
         message, status = s.get(request)
         return message, status
 
+class MetGetCredits(Resource):
+    """
+    Allows the user to query the current credit balance for 
+    their API key. This endpoint uses the API key passed in
+    with the header and takes no parameters
+    """
+
+    @staticmethod
+    def get():
+        authorized = AccessControl.check_authorization_token(request.headers)
+        if authorized:
+            user_token = headers.get("x-api-key")
+            credit_data = AccessControl.get_credit_balance(user_token)
+            return {"statusCode": status_code, "body": credit_data}, status_code
+        else:
+            return AccessControl.unauthorized_response()
+
+
 
 # ...Add the resources to the API
 api.add_resource(MetGetStatus, "/status")
 api.add_resource(MetGetBuild, "/build")
 api.add_resource(MetGetCheckRequest, "/check")
 api.add_resource(MetGetTrack, "/stormtrack")
+api.add_resource(MetGetCredits, "/credits")
 
 if __name__ == "__main__":
     """
