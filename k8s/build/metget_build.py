@@ -48,15 +48,14 @@ def main():
     log = logging.getLogger(__name__)
     log.info("Beginning execution")
 
-    # ...Get the input data from the environment.
-    # This variable is set by the argo template
-    # and comes from rabbitmq
-    message = os.environ["METGET_REQUEST_JSON"]
-    json_data = json.loads(message)
-
-    credit_cost = 0
-
     try:
+        # ...Get the input data from the environment.
+        # This variable is set by the argo template
+        # and comes from rabbitmq
+        message = os.environ["METGET_REQUEST_JSON"]
+        json_data = json.loads(message)
+
+        credit_cost = 0
 
         handler = MessageHandler(json_data)
         credit_cost = handler.input().credit_usage()
