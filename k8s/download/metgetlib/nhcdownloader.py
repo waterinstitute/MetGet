@@ -20,6 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import ftplib
 
 # ...Keys for the zippered dictionary from the NHC file
 ATCF_KEYS = [
@@ -78,7 +79,7 @@ class NhcDownloader:
         self.__metstring = "NHC"
         self.__use_forecast = use_besttrack
         self.__use_hindcast = use_forecast
-        self.__year = datetime.now().year 
+        self.__year = datetime.now().year
         self.__pressure_method = pressure_method
         self.__use_rss = False
         self.__use_aws = use_aws
@@ -453,11 +454,15 @@ class NhcDownloader:
                             iso.distance(2),
                             iso.distance(3),
                         )
-                        itline = itline + " 1013,    0,   0,{:4.0f},   0,   0,    ,METG,{:4d},{:4d}," "{:11s},  ,  0, NEQ,    0,    0,    0,    0,            ,    ,".format(
-                            d.max_gust(),
-                            heading,
-                            fspd,
-                            storm_name.upper().rjust(11),
+                        itline = (
+                            itline
+                            + " 1013,    0,   0,{:4.0f},   0,   0,    ,METG,{:4d},{:4d},"
+                            "{:11s},  ,  0, NEQ,    0,    0,    0,    0,            ,    ,".format(
+                                d.max_gust(),
+                                heading,
+                                fspd,
+                                storm_name.upper().rjust(11),
+                            )
                         )
                         f.write(itline)
                         f.write(os.linesep)
@@ -673,7 +678,12 @@ class NhcDownloader:
         ftp = FTP("ftp.nhc.noaa.gov")
         ftp.login()
         ftp.cwd("atcf/fst")
-        filelist = ftp.nlst("*.fst")
+
+        try:
+            filelist = ftp.nlst("*.fst")
+        except ftplib.error_temp as e:
+            logger.warning("No NHC forecast files found. FTP error: {}".format(e))
+            return 0
 
         n = 0
         for f in filelist:
@@ -814,7 +824,7 @@ class NhcDownloader:
                 )
             )
         # storm_track = Feature(geometry=LineString(track_points))
-        return FeatureCollection(features=points) #, storm_track
+        return FeatureCollection(features=points)  # , storm_track
 
     def generate_geojson(self, filename: str):
         return self.__generate_track(filename)
@@ -834,7 +844,13 @@ class NhcDownloader:
             ftp = FTP("ftp.nhc.noaa.gov")
             ftp.login()
             ftp.cwd("atcf/btk")
-            file_list = ftp.nlst("*.dat")
+
+            try:
+                file_list = ftp.nlst("*.dat")
+            except ftplib.error_temp as e:
+                logger.warning("No NHC forecast files found. FTP error: {}".format(e))
+                return 0
+
             logger.info("NHC FTP connection successful")
 
             n = 0
