@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: metget-keymanager
+  namespace: metget
+spec:
+  containers:
+  - image: zcobell/metget-keymanager:0.0.1
+    imagePullPolicy: Always
+    name: metget-keymanager
+    stdin: true
+    stdinOnce: true
+    tty: true
+    env:
+    - name: METGET_DATABASE_USER
+      valueFrom:
+        secretKeyRef:
+          name: metget-database-secret
+          key: username  
+    - name: METGET_DATABASE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: metget-database-secret
+          key: password
+    - name: METGET_DATABASE
+      valueFrom:
+        configMapKeyRef:
+          name: metget-configmap
+          key: database.name
+    - name: METGET_REQUEST_TABLE
+      valueFrom:
+        configMapKeyRef:
+          name: metget-configmap
+          key: database.request_table
+    - name: METGET_API_KEY_TABLE
+      valueFrom:
+        configMapKeyRef:
+          name: metget-configmap
+          key: database.apikey_table
+  restartPolicy: Never

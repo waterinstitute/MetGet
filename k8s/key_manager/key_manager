@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+
+CREDIT_MULTIPLIER = 100000.0
+
+
+def add_key(key: str, user: str, description: str, api_credits: int):
+    """
+    Add a new key to the database
+
+    Args:
+        key (str): The key to add. If not provided, a key will be generated
+        user (str): The user associated with the key
+        description (str): The description of the key
+        api_credits (int): The number of monthly credits to assign to the key
+
+    Returns:
+        None
+    """
+    from metbuild.tables import AuthTable
+    from metbuild.database import Database
+    import secrets
+
+    # Generate a url safe token 40 characters long without any special characters
+    # if a key was not provided
+    if key:
+        token = key
+    else:
+        token = secrets.token_urlsafe(80).replace("-", "").replace("_", "")[:40]
+
+    if len(token) != 40:
+        raise Exception("Token is not 40 characters long")
+
+    # Add the key to the database
+    db = Database()
+    session = db.session()
+    session.add(
+        AuthTable(
+            key=token,
+            user=user,
+            description=description,
+            enabled="true",
+            credit_limit=api_credits,
+        )
+    )
+
+    # Commit the changes
+    session.commit()
+
+    # Print the key to the user
+    print("The key for user {} is '{}'".format(user, token))
+
+
+def update_key(key: str, user: str, description: str, api_credits: int):
+    """
+    Update an existing key in the database
+
+    Args:
+        key (str): The key to update
+        user (str): The user associated with the key
+        description (str): The description of the key
+        api_credits (int): The number of monthly credits to assign to the key
+
+    Returns:
+        None
+    """
+    from metbuild.tables import AuthTable
+    from metbuild.database import Database
+
+    db = Database()
+    session = db.session()
+    current_key = session.query(AuthTable).filter_by(key=key).first()
+
+    if not current_key:
+        raise Exception("Key does not exist")
+
+    if user:
+        current_key.user = user
+    if description:
+        current_key.description = description
+    if api_credits is not None:
+        api_credits *= int(CREDIT_MULTIPLIER)
+        current_key.credit_limit = api_credits
+
+    # Commit the changes
+    session.commit()
+
+
+def enable_disable_key(key: str, enabled: bool):
+    """
+    Enable or disable an existing key in the database
+
+    Args:
+        key (str): The key to enable or disable
+        enabled (bool): Whether to enable or disable the key
+
+    Returns:
+        None
+    """
+    from metbuild.tables import AuthTable
+    from metbuild.database import Database
+
+    db = Database()
+    session = db.session()
+    current_key = session.query(AuthTable).filter_by(key=key).first()
+
+    if not current_key:
+        raise Exception("Key does not exist")
+
+    current_key.enabled = enabled
+
+    # Commit the changes
+    session.commit()
+
+
+def remove_key(key: str):
+    """
+    Remove an existing key from the database
+
+    Args:
+        key (str): The key to remove
+    """
+
+    from metbuild.tables import AuthTable
+    from metbuild.database import Database
+
+    db = Database()
+    session = db.session()
+    current_key = AuthTable.query.filter_by(token=key).first()
+
+    if not current_key:
+        raise Exception("Key does not exist")
+
+    session.delete(current_key)
+
+    # Commit the changes
+    session.commit()
+
+
+def list_keys():
+    """
+    List all keys in the database
+    """
+    import prettytable
+    from metbuild.tables import AuthTable, RequestTable
+    from metbuild.database import Database
+    from sqlalchemy import func, or_
+    from datetime import datetime, timedelta
+
+    db = Database()
+    session = db.session()
+
+    table = prettytable.PrettyTable()
+    table.field_names = [
+        "Key",
+        "User",
+        "Description",
+        "Enabled",
+        "Credit Limit",
+        "Credits Used",
+        "Credit Balance",
+    ]
+
+    auth_keys = session.query(
+        AuthTable.key,
+        AuthTable.username,
+        AuthTable.description,
+        AuthTable.enabled,
+        AuthTable.credit_limit,
+    ).all()
+
+    for key in auth_keys:
+        start_date = datetime.utcnow() - timedelta(days=30)
+        credit_used = (
+            session.query(func.sum(RequestTable.credit_usage))
+            .filter(RequestTable.last_date >= start_date)
+            .filter(RequestTable.api_key == key.key.strip())
+            .filter(
+                or_(
+                    RequestTable.status == "completed", RequestTable.status == "running"
+                )
+            )
+            .first()[0]
+        )
+
+        if key.credit_limit == 0:
+            credit_limit = "Unlimited"
+            credit_balance = "Unlimited"
+        else:
+            credit_limit = float(key.credit_limit) / CREDIT_MULTIPLIER
+            credit_balance = credit_limit - float(credit_used) / CREDIT_MULTIPLIER
+
+        if credit_used:
+            credit_used = float(credit_used) / CREDIT_MULTIPLIER
+
+        table.add_row(
+            [
+                key.key,
+                key.username,
+                key.description,
+                key.enabled,
+                credit_limit,
+                credit_used,
+                credit_balance,
+            ]
+        )
+
+    print(table)
+
+
+def main():
+    """
+    Main function
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(description="MetGet APIKey Manager")
+    parser.add_argument(
+        "command",
+        help="Command to execute",
+        choices=["add", "update", "enable", "disable", "remove", "list"],
+    )
+    parser.add_argument("--key", help="Name of the key to operate on", type=str)
+    parser.add_argument("--user", help="User associated with the key", type=str)
+    parser.add_argument(
+        "--description", help="Description associated with the key", type=str
+    )
+    parser.add_argument(
+        "--credits", help="Number of monthly credits to assign to the key", type=int
+    )
+    args = parser.parse_args()
+
+    if args.command == "add":
+        add_key(args.key, args.user, args.description, args.credits)
+    elif args.command == "update":
+        update_key(args.key, args.user, args.description, args.credits)
+    elif args.command == "enable":
+        enable_disable_key(args.key, True)
+    elif args.command == "disable":
+        enable_disable_key(args.key, False)
+    elif args.command == "remove":
+        remove_key(args.key)
+    elif args.command == "list":
+        list_keys()
+
+
+if __name__ == "__main__":
+    main()
