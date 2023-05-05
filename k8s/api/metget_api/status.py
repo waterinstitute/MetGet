@@ -85,15 +85,31 @@ class Status:
             limit_days = request.args["limit"]
             try:
                 limit_days_int = int(limit_days)
-            except ValueError as v:
+            except ValueError:
                 return {
                     "statusCode": 400,
                     "body": {"message": "ERROR: Invalid limit specified"},
                 }, 400
+            time_limit = timedelta(days=limit_days_int)
+            start_dt = None
+            end_dt = None
+        elif "start" in request.args and "end" in request.args:
+            start = request.args["start"]
+            end = request.args["end"]
+            try:
+                start_dt = datetime.strptime(start, "%Y-%m-%d")
+                end_dt = datetime.strptime(end, "%Y-%m-%d")
+            except ValueError:
+                return {
+                    "statusCode": 400,
+                    "body": {"message": "ERROR: Invalid start/end specified"},
+                }, 400
+            time_limit = None
         else:
             limit_days_int = 7
-
-        time_limit = timedelta(days=limit_days_int)
+            time_limit = timedelta(days=limit_days_int)
+            start_dt = None
+            end_dt = None
 
         s = None
 
@@ -103,49 +119,66 @@ class Status:
             }, 400
 
         if status_type == "gfs":
-            s = Status.__get_status_gfs(MET_MODEL_FORECAST_DURATION["gfs"], time_limit)
+            s = Status.__get_status_gfs(
+                MET_MODEL_FORECAST_DURATION["gfs"], time_limit, start_dt, end_dt
+            )
         elif status_type == "nam":
-            s = Status.__get_status_nam(MET_MODEL_FORECAST_DURATION["nam"], time_limit)
+            s = Status.__get_status_nam(
+                MET_MODEL_FORECAST_DURATION["nam"], time_limit, start_dt, end_dt
+            )
         elif status_type == "hwrf":
             s = Status.__get_status_hwrf(
-                MET_MODEL_FORECAST_DURATION["hwrf"], time_limit
+                MET_MODEL_FORECAST_DURATION["hwrf"],
+                time_limit,
+                start_dt,
+                end_dt,
             )
         elif status_type == "hrrr":
             s = Status.__get_status_hrrr(
-                MET_MODEL_FORECAST_DURATION["hrrr"], time_limit
+                MET_MODEL_FORECAST_DURATION["hrrr"],
+                time_limit,
+                start_dt,
+                end_dt,
             )
         elif status_type == "hrrr-alaksa":
-            s = Status.__get_status_hrrr_alaska(time_limit)
+            s = Status.__get_status_hrrr_alaska(
+                MET_MODEL_FORECAST_DURATION["hrrr"], time_limit, start_dt, end_dt
+            )
         elif status_type == "wpc":
-            s = Status.__get_status_wpc(MET_MODEL_FORECAST_DURATION["wpc"], time_limit)
+            s = Status.__get_status_wpc(
+                MET_MODEL_FORECAST_DURATION["wpc"], time_limit, start_dt, end_dt
+            )
         elif status_type == "nhc":
-            s = Status.__get_status_nhc(time_limit)
+            s = Status.__get_status_nhc(time_limit, start_dt, end_dt)
         elif status_type == "coamps":
             s = Status.__get_status_coamps(
-                MET_MODEL_FORECAST_DURATION["coamps"], time_limit
+                MET_MODEL_FORECAST_DURATION["coamps"],
+                time_limit,
+                start_dt,
+                end_dt,
             )
         elif status_type == "all":
             gfs, _ = Status.__get_status_gfs(
-                MET_MODEL_FORECAST_DURATION["gfs"], time_limit
+                MET_MODEL_FORECAST_DURATION["gfs"], time_limit, start_dt, end_dt
             )
             nam, _ = Status.__get_status_nam(
-                MET_MODEL_FORECAST_DURATION["nam"], time_limit
+                MET_MODEL_FORECAST_DURATION["nam"], time_limit, start_dt, end_dt
             )
             hwrf, _ = Status.__get_status_hwrf(
-                MET_MODEL_FORECAST_DURATION["hwrf"], time_limit
+                MET_MODEL_FORECAST_DURATION["hwrf"], time_limit, start_dt, end_dt
             )
             hrrr, _ = Status.__get_status_hrrr(
-                MET_MODEL_FORECAST_DURATION["hrrr"], time_limit
+                MET_MODEL_FORECAST_DURATION["hrrr"], time_limit, start_dt, end_dt
             )
             hrrr_alaska, _ = Status.__get_status_hrrr_alaska(
-                MET_MODEL_FORECAST_DURATION["hrrr-alaska"], time_limit
+                MET_MODEL_FORECAST_DURATION["hrrr-alaska"], time_limit, start_dt, end_dt
             )
-            nhc, _ = Status.__get_status_nhc(time_limit)
+            nhc, _ = Status.__get_status_nhc(time_limit, start_dt, end_dt)
             wpc, _ = Status.__get_status_wpc(
-                MET_MODEL_FORECAST_DURATION["wpc"], time_limit
+                MET_MODEL_FORECAST_DURATION["wpc"], time_limit, start_dt, end_dt
             )
             coamps, _ = Status.__get_status_coamps(
-                MET_MODEL_FORECAST_DURATION["coamps"], time_limit
+                MET_MODEL_FORECAST_DURATION["coamps"], time_limit, start_dt, end_dt
             )
             s = {
                 "gfs": gfs,
@@ -166,6 +199,8 @@ class Status:
         table_type: any,
         cycle_duration: int,
         limit: timedelta,
+        start: datetime,
+        end: datetime,
     ) -> dict:
         """
         This method is used to generate the status for the generic models (i.e. GFS, NAM, WPC, etc.)
@@ -175,6 +210,8 @@ class Status:
             table_type: The table type to use when querying the database
             cycle_duration: The duration of the cycle in hours
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
@@ -184,19 +221,39 @@ class Status:
         db = Database()
         session = db.session()
 
-        limit_time = datetime.utcnow() - limit
-        unique_cycles = (
-            session.query(table_type.forecastcycle)
-            .distinct()
-            .filter(table_type.forecastcycle >= limit_time)
-            .order_by(table_type.forecastcycle.desc())
-            .all()
-        )
+        if limit is not None:
+            limit_time = datetime.utcnow() - limit
+            unique_cycles = (
+                session.query(table_type.forecastcycle)
+                .distinct()
+                .filter(table_type.forecastcycle >= limit_time)
+                .order_by(table_type.forecastcycle.desc())
+                .all()
+            )
+            limit_days = limit.days
+            limit_start = Status.d2s(limit_time)
+            limit_end = Status.d2s(datetime.utcnow())
+        elif start is not None and end is not None:
+            limit_days = (end - start).total_seconds() / 86400.0
+            limit_start = Status.d2s(start)
+            limit_end = Status.d2s(end)
+            unique_cycles = (
+                session.query(table_type.forecastcycle)
+                .distinct()
+                .filter(table_type.forecastcycle >= start)
+                .filter(table_type.forecastcycle <= end)
+                .order_by(table_type.forecastcycle.desc())
+                .all()
+            )
+        else:
+            raise ValueError("ERROR: Invalid limit provided")
 
         if len(unique_cycles) == 0:
             return {
                 "meteorological_source": met_source,
-                "request_limit_days": limit.days,
+                "request_limit_days": limit_days,
+                "request_limit_start": limit_start,
+                "request_limit_end": limit_end,
                 "min_forecast_date": None,
                 "max_forecast_date": None,
                 "first_available_cycle": None,
@@ -258,7 +315,9 @@ class Status:
 
         return {
             "meteorological_source": met_source,
-            "request_limit_days": limit.days,
+            "request_limit_days": limit_days,
+            "request_limit_start": limit_start,
+            "request_limit_end": limit_end,
             "min_forecast_date": Status.d2s(min_forecast_time),
             "max_forecast_date": Status.d2s(max_forecast_time),
             "first_available_cycle": Status.d2s(cycle_minimum),
@@ -271,61 +330,84 @@ class Status:
         }
 
     @staticmethod
-    def __get_status_gfs(cycle_length: int, limit: timedelta) -> dict:
+    def __get_status_gfs(
+        cycle_length: int, limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
         """
         This method is used to generate the status for the GFS model
 
         Args:
             cycle_length: The duration of the cycle in hours
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
         from metbuild.tables import GfsTable
 
-        return Status.__get_status_generic("gfs", GfsTable, cycle_length, limit)
+        return Status.__get_status_generic(
+            "gfs", GfsTable, cycle_length, limit, start, end
+        )
 
     @staticmethod
-    def __get_status_nam(cycle_length: int, limit: timedelta) -> dict:
+    def __get_status_nam(
+        cycle_length: int, limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
         """
         This method is used to generate the status for the NAM model
 
         Args:
             cycle_length: The duration of the cycle in hours
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
+
 
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
         from metbuild.tables import NamTable
 
-        return Status.__get_status_generic("nam", NamTable, cycle_length, limit)
+        return Status.__get_status_generic(
+            "nam", NamTable, cycle_length, limit, start, end
+        )
 
     @staticmethod
-    def __get_status_hrrr(cycle_length: int, limit: timedelta) -> dict:
+    def __get_status_hrrr(
+        cycle_length: int, limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
         """
         This method is used to generate the status for the HRRR model
 
         Args:
             cycle_length: The duration of the cycle in hours
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
         from metbuild.tables import HrrrTable
 
-        return Status.__get_status_generic("hrrr", HrrrTable, cycle_length, limit)
+        return Status.__get_status_generic(
+            "hrrr", HrrrTable, cycle_length, limit, start, end
+        )
 
     @staticmethod
-    def __get_status_hrrr_alaska(cycle_length: int, limit: timedelta) -> dict:
+    def __get_status_hrrr_alaska(
+        cycle_length: int, limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
         """
         This method is used to generate the status for the HRRR Alaska model
 
         Args:
             cycle_length: The duration of the cycle in hours
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
@@ -333,33 +415,43 @@ class Status:
         from metbuild.tables import HrrrAlaskaTable
 
         return Status.__get_status_generic(
-            "hrrr-alaska", HrrrAlaskaTable, cycle_length, limit
+            "hrrr-alaska", HrrrAlaskaTable, cycle_length, limit, start, end
         )
 
     @staticmethod
-    def __get_status_wpc(cycle_length: int, limit: timedelta) -> dict:
+    def __get_status_wpc(
+        cycle_length: int, limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
         """
         This method is used to generate the status for the WPC QPF data
 
         Args:
             cycle_length: The duration of the cycle in hours
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
         from metbuild.tables import WpcTable
 
-        return Status.__get_status_generic("wpc", WpcTable, cycle_length, limit)
+        return Status.__get_status_generic(
+            "wpc", WpcTable, cycle_length, limit, start, end
+        )
 
     @staticmethod
-    def __get_status_hwrf(cycle_duration: int, limit: timedelta) -> dict:
+    def __get_status_hwrf(
+        cycle_duration: int, limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
         """
         This method is used to generate the status for the HWRF model
 
         Args:
             cycle_duration: The duration of the cycle in hours
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
@@ -370,28 +462,52 @@ class Status:
         db = Database()
         session = db.session()
 
-        limit_time = datetime.utcnow() - limit
-        unique_storms = (
-            session.query(HwrfTable.stormname)
-            .distinct()
-            .filter(HwrfTable.forecastcycle >= limit_time)
-            .all()
-        )
+        if limit is not None:
+            limit_time = datetime.utcnow() - limit
+            unique_storms = (
+                session.query(HwrfTable.stormname)
+                .distinct()
+                .filter(HwrfTable.forecastcycle >= limit_time)
+                .all()
+            )
+        else:
+            unique_storms = (
+                session.query(HwrfTable.stormname)
+                .distinct()
+                .filter(HwrfTable.forecastcycle >= start)
+                .filter(HwrfTable.forecastcycle <= end)
+                .all()
+            )
+            limit_time = None
 
         storms = {}
 
         for storm in unique_storms:
             storm_name = storm[0]
-            unique_cycles = (
-                session.query(HwrfTable.forecastcycle)
-                .distinct()
-                .filter(
-                    HwrfTable.stormname == storm_name,
-                    HwrfTable.forecastcycle >= limit_time,
+
+            if limit is not None:
+                unique_cycles = (
+                    session.query(HwrfTable.forecastcycle)
+                    .distinct()
+                    .filter(
+                        HwrfTable.stormname == storm_name,
+                        HwrfTable.forecastcycle >= limit_time,
+                    )
+                    .order_by(HwrfTable.forecastcycle)
+                    .all()
                 )
-                .order_by(HwrfTable.forecastcycle)
-                .all()
-            )
+            else:
+                unique_cycles = (
+                    session.query(HwrfTable.forecastcycle)
+                    .distinct()
+                    .filter(
+                        HwrfTable.stormname == storm_name,
+                        HwrfTable.forecastcycle >= start,
+                        HwrfTable.forecastcycle <= end,
+                    )
+                    .order_by(HwrfTable.forecastcycle)
+                    .all()
+                )
 
             this_storm = {}
             this_storm_min_time = None
@@ -450,13 +566,17 @@ class Status:
         return storms
 
     @staticmethod
-    def __get_status_coamps(cycle_duration: int, limit: timedelta) -> dict:
+    def __get_status_coamps(
+        cycle_duration: int, limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
         """
         This method is used to generate the status for the COAMPS-TC model
 
         Args:
             cycle_duration: The duration of the cycle in hours
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
@@ -468,28 +588,34 @@ class Status:
         return {}
 
     @staticmethod
-    def __get_status_nhc(limit: timedelta) -> dict:
+    def __get_status_nhc(limit: timedelta, start: datetime, end: datetime) -> dict:
         """
         This method is used to generate the status for the NHC model
 
         Args:
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        best_track = Status.__get_status_nhc_besttrack(limit)
-        forecast = Status.__get_status_nhc_forecast(limit)
+        best_track = Status.__get_status_nhc_besttrack(limit, start, end)
+        forecast = Status.__get_status_nhc_forecast(limit, start, end)
         return {"best_track": best_track, "forecast": forecast}
 
     @staticmethod
-    def __get_status_nhc_besttrack(limit: timedelta) -> dict:
+    def __get_status_nhc_besttrack(
+        limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
         """
         This method is used to generate the status information for the
         NHC best track data
 
         Args:
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
@@ -500,33 +626,65 @@ class Status:
         db = Database()
         session = db.session()
 
-        limit_time = datetime.utcnow() - limit
+        if limit is not None:
+            limit_time = datetime.utcnow() - limit
 
-        basins = (
-            session.query(NhcBtkTable.basin)
-            .distinct()
-            .filter(NhcBtkTable.advisory_end > limit_time)
-            .all()
-        )
-        storm_years = (
-            session.query(NhcBtkTable.storm_year)
-            .distinct()
-            .filter(NhcBtkTable.advisory_end > limit_time)
-            .all()
-        )
-        storms = (
-            session.query(
-                NhcBtkTable.basin,
-                NhcBtkTable.storm_year,
-                NhcBtkTable.storm,
-                NhcBtkTable.advisory_start,
-                NhcBtkTable.advisory_end,
-                NhcBtkTable.advisory_duration_hr,
+            basins = (
+                session.query(NhcBtkTable.basin)
+                .distinct()
+                .filter(NhcBtkTable.advisory_end >= limit_time)
+                .all()
             )
-            .filter(NhcBtkTable.advisory_end > limit_time)
-            .order_by(NhcBtkTable.basin, NhcBtkTable.storm)
-            .all()
-        )
+            storm_years = (
+                session.query(NhcBtkTable.storm_year)
+                .distinct()
+                .filter(NhcBtkTable.advisory_end >= limit_time)
+                .all()
+            )
+            storms = (
+                session.query(
+                    NhcBtkTable.basin,
+                    NhcBtkTable.storm_year,
+                    NhcBtkTable.storm,
+                    NhcBtkTable.advisory_start,
+                    NhcBtkTable.advisory_end,
+                    NhcBtkTable.advisory_duration_hr,
+                )
+                .filter(NhcBtkTable.advisory_end >= limit_time)
+                .order_by(NhcBtkTable.basin, NhcBtkTable.storm)
+                .all()
+            )
+        elif start is not None and end is not None:
+            basins = (
+                session.query(NhcBtkTable.basin)
+                .distinct()
+                .filter(NhcBtkTable.advisory_start >= start)
+                .filter(NhcBtkTable.advisory_end <= end)
+                .all()
+            )
+            storm_years = (
+                session.query(NhcBtkTable.storm_year)
+                .distinct()
+                .filter(NhcBtkTable.advisory_start >= start)
+                .filter(NhcBtkTable.advisory_end <= end)
+                .all()
+            )
+            storms = (
+                session.query(
+                    NhcBtkTable.basin,
+                    NhcBtkTable.storm_year,
+                    NhcBtkTable.storm,
+                    NhcBtkTable.advisory_start,
+                    NhcBtkTable.advisory_end,
+                    NhcBtkTable.advisory_duration_hr,
+                )
+                .filter(NhcBtkTable.advisory_start >= start)
+                .filter(NhcBtkTable.advisory_end <= end)
+                .order_by(NhcBtkTable.basin, NhcBtkTable.storm)
+                .all()
+            )
+        else:
+            raise ValueError("Must specify either limit or start and end")
 
         storm_data = {}
         for y in storm_years:
@@ -550,12 +708,16 @@ class Status:
         return storm_data
 
     @staticmethod
-    def __get_status_nhc_forecast(limit: timedelta) -> dict:
+    def __get_status_nhc_forecast(
+        limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
         """
         Method to generate the status data for NHC forecast data
 
         Args:
             limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
 
         Returns:
             Dictionary containing the status information and the HTTP status code
@@ -566,32 +728,63 @@ class Status:
         db = Database()
         session = db.session()
 
-        limit_time = datetime.utcnow() - limit
+        if limit is not None:
+            limit_time = datetime.utcnow() - limit
 
-        basins = (
-            session.query(NhcFcstTable.basin)
-            .distinct()
-            .filter(NhcFcstTable.advisory_end > limit_time)
-            .all()
-        )
-        storm_years = (
-            session.query(NhcFcstTable.storm_year)
-            .distinct()
-            .filter(NhcFcstTable.advisory_end > limit_time)
-            .all()
-        )
-
-        storms = (
-            session.query(
-                NhcFcstTable.basin,
-                NhcFcstTable.storm_year,
-                NhcFcstTable.storm,
+            basins = (
+                session.query(NhcFcstTable.basin)
+                .distinct()
+                .filter(NhcFcstTable.advisory_end >= limit_time)
+                .all()
             )
-            .distinct()
-            .filter(NhcFcstTable.advisory_end > limit_time)
-            .order_by(NhcFcstTable.basin, NhcFcstTable.storm)
-            .all()
-        )
+            storm_years = (
+                session.query(NhcFcstTable.storm_year)
+                .distinct()
+                .filter(NhcFcstTable.advisory_end >= limit_time)
+                .all()
+            )
+
+            storms = (
+                session.query(
+                    NhcFcstTable.basin,
+                    NhcFcstTable.storm_year,
+                    NhcFcstTable.storm,
+                )
+                .distinct()
+                .filter(NhcFcstTable.advisory_end >= limit_time)
+                .order_by(NhcFcstTable.basin, NhcFcstTable.storm)
+                .all()
+            )
+        elif start is not None and end is not None:
+            basins = (
+                session.query(NhcFcstTable.basin)
+                .distinct()
+                .filter(NhcFcstTable.advisory_start >= start)
+                .filter(NhcFcstTable.advisory_end <= end)
+                .all()
+            )
+            storm_years = (
+                session.query(NhcFcstTable.storm_year)
+                .distinct()
+                .filter(NhcFcstTable.advisory_start >= start)
+                .filter(NhcFcstTable.advisory_end <= end)
+                .all()
+            )
+
+            storms = (
+                session.query(
+                    NhcFcstTable.basin,
+                    NhcFcstTable.storm_year,
+                    NhcFcstTable.storm,
+                )
+                .distinct()
+                .filter(NhcFcstTable.advisory_start >= start)
+                .filter(NhcFcstTable.advisory_end <= end)
+                .order_by(NhcFcstTable.basin, NhcFcstTable.storm)
+                .all()
+            )
+        else:
+            raise ValueError("Must specify either limit or start and end")
 
         storm_data = {}
         for y in storm_years:
