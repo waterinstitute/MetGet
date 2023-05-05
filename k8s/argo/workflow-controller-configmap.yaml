@@ -10,5 +10,5 @@ data:
         strategy: OnWorkflowSuccess
       ttlStrategy:
         secondsAfterCompletion: 10 # Time to live after workflow is completed, replaces  ttlSecondsAfterFinished
-        secondsAfterSuccess: 5     # Time to live after workflow is successful
+        secondsAfterSuccess: 10    # Time to live after workflow is successful
         secondsAfterFailure: 3600     # Time to live after workflow fails

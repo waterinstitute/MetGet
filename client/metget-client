@@ -19,15 +19,14 @@
 #
 ################################################################################
 
-import requests
-import json
-from datetime import datetime
 import argparse
-import time
-from typing import Tuple
+import json
 import os
+import time
+from datetime import datetime
+from typing import Tuple
 
-METGET_API_VERSION = 2
+import requests
 
 # Available metget models
 AVAILABLE_MODELS = {
@@ -69,7 +68,7 @@ class SpinnerLogger:
             from halo import Halo
 
             self.__is_tty = stdout.isatty()
-        except ImportError as e:
+        except ImportError:
             if stdout.isatty():
                 print(
                     "[WARNING]: Halo package not found. Disabling animation.",
@@ -214,7 +213,7 @@ class SpinnerLogger:
         )
 
 
-def valid_datetime_type(arg_datetime_str) -> datetime:
+def valid_datetime_type(arg_datetime_str: str) -> datetime:
     """
     Checks if the given datetime string is valid
 
@@ -354,7 +353,9 @@ def parse_domain_data(domain_list: list, level: int, tau: int) -> dict:
         }
 
 
-def make_metget_request(endpoint, apikey, request_json) -> Tuple[str, int]:
+def make_metget_request(
+    endpoint: str, apikey: str, request_json: dict
+) -> Tuple[str, int]:
     """
     Makes a request to the MetGet API and returns the data id and status code
 
@@ -382,7 +383,14 @@ def make_metget_request(endpoint, apikey, request_json) -> Tuple[str, int]:
     return data_id, status_code
 
 
-def download_metget_data(data_id, endpoint, apikey, sleeptime, max_wait) -> None:
+def download_metget_data(
+    data_id: str,
+    endpoint: str,
+    apikey: str,
+    sleep_time: int,
+    max_wait: int,
+    api_version: int,
+) -> None:
     """
     Downloads the data from the MetGet API
 
@@ -390,8 +398,9 @@ def download_metget_data(data_id, endpoint, apikey, sleeptime, max_wait) -> None
         data_id (str): Data id
         endpoint (str): MetGet API endpoint
         apikey (str): MetGet API key
-        sleeptime (int): Time to sleep between status checks
+        sleep_time (int): Time to sleep between status checks
         max_wait (int): Maximum time to wait for data to appear
+        api_version (int): MetGet API version
 
     Returns:
         None
@@ -422,7 +431,9 @@ def download_metget_data(data_id, endpoint, apikey, sleeptime, max_wait) -> None
     while datetime.utcnow() <= end_time:
         tries += 1
         try:
-            data_url, status = check_metget_status(data_id, endpoint, headers)
+            data_url, status = check_metget_status(
+                data_id, endpoint, headers, api_version
+            )
             spinner.set_text(SpinnerLogger.standard_log(tries, status))
             if status == "completed":
                 spinner.succeed()
@@ -441,7 +452,7 @@ def download_metget_data(data_id, endpoint, apikey, sleeptime, max_wait) -> None
                 spinner.fail("Request could not be completed")
                 return
             else:
-                time.sleep(sleeptime)
+                time.sleep(sleep_time)
                 continue
         except KeyboardInterrupt:
             spinner.fail("Process was ended by the user")
@@ -493,7 +504,9 @@ def download_metget_data(data_id, endpoint, apikey, sleeptime, max_wait) -> None
         return
 
 
-def check_metget_status(data_id, endpoint, headers) -> Tuple[str, str]:
+def check_metget_status(
+    data_id: str, endpoint: str, headers: dict, api_version: int
+) -> Tuple[str, str]:
     """
     Checks the status of a MetGet request
 
@@ -501,17 +514,23 @@ def check_metget_status(data_id, endpoint, headers) -> Tuple[str, str]:
         data_id (str): Data id
         endpoint (str): MetGet API endpoint
         headers (dict): HTTP headers
+        api_version (int): MetGet API version
 
     Returns:
         Tuple[str, str]: Data url and status
     """
-    if METGET_API_VERSION == 1:
-        return check_metget_status_v1(data_id, endpoint, headers)
-    elif METGET_API_VERSION == 2:
-        return check_metget_status_v2(data_id, endpoint, headers)
+    response = None
+    if api_version == 1:
+        response = check_metget_status_v1(data_id, endpoint, headers)
+    elif api_version == 2:
+        response = check_metget_status_v2(data_id, endpoint, headers)
+    json_response = json.loads(response)
+    status = json_response["body"]["status"]
+    data_url = json_response["body"]["destination"]
+    return data_url, status
 
 
-def check_metget_status_v1(data_id, endpoint, headers) -> Tuple[str, str]:
+def check_metget_status_v1(data_id: str, endpoint: str, headers: dict) -> str:
     """
     Checks the status of a MetGet request using the v1 API
 
@@ -521,17 +540,14 @@ def check_metget_status_v1(data_id, endpoint, headers) -> Tuple[str, str]:
         headers (dict): HTTP headers
 
     Returns:
-        Tuple[str, str]: Data url and status
+        str: response text
     """
     request_json = {"request": data_id}
     response = requests.post(endpoint + "/check", headers=headers, json=request_json)
-    json_response = json.loads(response.text)
-    status = json_response["body"]["status"]
-    data_url = json_response["body"]["destination"]
-    return data_url, status
+    return response.text
 
 
-def check_metget_status_v2(data_id, endpoint, headers) -> Tuple[str, str]:
+def check_metget_status_v2(data_id: str, endpoint: str, headers: dict) -> str:
     """
     Checks the status of a MetGet request using the v2 API
 
@@ -541,17 +557,17 @@ def check_metget_status_v2(data_id, endpoint, headers) -> Tuple[str, str]:
         headers (dict): HTTP headers
 
     Returns:
-        Tuple[str, str]: Data url and status
+        str: response text
     """
     request_params = {"request-id": data_id}
     response = requests.get(endpoint + "/check", headers=headers, params=request_params)
-    json_response = json.loads(response.text)
-    status = json_response["body"]["status"]
-    data_url = json_response["body"]["destination"]
-    return data_url, status
+    return response.text
 
 
 def main():
+    """
+    Main function for command line interface
+    """
     import socket
     import json
     import getpass
@@ -678,6 +694,12 @@ def main():
         help="Save the json request sent to the MetGet API as request.json",
         default=False,
     )
+    p.add_argument(
+        "--api-version",
+        type=int,
+        default=1,
+        help="MetGet API version. Default is 1. When using the k8s MetGet API, this should be 2.",
+    )
 
     args = p.parse_args()
 
@@ -767,14 +789,24 @@ def main():
         data_id, status_code = make_metget_request(endpoint, apikey, request_data)
         if not args.dryrun and status_code == 200:
             download_metget_data(
-                data_id, endpoint, apikey, args.check_interval, args.max_wait
+                data_id,
+                endpoint,
+                apikey,
+                args.check_interval,
+                args.max_wait,
+                args.api_version,
             )
         else:
             print(status_code)
 
     else:
         download_metget_data(
-            args.request, endpoint, apikey, args.check_interval, args.max_wait
+            args.request,
+            endpoint,
+            apikey,
+            args.check_interval,
+            args.max_wait,
+            args.api_version,
         )
 
 
