@@ -120,6 +120,7 @@ class RequestTable(TableBase):
         input_data: dict,
         message: str,
         credit: int,
+        increment_try: bool = False,
     ) -> None:
         """
         This method is used to update a request in the database
@@ -132,6 +133,7 @@ class RequestTable(TableBase):
             input_data (dict): The input data for the request
             message (str): The message for the request
             credit (int): The number of credits used for the request
+            increment_try (bool): Whether to increment the try count
 
         Returns:
             None
@@ -159,7 +161,8 @@ class RequestTable(TableBase):
                 credit,
             )
         else:
-            record.try_count += 1
+            if increment_try:
+                record.try_count += 1
             record.status = request_status
             record.last_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
             record.message = {"message": message}
