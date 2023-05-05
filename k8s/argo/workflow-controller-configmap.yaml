@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workflow-controller-configmap
+  namespace: metget
+data:
+  workflowDefaults: | 
+    spec:
+      podGC:
+        strategy: OnWorkflowSuccess
+      ttlStrategy:
+        secondsAfterCompletion: 10 # Time to live after workflow is completed, replaces  ttlSecondsAfterFinished
+        secondsAfterSuccess: 5     # Time to live after workflow is successful
+        secondsAfterFailure: 3600     # Time to live after workflow fails

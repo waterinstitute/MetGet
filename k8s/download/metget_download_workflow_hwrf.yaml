@@ -3,7 +3,7 @@ kind: CronWorkflow
 metadata:
   name: metget-download-hwrf
 spec:
-  schedule: "*/10 * * * *"
+  schedule: "*/5 * * * *"
   concurrencyPolicy: "Forbid"
   startingDeadlineSeconds: 0
   workflowSpec:
