@@ -102,7 +102,9 @@ class MetGetBuild(Resource):
 
         request_uuid = str(uuid.uuid4())
         request_api_key = request.headers.get("x-api-key")
-        request_source_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+        request_source_ip = request.environ.get(
+            "HTTP_X_FORWARDED_FOR", request.remote_addr
+        )
         request_json = request.get_json()
 
         request_obj = MetBuildRequest(
@@ -167,9 +169,10 @@ class MetGetTrack(Resource):
         message, status = s.get(request)
         return message, status
 
+
 class MetGetCredits(Resource):
     """
-    Allows the user to query the current credit balance for 
+    Allows the user to query the current credit balance for
     their API key. This endpoint uses the API key passed in
     with the header and takes no parameters
     """
@@ -185,7 +188,6 @@ class MetGetCredits(Resource):
             return {"statusCode": 200, "body": credit_data}, 200
         else:
             return AccessControl.unauthorized_response()
-
 
 
 # ...Add the resources to the API

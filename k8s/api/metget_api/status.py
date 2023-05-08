@@ -622,6 +622,7 @@ class Status:
         """
         from metbuild.database import Database
         from metbuild.tables import NhcBtkTable
+        from sqlalchemy import or_, and_
 
         db = Database()
         session = db.session()
@@ -658,15 +659,35 @@ class Status:
             basins = (
                 session.query(NhcBtkTable.basin)
                 .distinct()
-                .filter(NhcBtkTable.advisory_start >= start)
-                .filter(NhcBtkTable.advisory_end <= end)
+                .filter(
+                    and_(
+                        or_(
+                            NhcBtkTable.advisory_start >= start,
+                            NhcBtkTable.advisory_end >= start,
+                        ),
+                        or_(
+                            NhcBtkTable.advisory_start <= end,
+                            NhcBtkTable.advisory_end <= end,
+                        ),
+                    )
+                )
                 .all()
             )
             storm_years = (
                 session.query(NhcBtkTable.storm_year)
                 .distinct()
-                .filter(NhcBtkTable.advisory_start >= start)
-                .filter(NhcBtkTable.advisory_end <= end)
+                .filter(
+                    and_(
+                        or_(
+                            NhcBtkTable.advisory_start >= start,
+                            NhcBtkTable.advisory_end >= start,
+                        ),
+                        or_(
+                            NhcBtkTable.advisory_start <= end,
+                            NhcBtkTable.advisory_end <= end,
+                        ),
+                    )
+                )
                 .all()
             )
             storms = (
@@ -678,8 +699,18 @@ class Status:
                     NhcBtkTable.advisory_end,
                     NhcBtkTable.advisory_duration_hr,
                 )
-                .filter(NhcBtkTable.advisory_start >= start)
-                .filter(NhcBtkTable.advisory_end <= end)
+                .filter(
+                    and_(
+                        or_(
+                            NhcBtkTable.advisory_start >= start,
+                            NhcBtkTable.advisory_end >= start,
+                        ),
+                        or_(
+                            NhcBtkTable.advisory_start <= end,
+                            NhcBtkTable.advisory_end <= end,
+                        ),
+                    )
+                )
                 .order_by(NhcBtkTable.basin, NhcBtkTable.storm)
                 .all()
             )
@@ -724,6 +755,7 @@ class Status:
         """
         from metbuild.database import Database
         from metbuild.tables import NhcFcstTable
+        from sqlalchemy import or_, and_
 
         db = Database()
         session = db.session()
@@ -759,15 +791,35 @@ class Status:
             basins = (
                 session.query(NhcFcstTable.basin)
                 .distinct()
-                .filter(NhcFcstTable.advisory_start >= start)
-                .filter(NhcFcstTable.advisory_end <= end)
+                .filter(
+                    and_(
+                        or_(
+                            NhcFcstTable.advisory_start >= start,
+                            NhcFcstTable.advisory_end >= start,
+                        ),
+                        or_(
+                            NhcFcstTable.advisory_start <= end,
+                            NhcFcstTable.advisory_end <= end,
+                        ),
+                    )
+                )
                 .all()
             )
             storm_years = (
                 session.query(NhcFcstTable.storm_year)
                 .distinct()
-                .filter(NhcFcstTable.advisory_start >= start)
-                .filter(NhcFcstTable.advisory_end <= end)
+                .filter(
+                    and_(
+                        or_(
+                            NhcFcstTable.advisory_start >= start,
+                            NhcFcstTable.advisory_end >= start,
+                        ),
+                        or_(
+                            NhcFcstTable.advisory_start <= end,
+                            NhcFcstTable.advisory_end <= end,
+                        ),
+                    )
+                )
                 .all()
             )
 
@@ -778,8 +830,18 @@ class Status:
                     NhcFcstTable.storm,
                 )
                 .distinct()
-                .filter(NhcFcstTable.advisory_start >= start)
-                .filter(NhcFcstTable.advisory_end <= end)
+                .filter(
+                    and_(
+                        or_(
+                            NhcFcstTable.advisory_start >= start,
+                            NhcFcstTable.advisory_end >= start,
+                        ),
+                        or_(
+                            NhcFcstTable.advisory_start <= end,
+                            NhcFcstTable.advisory_end <= end,
+                        ),
+                    )
+                )
                 .order_by(NhcFcstTable.basin, NhcFcstTable.storm)
                 .all()
             )
