@@ -697,7 +697,6 @@ def main():
     p.add_argument(
         "--api-version",
         type=int,
-        default=1,
         help="MetGet API version. Default is 1. When using the k8s MetGet API, this should be 2.",
     )
 
@@ -718,6 +717,14 @@ def main():
             apikey = os.environ["METGET_API_KEY"]
     else:
         apikey = args.apikey
+
+    if not args.api_version:
+        if "METGET_API_VERSION" not in os.environ:
+            api_version = 1
+        else:
+            api_version = int(os.environ["METGET_API_VERSION"])
+    else:
+        api_version = args.api_version
 
     # ...Check for required arguments
     if not args.request:
@@ -794,7 +801,7 @@ def main():
                 apikey,
                 args.check_interval,
                 args.max_wait,
-                args.api_version,
+                api_version,
             )
         else:
             print(status_code)
@@ -806,7 +813,7 @@ def main():
             apikey,
             args.check_interval,
             args.max_wait,
-            args.api_version,
+            api_version,
         )
 
 

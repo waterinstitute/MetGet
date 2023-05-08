@@ -155,6 +155,8 @@ class MessageHandler:
             "output_files": output_file_list,
         }
 
+        met_field = None  # ... This assignment closes all open files
+
         # ...Posts the data out to the correct S3 location
         s3up = S3file(os.environ["METGET_S3_BUCKET_UPLOAD"])
         for f in output_file_list:
@@ -558,8 +560,6 @@ class MessageHandler:
             files_used_list[input_data.domain(i).name()] = domain_files_used
 
         output_file_list = met_field.filenames()
-
-        met_field = None  # ... This assignment closes all open files
 
         return output_file_list, files_used_list
 
