@@ -257,6 +257,7 @@ class Filelist:
                 table.forecastcycle >= self.__start,
                 table.forecastcycle <= self.__end,
             )
+            .order_by(table.forecastcycle)
             .first()
         )
 
@@ -432,6 +433,7 @@ class Filelist:
                 GefsTable.forecastcycle >= self.__start,
                 GefsTable.forecastcycle <= self.__end,
             )
+            .order_by(GefsTable.forecastcycle)
             .first()
         )
 
@@ -631,6 +633,7 @@ class Filelist:
                 table.forecastcycle >= self.__start,
                 table.forecastcycle <= self.__end,
             )
+            .order_by(table.forecastcycle)
             .first()
         )
 
