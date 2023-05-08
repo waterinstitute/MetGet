@@ -370,6 +370,9 @@ def make_metget_request(
     headers = {"x-api-key": apikey}
     r = requests.post(endpoint + "/build", headers=headers, json=request_json)
     if r.status_code != 200:
+        if r.text:
+            with open("metget.debug", "a") as f:
+                f.write(r.text)
         raise RuntimeError(
             "Request to MetGet was returned status code = " + str(r.status_code)
         )
