@@ -211,7 +211,12 @@ class BuildRequest:
                 end_date_time = lookup[-1]["forecasttime"]
 
                 if self.__input_obj.start_date() < start_data_time:
-                    self.__error.append("Start date is before data is available")
+                    self.__error.append(
+                        "Start date is before data is available: User Start Date: {:s}, Data Start Date: {:s}".format(
+                            self.__input_obj.start_date().strftime("%Y-%m-%d %H:%M"),
+                            start_data_time.strftime("%Y-%m-%d %H:%M"),
+                        )
+                    )
                     if self.__input_obj.strict():
                         return False
 
