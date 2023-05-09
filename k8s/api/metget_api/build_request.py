@@ -163,6 +163,8 @@ class BuildRequest:
         This method is used to validate the request
         """
 
+        log = logging.getLogger(__name__)
+
         # ...Step 1: Check if the input was even parsed correctly
         if not self.__input_obj.valid():
             self.__error.append("Input data could not be parsed")

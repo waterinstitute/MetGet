@@ -181,9 +181,13 @@ class Domain:
         Returns:
             None
         """
-        if self.service() == "hwrf" or self.service() == "coamps-tc":
+        if (
+            self.service() == "hwrf"
+            or self.service() == "coamps-tc"
+            or self.service() == "nhc"
+        ):
             if "storm" in self.__json:
-                self.__storm = self.__json["storm"]
+                self.__storm = str(self.__json["storm"])
             else:
                 self.__valid = False
         else:

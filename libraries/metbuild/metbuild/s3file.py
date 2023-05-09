@@ -85,7 +85,7 @@ class S3file:
 
         log = logging.getLogger(__name__)
         tempdir = tempfile.gettempdir()
-        fn = os.path.split("/")[-1]
+        fn = os.path.split(remote_path)[1]
         if time:
             fname = "{:s}.{:s}.{:s}".format(service, time.strftime("%Y%m%d%H%M"), fn)
             local_path = os.path.join(tempdir, fname)

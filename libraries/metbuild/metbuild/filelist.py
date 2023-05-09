@@ -761,7 +761,6 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-
         from .tables import NhcBtkTable, NhcFcstTable
 
         best_track_query = (
