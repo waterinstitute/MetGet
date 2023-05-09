@@ -1,6 +1,15 @@
 import logging
 
-VALID_SERVICES = ["gfs-ncep", "gefs-ncep", "nam-ncep", "hwrf", "coamps-tc"]
+VALID_SERVICES = [
+    "gfs-ncep",
+    "gefs-ncep",
+    "nam-ncep",
+    "hwrf",
+    "coamps-tc",
+    "nhc",
+    "hrrr-conus",
+    "hrrr-alaska",
+]
 
 
 class Domain:

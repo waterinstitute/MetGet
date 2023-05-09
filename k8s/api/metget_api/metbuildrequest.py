@@ -108,7 +108,6 @@ class MetBuildRequest:
                     msg["body"]["credits"] = credit_dict
                     msg["body"]["error_text"] = []
         else:
-            statuscode = 401
             msg["statusCode"] = 401
             msg["body"]["status"] = "error"
             msg["body"]["message"] = "Request could not be added to queue"
