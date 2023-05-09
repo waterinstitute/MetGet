@@ -1,4 +1,5 @@
 import logging
+from .windgrid import WindGrid
 
 VALID_SERVICES = [
     "gfs-ncep",
@@ -13,8 +14,21 @@ VALID_SERVICES = [
 
 
 class Domain:
+    """
+    Domain class. This class is used to store the domain information for a
+    request
+    """
+
     def __init__(self, name, service, json, no_construct=False):
-        from .windgrid import WindGrid
+        """
+        Constructor for the Domain class
+
+        Args:
+            name: The name of the domain
+            service: The service used to generate the domain
+            json: The json object containing the domain information
+            no_construct: If True, do not construct the WindGrid object
+        """
 
         log = logging.getLogger(__name__)
 
@@ -55,40 +69,118 @@ class Domain:
         self.__get_storm_year()
         self.__get_ensemble_member()
 
-    def storm(self):
+    def storm(self) -> str:
+        """
+        Returns the storm name for the domain.
+        If the domain does not have a storm, this will return None
+
+        Returns:
+            The storm name for the domain
+        """
         return self.__storm
 
-    def basin(self):
+    def basin(self) -> str:
+        """
+        Returns the basin name for the domain.
+        If the domain does not have a storm, this will return None
+
+        Returns:
+            The basin name for the domain
+        """
         return self.__basin
 
-    def advisory(self):
+    def advisory(self) -> str:
+        """
+        Returns the advisory name for the domain.
+        If the domain does not have a storm, this will return None
+
+        Returns:
+            The advisory name for the domain
+        """
         return self.__advisory
 
-    def ensemble_member(self):
+    def ensemble_member(self) -> str:
+        """
+        Returns the ensemble member for the domain.
+        If the domain does not have an ensemble member, this will return None
+
+        Returns:
+            The ensemble member for the domain
+        """
         return self.__ensemble_member
 
-    def tau(self):
+    def tau(self) -> int:
+        """
+        Returns the tau (skipping time) for the domain.
+        If the domain does not have a tau, it will return 0
+
+        Returns:
+            The tau for the domain
+        """
         return self.__tau
 
-    def storm_year(self):
+    def storm_year(self) -> int:
+        """
+        Returns the storm year for the domain.
+        If the domain does not have a storm, it will return None
+
+        Returns:
+            The storm year for the domain
+        """
         return self.__storm_year
 
-    def name(self):
+    def name(self) -> str:
+        """
+        Returns the name of the domain
+
+        Returns:
+            The name of the domain
+        """
         return self.__name
 
-    def service(self):
+    def service(self) -> str:
+        """
+        Returns the service used to generate the domain
+
+        Returns:
+            The service used to generate the domain
+        """
         return self.__service
 
-    def grid(self):
+    def grid(self) -> WindGrid:
+        """
+        Returns the grid for the domain
+
+        Returns:
+            The grid for the domain
+        """
         return self.__grid
 
-    def json(self):
+    def json(self) -> dict:
+        """
+        Returns the json object for the domain
+
+        Returns:
+            The json object for the domain
+        """
         return self.__json
 
-    def valid(self):
+    def valid(self) -> bool:
+        """
+        Returns whether the domain is valid
+
+        Returns:
+            True if the domain is valid, False otherwise
+        """
         return self.__valid
 
-    def __get_storm(self):
+    def __get_storm(self) -> None:
+        """
+        Gets the storm name for the domain from the json object if the service is hwrf or coamps-tc
+
+        Returns:
+            None
+        """
         if self.service() == "hwrf" or self.service() == "coamps-tc":
             if "storm" in self.__json:
                 self.__storm = self.__json["storm"]
@@ -97,7 +189,13 @@ class Domain:
         else:
             self.__storm = None
 
-    def __get_basin(self):
+    def __get_basin(self) -> None:
+        """
+        Gets the basin name for the domain from the json object if the service is nhc
+
+        Returns:
+            None
+        """
         if self.service() == "nhc":
             if "basin" in self.__json:
                 self.__basin = self.__json["basin"]
@@ -106,16 +204,28 @@ class Domain:
         else:
             self.__basin = None
 
-    def __get_advisory(self):
+    def __get_advisory(self) -> None:
+        """
+        Gets the advisory name for the domain from the json object if the service is nhc
+
+        Returns:
+            None
+        """
         if self.service() == "nhc":
             if "advisory" in self.__json:
-                self.__advisory = self.__json["advisory"]
+                self.__advisory = str(self.__json["advisory"])
             else:
                 self.__valid = False
         else:
             self.__advisory = None
 
-    def __get_storm_year(self):
+    def __get_storm_year(self) -> None:
+        """
+        Gets the storm year for the domain from the json object if the service is nhc
+
+        Returns:
+            None
+        """
         from datetime import datetime
 
         if self.service() == "nhc":
@@ -126,13 +236,25 @@ class Domain:
         else:
             self.__storm_year = None
 
-    def __get_tau(self):
+    def __get_tau(self) -> None:
+        """
+        Gets the tau for the domain from the json object if the service is nhc
+
+        Returns:
+            None
+        """
         if "tau" in self.__json:
             self.__tau = self.__json["tau"]
         else:
             self.__tau = 0
 
-    def __get_ensemble_member(self):
+    def __get_ensemble_member(self) -> None:
+        """
+        Gets the ensemble member for the domain from the json object if the service is gefs-ncep
+
+        Returns:
+            None
+        """
         if self.service() == "gefs-ncep":
             if "ensemble_member" in self.__json:
                 self.__ensemble_member = self.__json["ensemble_member"]
