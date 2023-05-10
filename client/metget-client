@@ -262,9 +262,16 @@ def parse_domain_data(domain_list: list, level: int, tau: int) -> dict:
         model = "gefs"
     elif "nhc" in model:
         keys = model.split("-")
-        basin = keys[1]
-        storm = keys[2]
-        advisory = keys[3]
+        if len(keys) == 5:
+            year = keys[1]
+            basin = keys[2]
+            storm = keys[3]
+            advisory = keys[4]
+        else:
+            year = datetime.utcnow().year
+            basin = keys[1]
+            storm = keys[2]
+            advisory = keys[3]
         model = "nhc"
 
     res = float(domain_list[1])
@@ -330,6 +337,7 @@ def parse_domain_data(domain_list: list, level: int, tau: int) -> dict:
             "service": AVAILABLE_MODELS[model],
             "basin": basin,
             "storm": storm,
+            "storm_year": year,
             "advisory": advisory,
             "x_init": xmin,
             "y_init": ymin,

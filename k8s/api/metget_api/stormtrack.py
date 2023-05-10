@@ -10,10 +10,7 @@ class StormTrack:
         """
         Constructor for StormTrack class
         """
-        from metbuild.database import Database
-
-        self.__db = Database()
-        self.__session = self.__db.session()
+        pass
 
     def get(self, request) -> Tuple[dict, int]:
         """
@@ -27,6 +24,7 @@ class StormTrack:
         """
 
         from metbuild.tables import NhcBtkTable, NhcFcstTable
+        from metbuild.database import Database
 
         advisory = None
         basin = None
@@ -94,27 +92,28 @@ class StormTrack:
                 },
             }, 400
 
-        if track_type == "forecast":
-            query_result = (
-                self.__session.query(NhcFcstTable.geometry_data)
-                .filter(
-                    NhcFcstTable.storm_year == year,
-                    NhcFcstTable.basin == basin,
-                    NhcFcstTable.storm == storm,
-                    NhcFcstTable.advisory == advisory,
+        with Database() as db, db.session() as session:
+            if track_type == "forecast":
+                query_result = (
+                    session.query(NhcFcstTable.geometry_data)
+                    .filter(
+                        NhcFcstTable.storm_year == year,
+                        NhcFcstTable.basin == basin,
+                        NhcFcstTable.storm == storm,
+                        NhcFcstTable.advisory == advisory,
+                    )
+                    .all()
                 )
-                .all()
-            )
-        else:
-            query_result = (
-                self.__session.query(NhcBtkTable.geometry_data)
-                .filter(
-                    NhcBtkTable.storm_year == year,
-                    NhcBtkTable.basin == basin,
-                    NhcBtkTable.storm == storm,
+            else:
+                query_result = (
+                    session.query(NhcBtkTable.geometry_data)
+                    .filter(
+                        NhcBtkTable.storm_year == year,
+                        NhcBtkTable.basin == basin,
+                        NhcBtkTable.storm == storm,
+                    )
+                    .all()
                 )
-                .all()
-            )
 
         if len(query_result) == 0:
             return {

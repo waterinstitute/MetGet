@@ -1,7 +1,8 @@
 from sqlalchemy import func
 from datetime import datetime
-from .tables import TableBase
 from typing import Union
+from metbuild.tables import TableBase
+from metbuild.database import Database
 
 
 class Filelist:
@@ -43,7 +44,6 @@ class Filelist:
             ensemble_member (str): The ensemble member that is being requested
 
         """
-        from .database import Database
 
         self.__service = service
         self.__param = param
@@ -59,8 +59,6 @@ class Filelist:
         self.__ensemble_member = ensemble_member
         self.__error = []
         self.__valid = False
-        self.__db = Database()
-        self.__session = self.__db.session()
         self.__files = self.__query_files()
 
     @staticmethod
@@ -193,32 +191,33 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
-        t2 = (
-            self.__session.query(table.forecasttime, func.max(table.index).label("id"))
-            .filter(table.tau == 0)
-            .group_by(table.forecasttime)
-            .order_by(table.forecasttime)
-            .subquery()
-        )
-        return Filelist.__rows2dicts(
-            self.__session.query(
-                table.index,
-                table.forecastcycle,
-                table.forecasttime,
-                table.filepath,
-                table.tau,
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(table.forecasttime, func.max(table.index).label("id"))
+                .filter(table.tau == 0)
+                .group_by(table.forecasttime)
+                .order_by(table.forecasttime)
+                .subquery()
             )
-            .join(t2, table.index == t2.c.id)
-            .filter(
-                table.index == t2.c.id,
-                table.tau == 0,
-                table.forecasttime == t2.c.forecasttime,
-                table.forecasttime >= self.__start,
-                table.forecasttime <= self.__end,
+            return Filelist.__rows2dicts(
+                session.query(
+                    table.index,
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .join(t2, table.index == t2.c.id)
+                .filter(
+                    table.index == t2.c.id,
+                    table.tau == 0,
+                    table.forecasttime == t2.c.forecasttime,
+                    table.forecasttime >= self.__start,
+                    table.forecasttime <= self.__end,
+                )
+                .order_by(table.forecasttime)
+                .all()
             )
-            .order_by(table.forecasttime)
-            .all()
-        )
 
     def __query_generic_file_list_single_forecast(self, table: TableBase) -> list:
         """
@@ -236,47 +235,48 @@ class Filelist:
             list: The list of files that will be used to generate the requested forcing
 
         """
-        t2 = (
-            self.__session.query(table.forecasttime, func.max(table.index).label("id"))
-            .group_by(table.forecasttime)
-            .order_by(table.forecasttime)
-            .subquery()
-        )
-        first_cycle = (
-            self.__session.query(
-                table.index,
-                table.forecastcycle,
-                table.forecasttime,
-                table.filepath,
-                table.tau,
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(table.forecasttime, func.max(table.index).label("id"))
+                .group_by(table.forecasttime)
+                .order_by(table.forecasttime)
+                .subquery()
             )
-            .join(t2, table.index == t2.c.id)
-            .filter(
-                table.index == t2.c.id,
-                table.forecasttime == t2.c.forecasttime,
-                table.forecastcycle >= self.__start,
-                table.forecastcycle <= self.__end,
+            first_cycle = (
+                session.query(
+                    table.index,
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .join(t2, table.index == t2.c.id)
+                .filter(
+                    table.index == t2.c.id,
+                    table.forecasttime == t2.c.forecasttime,
+                    table.forecastcycle >= self.__start,
+                    table.forecastcycle <= self.__end,
+                )
+                .order_by(table.forecastcycle)
+                .first()
             )
-            .order_by(table.forecastcycle)
-            .first()
-        )
 
-        pure_forecast = Filelist.__rows2dicts(
-            self.__session.query(
-                table.forecastcycle,
-                table.forecasttime,
-                table.filepath,
-                table.tau,
+            pure_forecast = Filelist.__rows2dicts(
+                session.query(
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .filter(
+                    table.forecastcycle == first_cycle[1],
+                    table.tau >= self.__tau,
+                    table.forecasttime >= self.__start,
+                    table.forecasttime <= self.__end,
+                )
+                .order_by(table.forecasttime)
+                .all()
             )
-            .filter(
-                table.forecastcycle == first_cycle[1],
-                table.tau >= self.__tau,
-                table.forecasttime >= self.__start,
-                table.forecasttime <= self.__end,
-            )
-            .order_by(table.forecasttime)
-            .all()
-        )
 
         # If tau is 0, we don't need to query the fallback data
         if self.__tau == 0:
@@ -304,32 +304,33 @@ class Filelist:
             list: The list of files that will be used to generate the requested forcing
 
         """
-        t2 = (
-            self.__session.query(table.forecasttime, func.max(table.index).label("id"))
-            .filter(table.tau >= self.__tau)
-            .group_by(table.forecasttime)
-            .order_by(table.forecasttime)
-            .subquery()
-        )
-        return Filelist.__rows2dicts(
-            self.__session.query(
-                table.index,
-                table.forecastcycle,
-                table.forecasttime,
-                table.filepath,
-                table.tau,
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(table.forecasttime, func.max(table.index).label("id"))
+                .filter(table.tau >= self.__tau)
+                .group_by(table.forecasttime)
+                .order_by(table.forecasttime)
+                .subquery()
             )
-            .join(t2, table.index == t2.c.id)
-            .filter(
-                table.index == t2.c.id,
-                table.tau >= self.__tau,
-                table.forecasttime == t2.c.forecasttime,
-                table.forecasttime >= self.__start,
-                table.forecasttime <= self.__end,
+            return Filelist.__rows2dicts(
+                session.query(
+                    table.index,
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .join(t2, table.index == t2.c.id)
+                .filter(
+                    table.index == t2.c.id,
+                    table.tau >= self.__tau,
+                    table.forecasttime == t2.c.forecasttime,
+                    table.forecasttime >= self.__start,
+                    table.forecasttime <= self.__end,
+                )
+                .order_by(table.forecasttime)
+                .all()
             )
-            .order_by(table.forecasttime)
-            .all()
-        )
 
     def __query_files_gfs_ncep(self) -> list:
         """
@@ -409,51 +410,52 @@ class Filelist:
 
         from .tables import GefsTable
 
-        t2 = (
-            self.__session.query(
-                GefsTable.forecasttime, func.max(GefsTable.index).label("id")
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(
+                    GefsTable.forecasttime, func.max(GefsTable.index).label("id")
+                )
+                .filter(GefsTable.ensemble_member == self.__ensemble_member)
+                .group_by(GefsTable.forecasttime)
+                .order_by(GefsTable.forecasttime)
+                .subquery()
             )
-            .filter(GefsTable.ensemble_member == self.__ensemble_member)
-            .group_by(GefsTable.forecasttime)
-            .order_by(GefsTable.forecasttime)
-            .subquery()
-        )
-        first_cycle = (
-            self.__session.query(
-                GefsTable.index,
-                GefsTable.forecastcycle,
-                GefsTable.forecasttime,
-                GefsTable.filepath,
-                GefsTable.tau,
+            first_cycle = (
+                session.query(
+                    GefsTable.index,
+                    GefsTable.forecastcycle,
+                    GefsTable.forecasttime,
+                    GefsTable.filepath,
+                    GefsTable.tau,
+                )
+                .join(t2, GefsTable.index == t2.c.id)
+                .filter(
+                    GefsTable.index == t2.c.id,
+                    GefsTable.forecasttime == t2.c.forecasttime,
+                    GefsTable.forecastcycle >= self.__start,
+                    GefsTable.forecastcycle <= self.__end,
+                )
+                .order_by(GefsTable.forecastcycle)
+                .first()
             )
-            .join(t2, GefsTable.index == t2.c.id)
-            .filter(
-                GefsTable.index == t2.c.id,
-                GefsTable.forecasttime == t2.c.forecasttime,
-                GefsTable.forecastcycle >= self.__start,
-                GefsTable.forecastcycle <= self.__end,
-            )
-            .order_by(GefsTable.forecastcycle)
-            .first()
-        )
 
-        pure_forecast = Filelist.__rows2dicts(
-            self.__session.query(
-                GefsTable.forecastcycle,
-                GefsTable.forecasttime,
-                GefsTable.filepath,
-                GefsTable.tau,
+            pure_forecast = Filelist.__rows2dicts(
+                session.query(
+                    GefsTable.forecastcycle,
+                    GefsTable.forecasttime,
+                    GefsTable.filepath,
+                    GefsTable.tau,
+                )
+                .filter(
+                    GefsTable.forecastcycle == first_cycle[1],
+                    GefsTable.tau >= self.__tau,
+                    GefsTable.ensemble_member == self.__ensemble_member,
+                    GefsTable.forecasttime >= self.__start,
+                    GefsTable.forecasttime <= self.__end,
+                )
+                .order_by(GefsTable.forecasttime)
+                .all()
             )
-            .filter(
-                GefsTable.forecastcycle == first_cycle[1],
-                GefsTable.tau >= self.__tau,
-                GefsTable.ensemble_member == self.__ensemble_member,
-                GefsTable.forecasttime >= self.__start,
-                GefsTable.forecasttime <= self.__end,
-            )
-            .order_by(GefsTable.forecasttime)
-            .all()
-        )
 
         # If tau is 0, we don't need to query the fallback data
         if self.__tau == 0:
@@ -477,37 +479,38 @@ class Filelist:
         """
         from .tables import GefsTable
 
-        t2 = (
-            self.__session.query(
-                GefsTable.forecasttime, func.max(GefsTable.index).label("id")
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(
+                    GefsTable.forecasttime, func.max(GefsTable.index).label("id")
+                )
+                .filter(
+                    GefsTable.tau >= self.__tau,
+                    GefsTable.ensemble_member == self.__ensemble_member,
+                )
+                .group_by(GefsTable.forecasttime)
+                .order_by(GefsTable.forecasttime)
+                .subquery()
             )
-            .filter(
-                GefsTable.tau >= self.__tau,
-                GefsTable.ensemble_member == self.__ensemble_member,
+            return Filelist.__rows2dicts(
+                session.query(
+                    GefsTable.index,
+                    GefsTable.forecastcycle,
+                    GefsTable.forecasttime,
+                    GefsTable.filepath,
+                    GefsTable.tau,
+                )
+                .join(t2, GefsTable.index == t2.c.id)
+                .filter(
+                    GefsTable.index == t2.c.id,
+                    GefsTable.tau >= self.__tau,
+                    GefsTable.forecasttime == t2.c.forecasttime,
+                    GefsTable.forecasttime >= self.__start,
+                    GefsTable.forecasttime <= self.__end,
+                )
+                .order_by(GefsTable.forecasttime)
+                .all()
             )
-            .group_by(GefsTable.forecasttime)
-            .order_by(GefsTable.forecasttime)
-            .subquery()
-        )
-        return Filelist.__rows2dicts(
-            self.__session.query(
-                GefsTable.index,
-                GefsTable.forecastcycle,
-                GefsTable.forecasttime,
-                GefsTable.filepath,
-                GefsTable.tau,
-            )
-            .join(t2, GefsTable.index == t2.c.id)
-            .filter(
-                GefsTable.index == t2.c.id,
-                GefsTable.tau >= self.__tau,
-                GefsTable.forecasttime == t2.c.forecasttime,
-                GefsTable.forecasttime >= self.__start,
-                GefsTable.forecasttime <= self.__end,
-            )
-            .order_by(GefsTable.forecasttime)
-            .all()
-        )
 
     def __query_gefs_file_list_nowcast(self) -> list:
         """
@@ -519,37 +522,39 @@ class Filelist:
         """
         from .tables import GefsTable
 
-        t2 = (
-            self.__session.query(
-                GefsTable.forecasttime, func.max(GefsTable.index).label("id")
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(
+                    GefsTable.forecasttime, func.max(GefsTable.index).label("id")
+                )
+                .filter(
+                    GefsTable.tau == 0,
+                    GefsTable.ensemble_member == self.__ensemble_member,
+                )
+                .group_by(GefsTable.forecasttime)
+                .order_by(GefsTable.forecasttime)
+                .subquery()
             )
-            .filter(
-                GefsTable.tau == 0, GefsTable.ensemble_member == self.__ensemble_member
-            )
-            .group_by(GefsTable.forecasttime)
-            .order_by(GefsTable.forecasttime)
-            .subquery()
-        )
 
-        return Filelist.__rows2dicts(
-            self.__session.query(
-                GefsTable.index,
-                GefsTable.forecastcycle,
-                GefsTable.forecasttime,
-                GefsTable.filepath,
-                GefsTable.tau,
+            return Filelist.__rows2dicts(
+                session.query(
+                    GefsTable.index,
+                    GefsTable.forecastcycle,
+                    GefsTable.forecasttime,
+                    GefsTable.filepath,
+                    GefsTable.tau,
+                )
+                .join(t2, GefsTable.index == t2.c.id)
+                .filter(
+                    GefsTable.index == t2.c.id,
+                    GefsTable.tau == 0,
+                    GefsTable.forecasttime == t2.c.forecasttime,
+                    GefsTable.forecasttime >= self.__start,
+                    GefsTable.forecasttime <= self.__end,
+                )
+                .order_by(GefsTable.forecasttime)
+                .all()
             )
-            .join(t2, GefsTable.index == t2.c.id)
-            .filter(
-                GefsTable.index == t2.c.id,
-                GefsTable.tau == 0,
-                GefsTable.forecasttime == t2.c.forecasttime,
-                GefsTable.forecasttime >= self.__start,
-                GefsTable.forecasttime <= self.__end,
-            )
-            .order_by(GefsTable.forecasttime)
-            .all()
-        )
 
     def __query_files_hwrf(self) -> list:
         """
@@ -611,49 +616,50 @@ class Filelist:
 
         """
 
-        t2 = (
-            self.__session.query(table.forecasttime, func.max(table.index).label("id"))
-            .filter(table.stormname == self.__storm)
-            .group_by(table.forecasttime)
-            .order_by(table.forecasttime)
-            .subquery()
-        )
-        first_cycle = (
-            self.__session.query(
-                table.index,
-                table.forecastcycle,
-                table.forecasttime,
-                table.filepath,
-                table.tau,
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(table.forecasttime, func.max(table.index).label("id"))
+                .filter(table.stormname == self.__storm)
+                .group_by(table.forecasttime)
+                .order_by(table.forecasttime)
+                .subquery()
             )
-            .join(t2, table.index == t2.c.id)
-            .filter(
-                table.index == t2.c.id,
-                table.forecasttime == t2.c.forecasttime,
-                table.forecastcycle >= self.__start,
-                table.forecastcycle <= self.__end,
+            first_cycle = (
+                session.query(
+                    table.index,
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .join(t2, table.index == t2.c.id)
+                .filter(
+                    table.index == t2.c.id,
+                    table.forecasttime == t2.c.forecasttime,
+                    table.forecastcycle >= self.__start,
+                    table.forecastcycle <= self.__end,
+                )
+                .order_by(table.forecastcycle)
+                .first()
             )
-            .order_by(table.forecastcycle)
-            .first()
-        )
 
-        pure_forecast = Filelist.__rows2dicts(
-            self.__session.query(
-                table.forecastcycle,
-                table.forecasttime,
-                table.filepath,
-                table.tau,
+            pure_forecast = Filelist.__rows2dicts(
+                session.query(
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .filter(
+                    table.forecastcycle == first_cycle[1],
+                    table.tau >= self.__tau,
+                    table.stormname == self.__storm,
+                    table.forecasttime >= self.__start,
+                    table.forecasttime <= self.__end,
+                )
+                .order_by(table.forecasttime)
+                .all()
             )
-            .filter(
-                table.forecastcycle == first_cycle[1],
-                table.tau >= self.__tau,
-                table.stormname == self.__storm,
-                table.forecasttime >= self.__start,
-                table.forecasttime <= self.__end,
-            )
-            .order_by(table.forecasttime)
-            .all()
-        )
 
         # If tau is 0, we don't need to query the fallback data
         if self.__tau == 0:
@@ -680,35 +686,36 @@ class Filelist:
             list: The list of files that will be used to generate the requested forcing
         """
 
-        t2 = (
-            self.__session.query(table.forecasttime, func.max(table.index).label("id"))
-            .filter(
-                table.tau >= self.__tau,
-                table.stormname == self.__storm,
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(table.forecasttime, func.max(table.index).label("id"))
+                .filter(
+                    table.tau >= self.__tau,
+                    table.stormname == self.__storm,
+                )
+                .group_by(table.forecasttime)
+                .order_by(table.forecasttime)
+                .subquery()
             )
-            .group_by(table.forecasttime)
-            .order_by(table.forecasttime)
-            .subquery()
-        )
-        return Filelist.__rows2dicts(
-            self.__session.query(
-                table.index,
-                table.forecastcycle,
-                table.forecasttime,
-                table.filepath,
-                table.tau,
+            return Filelist.__rows2dicts(
+                session.query(
+                    table.index,
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .join(t2, table.index == t2.c.id)
+                .filter(
+                    table.index == t2.c.id,
+                    table.tau >= self.__tau,
+                    table.forecasttime == t2.c.forecasttime,
+                    table.forecasttime >= self.__start,
+                    table.forecasttime <= self.__end,
+                )
+                .order_by(table.forecasttime)
+                .all()
             )
-            .join(t2, table.index == t2.c.id)
-            .filter(
-                table.index == t2.c.id,
-                table.tau >= self.__tau,
-                table.forecasttime == t2.c.forecasttime,
-                table.forecasttime >= self.__start,
-                table.forecasttime <= self.__end,
-            )
-            .order_by(table.forecasttime)
-            .all()
-        )
 
     def __query_storm_file_list_nowcast(self, table: TableBase) -> list:
         """
@@ -724,33 +731,34 @@ class Filelist:
             list: The list of files that will be used to generate the requested forcing
         """
 
-        t2 = (
-            self.__session.query(table.forecasttime, func.max(table.index).label("id"))
-            .filter(table.tau == 0, table.stormname == self.__storm)
-            .group_by(table.forecasttime)
-            .order_by(table.forecasttime)
-            .subquery()
-        )
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(table.forecasttime, func.max(table.index).label("id"))
+                .filter(table.tau == 0, table.stormname == self.__storm)
+                .group_by(table.forecasttime)
+                .order_by(table.forecasttime)
+                .subquery()
+            )
 
-        return Filelist.__rows2dicts(
-            self.__session.query(
-                table.index,
-                table.forecastcycle,
-                table.forecasttime,
-                table.filepath,
-                table.tau,
+            return Filelist.__rows2dicts(
+                session.query(
+                    table.index,
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .join(t2, table.index == t2.c.id)
+                .filter(
+                    table.index == t2.c.id,
+                    table.tau == 0,
+                    table.forecasttime == t2.c.forecasttime,
+                    table.forecasttime >= self.__start,
+                    table.forecasttime <= self.__end,
+                )
+                .order_by(table.forecasttime)
+                .all()
             )
-            .join(t2, table.index == t2.c.id)
-            .filter(
-                table.index == t2.c.id,
-                table.tau == 0,
-                table.forecasttime == t2.c.forecasttime,
-                table.forecasttime >= self.__start,
-                table.forecasttime <= self.__end,
-            )
-            .order_by(table.forecasttime)
-            .all()
-        )
 
     def __query_files_nhc(self) -> Union[dict, None]:
         """
@@ -763,36 +771,37 @@ class Filelist:
         """
         from .tables import NhcBtkTable, NhcFcstTable
 
-        best_track_query = (
-            self.__session.query(NhcBtkTable)
-            .filter(
-                NhcBtkTable.storm_year == self.__storm_year,
-                NhcBtkTable.basin == self.__basin,
-                NhcBtkTable.storm == self.__storm,
+        with Database() as db, db.session() as session:
+            best_track_query = (
+                session.query(NhcBtkTable)
+                .filter(
+                    NhcBtkTable.storm_year == self.__storm_year,
+                    NhcBtkTable.basin == self.__basin,
+                    NhcBtkTable.storm == self.__storm,
+                )
+                .all()
             )
-            .all()
-        )
 
-        if len(best_track_query) == 0:
-            best_track = None
-        else:
-            best_track = {
-                "start": best_track_query[0].advisory_start,
-                "end": best_track_query[0].advisory_end,
-                "duration": best_track_query[0].advisory_duration_hr,
-                "filepath": best_track_query[0].filepath,
-            }
+            if len(best_track_query) == 0:
+                best_track = None
+            else:
+                best_track = {
+                    "start": best_track_query[0].advisory_start,
+                    "end": best_track_query[0].advisory_end,
+                    "duration": best_track_query[0].advisory_duration_hr,
+                    "filepath": best_track_query[0].filepath,
+                }
 
-        forecast_track_query = (
-            self.__session.query(NhcFcstTable)
-            .filter(
-                NhcFcstTable.storm_year == self.__storm_year,
-                NhcFcstTable.basin == self.__basin,
-                NhcFcstTable.storm == self.__storm,
-                NhcFcstTable.advisory == self.__advisory,
+            forecast_track_query = (
+                session.query(NhcFcstTable)
+                .filter(
+                    NhcFcstTable.storm_year == self.__storm_year,
+                    NhcFcstTable.basin == self.__basin,
+                    NhcFcstTable.storm == self.__storm,
+                    NhcFcstTable.advisory == self.__advisory,
+                )
+                .all()
             )
-            .all()
-        )
 
         if len(forecast_track_query) == 0:
             forecast_track = None

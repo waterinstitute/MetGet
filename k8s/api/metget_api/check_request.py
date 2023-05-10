@@ -3,13 +3,7 @@ from typing import Tuple
 
 class CheckRequest:
     def __init__(self):
-        """
-        Constructor for CheckRequest class
-        """
-        from metbuild.database import Database
-
-        self.__db = Database()
-        self.__session = self.__db.session()
+        pass
 
     def get(self, request) -> Tuple[dict, int]:
         """
@@ -22,6 +16,8 @@ class CheckRequest:
             A tuple containing the response message and status code
         """
         from metbuild.tables import RequestTable
+        from metbuild.database import Database
+
         import os
 
         if "request-id" in request.args:
@@ -34,17 +30,18 @@ class CheckRequest:
                 },
             }, 400
 
-        query_result = (
-            self.__session.query(
-                RequestTable.try_count,
-                RequestTable.status,
-                RequestTable.start_date,
-                RequestTable.last_date,
-                RequestTable.message,
+        with Database() as db, db.session() as session:
+            query_result = (
+                session.query(
+                    RequestTable.try_count,
+                    RequestTable.status,
+                    RequestTable.start_date,
+                    RequestTable.last_date,
+                    RequestTable.message,
+                )
+                .filter(RequestTable.request_id == request_id)
+                .all()
             )
-            .filter(RequestTable.request_id == request_id)
-            .all()
-        )
 
         if len(query_result) == 0:
             return {

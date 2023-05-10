@@ -87,9 +87,6 @@ class RequestTable(TableBase):
         from datetime import datetime
         from metbuild.database import Database
 
-        db = Database()
-        session = db.session()
-
         record = RequestTable(
             request_id=request_id,
             try_count=0,
@@ -103,13 +100,13 @@ class RequestTable(TableBase):
             message={"message": message},
         )
 
-        qry_object = session.query(RequestTable).where(
-            RequestTable.request_id == record.request_id
-        )
-        if qry_object.first() is None:
-            session.add(record)
-
-        session.commit()
+        with Database() as db, db.session() as session:
+            qry_object = session.query(RequestTable).where(
+                RequestTable.request_id == record.request_id
+            )
+            if qry_object.first() is None:
+                session.add(record)
+                session.commit()
 
     @staticmethod
     def update_request(
@@ -141,33 +138,30 @@ class RequestTable(TableBase):
         from datetime import datetime
         from metbuild.database import Database
 
-        db = Database()
-        session = db.session()
-
-        record = (
-            session.query(RequestTable)
-            .where(RequestTable.request_id == request_id)
-            .first()
-        )
-
-        if record is None:
-            RequestTable.add_request(
-                request_id,
-                request_status,
-                api_key,
-                source_ip,
-                input_data,
-                message,
-                credit,
+        with Database() as db, db.session() as session:
+            record = (
+                session.query(RequestTable)
+                .where(RequestTable.request_id == request_id)
+                .first()
             )
-        else:
-            if increment_try:
-                record.try_count += 1
-            record.status = request_status
-            record.last_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-            record.message = {"message": message}
 
-        session.commit()
+            if record is None:
+                RequestTable.add_request(
+                    request_id,
+                    request_status,
+                    api_key,
+                    source_ip,
+                    input_data,
+                    message,
+                    credit,
+                )
+            else:
+                if increment_try:
+                    record.try_count += 1
+                record.status = request_status
+                record.last_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                record.message = {"message": message}
+                session.commit()
 
 
 class GfsTable(TableBase):

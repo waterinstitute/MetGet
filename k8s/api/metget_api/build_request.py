@@ -26,13 +26,10 @@ class BuildRequest:
             api_key: A string containing the api key
             source_ip: A string containing the source ip
             request_json: A dictionary containing the json data for the request
-            no_construct: Set to true so that objects are not actually constructed, used for checking rather than running the process
+            no_construct: Set to true so that objects are not actually constructed, used for
+            checking rather than running the process
 
         """
-        from metbuild.database import Database
-
-        self.__db = Database()
-        self.__session = self.__db.session()
         self.__request_id = request_id
         self.__api_key = api_key
         self.__source_ip = source_ip

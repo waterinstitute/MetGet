@@ -11,4 +11,4 @@ WORKDIR /app
 COPY libraries/metbuild /tmp/metbuild/.
 RUN pip install /tmp/metbuild/. && rm -rf /tmp/metbuild
 
-COPY k8s/key_manager/key_manager /app/.
+COPY k8s/key_manager/metget-key-manager /usr/bin/.

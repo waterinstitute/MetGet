@@ -34,6 +34,8 @@ spec:
             configMapKeyRef:
               name: metget-configmap
               key: database.name
+        - name: PGDATA
+          value: /var/lib/postgresql/data/database-data
         ports:
         - containerPort: 5432
           name: metget-db-port

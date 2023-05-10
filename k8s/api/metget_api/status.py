@@ -218,35 +218,33 @@ class Status:
         """
         from metbuild.database import Database
 
-        db = Database()
-        session = db.session()
-
-        if limit is not None:
-            limit_time = datetime.utcnow() - limit
-            unique_cycles = (
-                session.query(table_type.forecastcycle)
-                .distinct()
-                .filter(table_type.forecastcycle >= limit_time)
-                .order_by(table_type.forecastcycle.desc())
-                .all()
-            )
-            limit_days = limit.days
-            limit_start = Status.d2s(limit_time)
-            limit_end = Status.d2s(datetime.utcnow())
-        elif start is not None and end is not None:
-            limit_days = (end - start).total_seconds() / 86400.0
-            limit_start = Status.d2s(start)
-            limit_end = Status.d2s(end)
-            unique_cycles = (
-                session.query(table_type.forecastcycle)
-                .distinct()
-                .filter(table_type.forecastcycle >= start)
-                .filter(table_type.forecastcycle <= end)
-                .order_by(table_type.forecastcycle.desc())
-                .all()
-            )
-        else:
-            raise ValueError("ERROR: Invalid limit provided")
+        with Database() as db, db.session() as session:
+            if limit is not None:
+                limit_time = datetime.utcnow() - limit
+                unique_cycles = (
+                    session.query(table_type.forecastcycle)
+                    .distinct()
+                    .filter(table_type.forecastcycle >= limit_time)
+                    .order_by(table_type.forecastcycle.desc())
+                    .all()
+                )
+                limit_days = limit.days
+                limit_start = Status.d2s(limit_time)
+                limit_end = Status.d2s(datetime.utcnow())
+            elif start is not None and end is not None:
+                limit_days = (end - start).total_seconds() / 86400.0
+                limit_start = Status.d2s(start)
+                limit_end = Status.d2s(end)
+                unique_cycles = (
+                    session.query(table_type.forecastcycle)
+                    .distinct()
+                    .filter(table_type.forecastcycle >= start)
+                    .filter(table_type.forecastcycle <= end)
+                    .order_by(table_type.forecastcycle.desc())
+                    .all()
+                )
+            else:
+                raise ValueError("ERROR: Invalid limit provided")
 
         if len(unique_cycles) == 0:
             return {
@@ -459,109 +457,108 @@ class Status:
         from metbuild.database import Database
         from metbuild.tables import HwrfTable
 
-        db = Database()
-        session = db.session()
-
-        if limit is not None:
-            limit_time = datetime.utcnow() - limit
-            unique_storms = (
-                session.query(HwrfTable.stormname)
-                .distinct()
-                .filter(HwrfTable.forecastcycle >= limit_time)
-                .all()
-            )
-        else:
-            unique_storms = (
-                session.query(HwrfTable.stormname)
-                .distinct()
-                .filter(HwrfTable.forecastcycle >= start)
-                .filter(HwrfTable.forecastcycle <= end)
-                .all()
-            )
-            limit_time = None
-
-        storms = {}
-
-        for storm in unique_storms:
-            storm_name = storm[0]
+        with Database() as db, db.session() as session:
 
             if limit is not None:
-                unique_cycles = (
-                    session.query(HwrfTable.forecastcycle)
+                limit_time = datetime.utcnow() - limit
+                unique_storms = (
+                    session.query(HwrfTable.stormname)
                     .distinct()
-                    .filter(
-                        HwrfTable.stormname == storm_name,
-                        HwrfTable.forecastcycle >= limit_time,
-                    )
-                    .order_by(HwrfTable.forecastcycle)
+                    .filter(HwrfTable.forecastcycle >= limit_time)
                     .all()
                 )
             else:
-                unique_cycles = (
-                    session.query(HwrfTable.forecastcycle)
+                unique_storms = (
+                    session.query(HwrfTable.stormname)
                     .distinct()
-                    .filter(
-                        HwrfTable.stormname == storm_name,
-                        HwrfTable.forecastcycle >= start,
-                        HwrfTable.forecastcycle <= end,
-                    )
-                    .order_by(HwrfTable.forecastcycle)
+                    .filter(HwrfTable.forecastcycle >= start)
+                    .filter(HwrfTable.forecastcycle <= end)
                     .all()
                 )
+                limit_time = None
 
-            this_storm = {}
-            this_storm_min_time = None
-            this_storm_max_time = None
-            this_storm_cycles = []
-            this_storm_complete_cycles = []
+            storms = {}
 
-            for cycle in unique_cycles:
-                cycle_time = cycle[0]
-                cycle_time_str = Status.d2s(cycle_time)
-                forecast_times = (
-                    session.query(HwrfTable.forecasttime)
-                    .filter(
-                        HwrfTable.stormname == storm_name,
-                        HwrfTable.forecastcycle == cycle_time,
+            for storm in unique_storms:
+                storm_name = storm[0]
+
+                if limit is not None:
+                    unique_cycles = (
+                        session.query(HwrfTable.forecastcycle)
+                        .distinct()
+                        .filter(
+                            HwrfTable.stormname == storm_name,
+                            HwrfTable.forecastcycle >= limit_time,
+                        )
+                        .order_by(HwrfTable.forecastcycle)
+                        .all()
                     )
-                    .order_by(HwrfTable.forecasttime)
-                    .all()
-                )
-                min_time = forecast_times[0][0]
-                max_time = forecast_times[-1][0]
-                dt = int((max_time - min_time).total_seconds() / 3600.0)
-
-                if dt >= cycle_duration:
-                    this_storm_complete_cycles.append(cycle_time_str)
-                this_storm_cycles.append({"cycle": cycle_time_str, "duration": dt})
-
-                if this_storm_min_time:
-                    this_storm_min_time = min(this_storm_min_time, min_time)
                 else:
-                    this_storm_min_time = min_time
+                    unique_cycles = (
+                        session.query(HwrfTable.forecastcycle)
+                        .distinct()
+                        .filter(
+                            HwrfTable.stormname == storm_name,
+                            HwrfTable.forecastcycle >= start,
+                            HwrfTable.forecastcycle <= end,
+                        )
+                        .order_by(HwrfTable.forecastcycle)
+                        .all()
+                    )
 
-                if this_storm_max_time:
-                    this_storm_max_time = max(this_storm_max_time, max_time)
-                else:
-                    this_storm_max_time = max_time
+                this_storm = {}
+                this_storm_min_time = None
+                this_storm_max_time = None
+                this_storm_cycles = []
+                this_storm_complete_cycles = []
 
-            this_storm["min_forecast_date"] = Status.d2s(this_storm_min_time)
-            this_storm["max_forecast_date"] = Status.d2s(this_storm_max_time)
-            this_storm["first_available_cycle"] = this_storm_cycles[0]["cycle"]
-            this_storm["latest_available_cycle"] = this_storm_cycles[-1]["cycle"]
-            this_storm["latest_available_cycle_length"] = this_storm_cycles[-1][
-                "duration"
-            ]
-            this_storm["latest_complete_cycle"] = this_storm_complete_cycles[-1]
-            this_storm["complete_cycle_length"] = cycle_duration
+                for cycle in unique_cycles:
+                    cycle_time = cycle[0]
+                    cycle_time_str = Status.d2s(cycle_time)
+                    forecast_times = (
+                        session.query(HwrfTable.forecasttime)
+                        .filter(
+                            HwrfTable.stormname == storm_name,
+                            HwrfTable.forecastcycle == cycle_time,
+                        )
+                        .order_by(HwrfTable.forecasttime)
+                        .all()
+                    )
+                    min_time = forecast_times[0][0]
+                    max_time = forecast_times[-1][0]
+                    dt = int((max_time - min_time).total_seconds() / 3600.0)
 
-            this_storm_cycles.reverse()
-            this_storm_complete_cycles.reverse()
+                    if dt >= cycle_duration:
+                        this_storm_complete_cycles.append(cycle_time_str)
+                    this_storm_cycles.append({"cycle": cycle_time_str, "duration": dt})
 
-            this_storm["cycles"] = this_storm_cycles
-            this_storm["complete_cycles"] = this_storm_complete_cycles
+                    if this_storm_min_time:
+                        this_storm_min_time = min(this_storm_min_time, min_time)
+                    else:
+                        this_storm_min_time = min_time
 
-            storms[storm_name] = this_storm
+                    if this_storm_max_time:
+                        this_storm_max_time = max(this_storm_max_time, max_time)
+                    else:
+                        this_storm_max_time = max_time
+
+                this_storm["min_forecast_date"] = Status.d2s(this_storm_min_time)
+                this_storm["max_forecast_date"] = Status.d2s(this_storm_max_time)
+                this_storm["first_available_cycle"] = this_storm_cycles[0]["cycle"]
+                this_storm["latest_available_cycle"] = this_storm_cycles[-1]["cycle"]
+                this_storm["latest_available_cycle_length"] = this_storm_cycles[-1][
+                    "duration"
+                ]
+                this_storm["latest_complete_cycle"] = this_storm_complete_cycles[-1]
+                this_storm["complete_cycle_length"] = cycle_duration
+
+                this_storm_cycles.reverse()
+                this_storm_complete_cycles.reverse()
+
+                this_storm["cycles"] = this_storm_cycles
+                this_storm["complete_cycles"] = this_storm_complete_cycles
+
+                storms[storm_name] = this_storm
 
         return storms
 
@@ -624,117 +621,116 @@ class Status:
         from metbuild.tables import NhcBtkTable
         from sqlalchemy import or_, and_
 
-        db = Database()
-        session = db.session()
+        with Database() as db, db.session() as session:
 
-        if limit is not None:
-            limit_time = datetime.utcnow() - limit
+            if limit is not None:
+                limit_time = datetime.utcnow() - limit
 
-            basins = (
-                session.query(NhcBtkTable.basin)
-                .distinct()
-                .filter(NhcBtkTable.advisory_end >= limit_time)
-                .all()
-            )
-            storm_years = (
-                session.query(NhcBtkTable.storm_year)
-                .distinct()
-                .filter(NhcBtkTable.advisory_end >= limit_time)
-                .all()
-            )
-            storms = (
-                session.query(
-                    NhcBtkTable.basin,
-                    NhcBtkTable.storm_year,
-                    NhcBtkTable.storm,
-                    NhcBtkTable.advisory_start,
-                    NhcBtkTable.advisory_end,
-                    NhcBtkTable.advisory_duration_hr,
+                basins = (
+                    session.query(NhcBtkTable.basin)
+                    .distinct()
+                    .filter(NhcBtkTable.advisory_end >= limit_time)
+                    .all()
                 )
-                .filter(NhcBtkTable.advisory_end >= limit_time)
-                .order_by(NhcBtkTable.basin, NhcBtkTable.storm)
-                .all()
-            )
-        elif start is not None and end is not None:
-            basins = (
-                session.query(NhcBtkTable.basin)
-                .distinct()
-                .filter(
-                    and_(
-                        or_(
-                            NhcBtkTable.advisory_start >= start,
-                            NhcBtkTable.advisory_end >= start,
-                        ),
-                        or_(
-                            NhcBtkTable.advisory_start <= end,
-                            NhcBtkTable.advisory_end <= end,
-                        ),
+                storm_years = (
+                    session.query(NhcBtkTable.storm_year)
+                    .distinct()
+                    .filter(NhcBtkTable.advisory_end >= limit_time)
+                    .all()
+                )
+                storms = (
+                    session.query(
+                        NhcBtkTable.basin,
+                        NhcBtkTable.storm_year,
+                        NhcBtkTable.storm,
+                        NhcBtkTable.advisory_start,
+                        NhcBtkTable.advisory_end,
+                        NhcBtkTable.advisory_duration_hr,
                     )
+                    .filter(NhcBtkTable.advisory_end >= limit_time)
+                    .order_by(NhcBtkTable.basin, NhcBtkTable.storm)
+                    .all()
                 )
-                .all()
-            )
-            storm_years = (
-                session.query(NhcBtkTable.storm_year)
-                .distinct()
-                .filter(
-                    and_(
-                        or_(
-                            NhcBtkTable.advisory_start >= start,
-                            NhcBtkTable.advisory_end >= start,
-                        ),
-                        or_(
-                            NhcBtkTable.advisory_start <= end,
-                            NhcBtkTable.advisory_end <= end,
-                        ),
+            elif start is not None and end is not None:
+                basins = (
+                    session.query(NhcBtkTable.basin)
+                    .distinct()
+                    .filter(
+                        and_(
+                            or_(
+                                NhcBtkTable.advisory_start >= start,
+                                NhcBtkTable.advisory_end >= start,
+                            ),
+                            or_(
+                                NhcBtkTable.advisory_start <= end,
+                                NhcBtkTable.advisory_end <= end,
+                            ),
+                        )
                     )
+                    .all()
                 )
-                .all()
-            )
-            storms = (
-                session.query(
-                    NhcBtkTable.basin,
-                    NhcBtkTable.storm_year,
-                    NhcBtkTable.storm,
-                    NhcBtkTable.advisory_start,
-                    NhcBtkTable.advisory_end,
-                    NhcBtkTable.advisory_duration_hr,
-                )
-                .filter(
-                    and_(
-                        or_(
-                            NhcBtkTable.advisory_start >= start,
-                            NhcBtkTable.advisory_end >= start,
-                        ),
-                        or_(
-                            NhcBtkTable.advisory_start <= end,
-                            NhcBtkTable.advisory_end <= end,
-                        ),
+                storm_years = (
+                    session.query(NhcBtkTable.storm_year)
+                    .distinct()
+                    .filter(
+                        and_(
+                            or_(
+                                NhcBtkTable.advisory_start >= start,
+                                NhcBtkTable.advisory_end >= start,
+                            ),
+                            or_(
+                                NhcBtkTable.advisory_start <= end,
+                                NhcBtkTable.advisory_end <= end,
+                            ),
+                        )
                     )
+                    .all()
                 )
-                .order_by(NhcBtkTable.basin, NhcBtkTable.storm)
-                .all()
-            )
-        else:
-            raise ValueError("Must specify either limit or start and end")
+                storms = (
+                    session.query(
+                        NhcBtkTable.basin,
+                        NhcBtkTable.storm_year,
+                        NhcBtkTable.storm,
+                        NhcBtkTable.advisory_start,
+                        NhcBtkTable.advisory_end,
+                        NhcBtkTable.advisory_duration_hr,
+                    )
+                    .filter(
+                        and_(
+                            or_(
+                                NhcBtkTable.advisory_start >= start,
+                                NhcBtkTable.advisory_end >= start,
+                            ),
+                            or_(
+                                NhcBtkTable.advisory_start <= end,
+                                NhcBtkTable.advisory_end <= end,
+                            ),
+                        )
+                    )
+                    .order_by(NhcBtkTable.basin, NhcBtkTable.storm)
+                    .all()
+                )
+            else:
+                raise ValueError("Must specify either limit or start and end")
 
-        storm_data = {}
-        for y in storm_years:
-            storm_data[y[0]] = {}
-            for b in basins:
-                storm_data[y[0]][b[0]] = {}
+            storm_data = {}
+            for y in storm_years:
+                storm_data[y[0]] = {}
+                for b in basins:
+                    storm_data[y[0]][b[0]] = {}
 
-        for storm in storms:
-            b = storm[0]
-            y = storm[1]
-            n = storm[2]
-            start = Status.d2s(storm[3])
-            end = Status.d2s(storm[4])
-            duration = storm[5]
-            storm_data[y][b][n] = {
-                "best_track_start": start,
-                "best_track_end": end,
-                "duration": duration,
-            }
+            for storm in storms:
+                b = storm[0]
+                y = storm[1]
+                n = storm[2]
+                start = Status.d2s(storm[3])
+                end = Status.d2s(storm[4])
+                duration = storm[5]
+                storm_data[y][b][n] = {
+                    "best_track_start": start,
+                    "best_track_end": end,
+                    "duration": duration,
+                }
 
         return storm_data
 
@@ -757,137 +753,136 @@ class Status:
         from metbuild.tables import NhcFcstTable
         from sqlalchemy import or_, and_
 
-        db = Database()
-        session = db.session()
+        with Database() as db, db.session() as session:
 
-        if limit is not None:
-            limit_time = datetime.utcnow() - limit
+            if limit is not None:
+                limit_time = datetime.utcnow() - limit
 
-            basins = (
-                session.query(NhcFcstTable.basin)
-                .distinct()
-                .filter(NhcFcstTable.advisory_end >= limit_time)
-                .all()
-            )
-            storm_years = (
-                session.query(NhcFcstTable.storm_year)
-                .distinct()
-                .filter(NhcFcstTable.advisory_end >= limit_time)
-                .all()
-            )
-
-            storms = (
-                session.query(
-                    NhcFcstTable.basin,
-                    NhcFcstTable.storm_year,
-                    NhcFcstTable.storm,
+                basins = (
+                    session.query(NhcFcstTable.basin)
+                    .distinct()
+                    .filter(NhcFcstTable.advisory_end >= limit_time)
+                    .all()
                 )
-                .distinct()
-                .filter(NhcFcstTable.advisory_end >= limit_time)
-                .order_by(NhcFcstTable.basin, NhcFcstTable.storm)
-                .all()
-            )
-        elif start is not None and end is not None:
-            basins = (
-                session.query(NhcFcstTable.basin)
-                .distinct()
-                .filter(
-                    and_(
-                        or_(
-                            NhcFcstTable.advisory_start >= start,
-                            NhcFcstTable.advisory_end >= start,
-                        ),
-                        or_(
-                            NhcFcstTable.advisory_start <= end,
-                            NhcFcstTable.advisory_end <= end,
-                        ),
+                storm_years = (
+                    session.query(NhcFcstTable.storm_year)
+                    .distinct()
+                    .filter(NhcFcstTable.advisory_end >= limit_time)
+                    .all()
+                )
+
+                storms = (
+                    session.query(
+                        NhcFcstTable.basin,
+                        NhcFcstTable.storm_year,
+                        NhcFcstTable.storm,
                     )
+                    .distinct()
+                    .filter(NhcFcstTable.advisory_end >= limit_time)
+                    .order_by(NhcFcstTable.basin, NhcFcstTable.storm)
+                    .all()
                 )
-                .all()
-            )
-            storm_years = (
-                session.query(NhcFcstTable.storm_year)
-                .distinct()
-                .filter(
-                    and_(
-                        or_(
-                            NhcFcstTable.advisory_start >= start,
-                            NhcFcstTable.advisory_end >= start,
-                        ),
-                        or_(
-                            NhcFcstTable.advisory_start <= end,
-                            NhcFcstTable.advisory_end <= end,
-                        ),
+            elif start is not None and end is not None:
+                basins = (
+                    session.query(NhcFcstTable.basin)
+                    .distinct()
+                    .filter(
+                        and_(
+                            or_(
+                                NhcFcstTable.advisory_start >= start,
+                                NhcFcstTable.advisory_end >= start,
+                            ),
+                            or_(
+                                NhcFcstTable.advisory_start <= end,
+                                NhcFcstTable.advisory_end <= end,
+                            ),
+                        )
                     )
+                    .all()
                 )
-                .all()
-            )
-
-            storms = (
-                session.query(
-                    NhcFcstTable.basin,
-                    NhcFcstTable.storm_year,
-                    NhcFcstTable.storm,
-                )
-                .distinct()
-                .filter(
-                    and_(
-                        or_(
-                            NhcFcstTable.advisory_start >= start,
-                            NhcFcstTable.advisory_end >= start,
-                        ),
-                        or_(
-                            NhcFcstTable.advisory_start <= end,
-                            NhcFcstTable.advisory_end <= end,
-                        ),
+                storm_years = (
+                    session.query(NhcFcstTable.storm_year)
+                    .distinct()
+                    .filter(
+                        and_(
+                            or_(
+                                NhcFcstTable.advisory_start >= start,
+                                NhcFcstTable.advisory_end >= start,
+                            ),
+                            or_(
+                                NhcFcstTable.advisory_start <= end,
+                                NhcFcstTable.advisory_end <= end,
+                            ),
+                        )
                     )
+                    .all()
                 )
-                .order_by(NhcFcstTable.basin, NhcFcstTable.storm)
-                .all()
-            )
-        else:
-            raise ValueError("Must specify either limit or start and end")
 
-        storm_data = {}
-        for y in storm_years:
-            storm_data[y[0]] = {}
-            for b in basins:
-                storm_data[y[0]][b[0]] = {}
-
-        for storm in storms:
-            b = storm[0]
-            y = storm[1]
-            n = storm[2]
-
-            this_storm = (
-                session.query(
-                    NhcFcstTable.advisory,
-                    NhcFcstTable.advisory_start,
-                    NhcFcstTable.advisory_end,
-                    NhcFcstTable.advisory_duration_hr,
+                storms = (
+                    session.query(
+                        NhcFcstTable.basin,
+                        NhcFcstTable.storm_year,
+                        NhcFcstTable.storm,
+                    )
+                    .distinct()
+                    .filter(
+                        and_(
+                            or_(
+                                NhcFcstTable.advisory_start >= start,
+                                NhcFcstTable.advisory_end >= start,
+                            ),
+                            or_(
+                                NhcFcstTable.advisory_start <= end,
+                                NhcFcstTable.advisory_end <= end,
+                            ),
+                        )
+                    )
+                    .order_by(NhcFcstTable.basin, NhcFcstTable.storm)
+                    .all()
                 )
-                .filter(
-                    NhcFcstTable.basin == b,
-                    NhcFcstTable.storm_year == y,
-                    NhcFcstTable.storm == n,
+            else:
+                raise ValueError("Must specify either limit or start and end")
+
+            storm_data = {}
+            for y in storm_years:
+                storm_data[y[0]] = {}
+                for b in basins:
+                    storm_data[y[0]][b[0]] = {}
+
+            for storm in storms:
+                b = storm[0]
+                y = storm[1]
+                n = storm[2]
+
+                this_storm = (
+                    session.query(
+                        NhcFcstTable.advisory,
+                        NhcFcstTable.advisory_start,
+                        NhcFcstTable.advisory_end,
+                        NhcFcstTable.advisory_duration_hr,
+                    )
+                    .filter(
+                        NhcFcstTable.basin == b,
+                        NhcFcstTable.storm_year == y,
+                        NhcFcstTable.storm == n,
+                    )
+                    .order_by(NhcFcstTable.advisory)
+                    .all()
                 )
-                .order_by(NhcFcstTable.advisory)
-                .all()
-            )
 
-            advisory_list = {}
-            for adv in this_storm:
-                a = int(adv[0])
-                adv_str = "{:03d}".format(a)
-                start = adv[1]
-                end = adv[2]
-                duration = adv[3]
-                advisory_list[adv_str] = {
-                    "advisory_start": Status.d2s(start),
-                    "advisory_end": Status.d2s(end),
-                    "duration": duration,
-                }
+                advisory_list = {}
+                for adv in this_storm:
+                    a = int(adv[0])
+                    adv_str = "{:03d}".format(a)
+                    start = adv[1]
+                    end = adv[2]
+                    duration = adv[3]
+                    advisory_list[adv_str] = {
+                        "advisory_start": Status.d2s(start),
+                        "advisory_end": Status.d2s(end),
+                        "duration": duration,
+                    }
 
-            storm_data[y][b][n] = advisory_list
+                storm_data[y][b][n] = advisory_list
 
         return storm_data

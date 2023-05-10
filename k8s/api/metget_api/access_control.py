@@ -1,17 +1,15 @@
+from metbuild.database import Database
+
+CREDIT_MULTIPLIER = 100000.0
+
+
 class AccessControl:
     """
     This class is used to check if the user is authorized to use the API
     """
 
     def __init__(self):
-        """
-        This method is used to initialize the class. It creates a database
-        connection and a session object
-        """
-        from metbuild.database import Database
-
-        self.__db = Database()
-        self.__session = self.__db.session()
+        pass
 
     @staticmethod
     def hash_access_token(token: str) -> str:
@@ -22,7 +20,8 @@ class AccessControl:
 
         return sha256(token.encode()).hexdigest()
 
-    def is_authorized(self, api_key: str) -> bool:
+    @staticmethod
+    def is_authorized(api_key: str) -> bool:
         """
         This method is used to check if the user is authorized to use the API
         The method returns True if the user is authorized and False if not
@@ -32,11 +31,12 @@ class AccessControl:
         from metbuild.tables import AuthTable
 
         api_key_hash = AccessControl.hash_access_token(str(api_key))
-        api_key_db = (
-            self.__session.query(AuthTable.id, AuthTable.key)
-            .filter_by(key=api_key)
-            .first()
-        )
+        with Database() as db, db.session() as session:
+            api_key_db = (
+                session.query(AuthTable.id, AuthTable.key)
+                .filter_by(key=api_key)
+                .first()
+            )
 
         if api_key_db is None:
             return False
@@ -86,35 +86,32 @@ class AccessControl:
         from datetime import datetime, timedelta
         from sqlalchemy import func, or_
 
-        credit_multiplier = 100000.0
-
-        db = Database()
-        session = db.session()
-
-        # ...Queries the database for the credit limit for the user
-        credit_limit = (
-            session.query(AuthTable.credit_limit).filter_by(key=api_key).first()[0]
-        )
-        credit_limit = float(credit_limit) / credit_multiplier
-
-        # ...Queries the database for the credit used for the user over the last 30 days
-        start_date = datetime.utcnow() - timedelta(days=30)
-        credit_used = (
-            session.query(func.sum(RequestTable.credit_usage))
-            .filter(RequestTable.last_date >= start_date)
-            .filter(RequestTable.api_key == api_key)
-            .filter(
-                or_(
-                    RequestTable.status == "completed", RequestTable.status == "running"
-                )
+        with Database() as db, db.session() as session:
+            # ...Queries the database for the credit limit for the user
+            credit_limit = (
+                session.query(AuthTable.credit_limit).filter_by(key=api_key).first()[0]
             )
-            .first()[0]
-        )
+            credit_limit = float(credit_limit) / CREDIT_MULTIPLIER
+
+            # ...Queries the database for the credit used for the user over the last 30 days
+            start_date = datetime.utcnow() - timedelta(days=30)
+            credit_used = (
+                session.query(func.sum(RequestTable.credit_usage))
+                .filter(RequestTable.last_date >= start_date)
+                .filter(RequestTable.api_key == api_key)
+                .filter(
+                    or_(
+                        RequestTable.status == "completed",
+                        RequestTable.status == "running",
+                    )
+                )
+                .first()[0]
+            )
 
         if credit_used is None:
             credit_used = 0.0
         else:
-            credit_used = float(credit_used) / credit_multiplier
+            credit_used = float(credit_used) / CREDIT_MULTIPLIER
 
         credit_balance = credit_limit - credit_used
 
