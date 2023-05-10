@@ -23,6 +23,21 @@ spec:
             secretKeyRef: 
               name: metget-database-secret 
               key: password
+        - name: METGET_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: metget-configmap
+              key: database.name
+        - name: METGET_REQUEST_TABLE
+          valueFrom:
+            configMapKeyRef:
+              name: metget-configmap
+              key: database.request_table
+        - name: METGET_API_KEY_TABLE
+          valueFrom:
+            configMapKeyRef:
+              name: metget-configmap
+              key: database.apikey_table
         - name: AWS_ACCESS_KEY_ID
           valueFrom: 
             secretKeyRef: 

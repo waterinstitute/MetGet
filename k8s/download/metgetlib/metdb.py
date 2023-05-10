@@ -21,49 +21,44 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from typing import Union
+from datetime import datetime
+
 
 class Metdb:
     def __init__(self):
         """
         Initializer for the metdb class. The Metdb class will
-        generate a database of files and store the indexing in an
-        sqlite3 database
+        generate a database of files
         """
-        import os
+        from metbuild.database import Database
 
-        self.__dbhost = os.environ["METGET_DATABASE_SERVICE_HOST"]
-        self.__dbpassword = os.environ["METGET_DATABASE_PASSWORD"]
-        self.__dbusername = os.environ["METGET_DATABASE_USER"]
-        self.__dbname = os.environ["METGET_DATABASE"]
-        self.__gefs_cache = None
-        self.__persistent_connection = self.connect()
-        self.__persistent_cursor = self.__persistent_connection.cursor()
+        self.__database = Database()
+        self.__session = self.__database.session()
 
-    def persistent_connection(self):
-        return self.__persistent_connection
+    def __del__(self):
+        """
+        Destructor for the metdb class. The destructor will
+        close the database connection
+        """
+        del self.__database
 
-    def persistent_cursor(self):
-        return self.__persistent_cursor
+    def get_nhc_md5(
+        self, mettype: str, year: int, basin: str, storm: str, advisory: int = 0
+    ) -> str:
+        """
+        Get the md5 hash for a nhc file
 
-    def connect(self):
-        import sys
-        import psycopg2
-        import logging
+        Args:
+            mettype (str): The type of nhc file to get the md5 hash for
+            year (int): The year of the nhc file
+            basin (str): The basin of the nhc file
+            storm (str): The storm of the nhc file
+            advisory (int): The advisory of the nhc file
 
-        logger = logging.getLogger(__name__)
-
-        #try:
-        return psycopg2.connect(
-            host=self.__dbhost,
-            database=self.__dbname,
-            user=self.__dbusername,
-            password=self.__dbpassword,
-        )
-        #except:
-        #    logger.error("Could not connect to database")
-        #    sys.exit(1)
-
-    def get_nhc_md5(self, mettype, year, basin, storm, advisory=0):
+        Returns:
+            str: The md5 hash of the nhc file
+        """
         if mettype == "nhc_btk":
             return self.get_nhc_btk_md5(year, basin, storm)
         elif mettype == "nhc_fcst":
@@ -71,397 +66,664 @@ class Metdb:
         else:
             raise
 
-    def get_nhc_btk_md5(self, year, basin, storm):
-        sql = "SELECT md5 FROM nhc_btk WHERE storm_year = '{:s}' AND BASIN = '{:s}' AND STORM = '{:s}';".format(
-            str(year), basin, str(storm)
+    def get_nhc_btk_md5(self, year: int, basin: str, storm: str) -> str:
+        """
+        Get the md5 hash for a nhc btk file
+
+        Args:
+            year (int): The year of the nhc btk file
+            basin (str): The basin of the nhc btk file
+            storm (str): The storm of the nhc btk file
+
+        Returns:
+            str: The md5 hash of the nhc btk file
+        """
+        from metbuild.tables import NhcBtkTable
+
+        v = (
+            self.__session.query(NhcBtkTable.md5)
+            .filter(
+                NhcBtkTable.storm_year == year,
+                NhcBtkTable.basin == basin,
+                NhcBtkTable.storm == storm,
+            )
+            .first()
         )
-        self.persistent_cursor().execute(sql)
-        dat = self.persistent_cursor().fetchone()
-        if dat:
-            md5 = dat[0]
-        else:
-            md5 = 0
-        return md5
 
-    def get_nhc_fcst_md5(self, year, basin, storm, advisory):
-        if advisory:
-            sql = "SELECT md5 FROM nhc_fcst WHERE storm_year = '{:s}' AND BASIN = '{:s}' AND STORM = '{:s}' AND ADVISORY = {:d};".format(
-                str(year), basin, str(storm), advisory
-            )
+        if v is not None:
+            return v[0]
         else:
-            sql = "SELECT md5 FROM nhc_fcst WHERE storm_year = '{:s}' AND BASIN = '{:s}' AND STORM = '{:s}';".format(
-                str(year), basin, str(storm)
-            )
-        self.persistent_cursor().execute(sql)
+            return "0"
+
+    def get_nhc_fcst_md5(self, year, basin, storm, advisory) -> Union[str, list]:
+        """
+        Get the md5 hash for a nhc fcst file
+
+        Args:
+            year (int): The year of the nhc fcst file
+            basin (str): The basin of the nhc fcst file
+            storm (str): The storm of the nhc fcst file
+            advisory (int): The advisory of the nhc fcst file
+
+        Returns:
+            str: The md5 hash of the nhc fcst file
+        """
+        from metbuild.tables import NhcFcstTable
 
         if advisory:
-            dat = self.persistent_cursor().fetchone()
-            if dat:
-                md5 = dat[0]
+            v = (
+                self.__session.query(NhcFcstTable.md5)
+                .filter(
+                    NhcFcstTable.storm_year == year,
+                    NhcFcstTable.basin == basin,
+                    NhcFcstTable.storm == storm,
+                    NhcFcstTable.advisory == advisory,
+                )
+                .first()
+            )
+            if v is not None:
+                return v[0]
             else:
-                md5 = 0
-            return md5
+                return "0"
         else:
-            mdf5_list = []
-            dat = self.persistent_cursor().fetchall()
-            for d in dat:
-                mdf5_list.append(d[0])
-            return mdf5_list
+            v = (
+                self.__session.query(NhcFcstTable.md5)
+                .filter(
+                    NhcFcstTable.storm_year == year,
+                    NhcFcstTable.basin == basin,
+                    NhcFcstTable.storm == storm,
+                )
+                .all()
+            )
+            if v:
+                md5_list = []
+                for md5 in v:
+                    md5_list.append(md5[0])
+                return md5_list
+            else:
+                return []
 
-    def has(self, datatype, pair) -> bool:
+    def has(self, datatype: str, metadata: dict) -> bool:
+        """
+        Check if a file exists in the database
+
+        Args:
+            datatype (str): The type of file to check for
+            metadata (dict): The metadata to check for
+        """
         if datatype == "hwrf":
-            return self.__has_hwrf(pair)
+            return self.__has_hwrf(metadata)
         elif datatype == "coamps":
-            return self.__has_coamps(pair)
+            return self.__has_coamps(metadata)
         elif datatype == "nhc_fcst":
-            return self.__has_nhc_fcst(pair)
+            return self.__has_nhc_fcst(metadata)
         elif datatype == "nhc_btk":
-            return self.__has_nhc_btk(pair)
+            return self.__has_nhc_btk(metadata)
         elif datatype == "gefs_ncep":
-            return self.__has_gefs(pair)
-        elif datatype == "wpc_ncep":
-            return self.__has_wpc(pair)
+            return self.__has_gefs(metadata)
         else:
-            return self.__has_generic(datatype, pair)
+            return self.__has_generic(datatype, metadata)
 
-    def __has_hwrf(self, pair) -> bool:
-        sql = self.__generate_sql_hwrf("None", pair)
-        self.persistent_cursor().execute(sql["has"])
-        nrows = self.persistent_cursor().fetchone()[0]
-        return nrows > 0
+    def __has_hwrf(self, metadata: dict) -> bool:
+        """
+        Check if a hwrf file exists in the database
 
-    def __has_coamps(self, pair) -> bool:
-        sql = self.__generate_sql_coamps("None", pair)
-        self.persistent_cursor().execute(sql["has"])
-        nrows = self.persistent_cursor().fetchone()[0]
-        return nrows > 0
+        Args:
+            metadata (dict): The metadata to check for
 
-    def __has_nhc_fcst(self, pair) -> bool:
-        sql = self.__generate_sql_nhc_fcst("None", pair)
-        self.persistent_cursor().execute(sql["has"])
-        nrows = self.persistent_cursor().fetchone()[0]
-        return nrows > 0
+        Returns:
+            bool: True if the file exists in the database, False otherwise
+        """
+        from metbuild.tables import HwrfTable
 
-    def __has_nhc_btk(self, pair) -> bool:
-        sql = self.__generate_sql_nhc_btk(pair)
-        self.persistent_cursor().execute(sql["has"])
-        nrows = self.persistent_cursor().fetchone()[0]
-        return nrows > 0
+        cdate = metadata["cycledate"]
+        fdate = metadata["forecastdate"]
+        name = metadata["name"]
 
-    def __has_gefs(self, pair) -> bool:
-        sql = self.__generate_sql_gefs_ncep("None", pair)
-        self.persistent_cursor().execute(sql["has"])
-        nrows = self.persistent_cursor().fetchone()[0]
-        return nrows > 0
+        v = (
+            self.__session.query(HwrfTable.index)
+            .filter(
+                HwrfTable.forecastcycle == cdate,
+                HwrfTable.forecasttime == fdate,
+                HwrfTable.stormname == name,
+            )
+            .first()
+        )
 
-    def __has_wpc(self, pair) -> bool:
-        sql = self.__generate_sql_generic("wpc_ncep", pair["grb"], pair)
-        self.persistent_cursor().execute(sql["has"])
-        nrows = self.persistent_cursor().fetchone()[0]
-        return nrows > 0
+        if v is not None:
+            return True
+        else:
+            return False
 
-    def __has_generic(self, datatype, pair) -> bool:
-        sql = self.__generate_sql_generic(datatype, "None", pair)
-        self.persistent_cursor().execute(sql["has"])
-        nrows = self.persistent_cursor().fetchone()[0]
-        return nrows > 0
+    def __has_coamps(self, metadata: dict) -> bool:
+        """
+        Check if a coamps file exists in the database
 
-    def add(self, pair, datatype, filepath):
+        Args:
+            metadata (dict): The metadata to check for
+
+        Returns:
+            bool: True if the file exists in the database, False otherwise
+        """
+        from metbuild.tables import CoampsTable
+
+        cdate = metadata["cycledate"]
+        fdate = metadata["forecastdate"]
+        name = metadata["name"]
+
+        v = (
+            self.__session.query(CoampsTable.index)
+            .filter(
+                CoampsTable.stormname == name,
+                CoampsTable.forecastcycle == cdate,
+                CoampsTable.forecasttime == fdate,
+            )
+            .first()
+        )
+
+        if v is not None:
+            return True
+        else:
+            return False
+
+    def __has_nhc_fcst(self, metadata: dict) -> bool:
+        """
+        Check if a nhc fcst file exists in the database
+
+        Args:
+            metadata (dict): The pair to check for
+
+        Returns:
+            bool: True if the file exists in the database, False otherwise
+        """
+        from metbuild.tables import NhcFcstTable
+
+        (
+            year,
+            storm,
+            basin,
+            md5,
+            start,
+            end,
+            duration,
+        ) = Metdb.__generate_nhc_vars_from_dict(metadata)
+        advisory = metadata["advisory"]
+
+        v = (
+            self.__session.query(NhcFcstTable.index)
+            .filter(
+                NhcFcstTable.storm_year == year,
+                NhcFcstTable.basin == basin,
+                NhcFcstTable.storm == storm,
+                NhcFcstTable.advisory == advisory,
+            )
+            .first()
+        )
+
+        if v is not None:
+            return True
+        else:
+            return False
+
+    def __has_nhc_btk(self, metadata: dict) -> bool:
+        """
+        Check if a nhc btk file exists in the database
+
+        Args:
+            metadata (dict): The pair to check for
+
+        Returns:
+            bool: True if the file exists in the database, False otherwise
+        """
+        from metbuild.tables import NhcBtkTable
+
+        (
+            year,
+            storm,
+            basin,
+            md5,
+            start,
+            end,
+            duration,
+        ) = Metdb.__generate_nhc_vars_from_dict(metadata)
+
+        v = (
+            self.__session.query(NhcBtkTable.index)
+            .filter(
+                NhcBtkTable.storm_year == year,
+                NhcBtkTable.basin == basin,
+                NhcBtkTable.storm == storm,
+            )
+            .first()
+        )
+
+        if v is not None:
+            return True
+        else:
+            return False
+
+    def __has_gefs(self, metadata: dict) -> bool:
+        """
+        Check if a gefs file exists in the database
+
+        Args:
+            metadata (dict): The pair to check for
+
+        Returns:
+            bool: True if the file exists in the database, False otherwise
+        """
+        from metbuild.tables import GefsTable
+
+        cdate = metadata["cycledate"]
+        fdate = metadata["forecastdate"]
+        member = str(metadata["ensemble_member"])
+
+        v = (
+            self.__session.query(GefsTable.index)
+            .filter(
+                GefsTable.forecastcycle == cdate,
+                GefsTable.forecasttime == fdate,
+                GefsTable.ensemble_member == member,
+            )
+            .first()
+        )
+
+        if v is not None:
+            return True
+        else:
+            return False
+
+    def __has_generic(self, datatype: str, metadata: dict) -> bool:
+        """
+        Check if a generic file exists in the database
+
+        Args:
+            datatype (str): The datatype to check for
+            metadata (dict): The pair to check for
+
+        Returns:
+            bool: True if the file exists in the database, False otherwise
+        """
+        from metbuild.tables import (
+            GfsTable,
+            NamTable,
+            WpcTable,
+            HrrrTable,
+            HrrrAlaskaTable,
+        )
+
+        if datatype == "gfs_ncep":
+            table = GfsTable
+        elif datatype == "nam_ncep":
+            table = NamTable
+        elif datatype == "wpc_ncep":
+            table = WpcTable
+        elif datatype == "hrrr_ncep":
+            table = HrrrTable
+        elif datatype == "hrrr_alaska_ncep":
+            table = HrrrAlaskaTable
+        else:
+            raise ValueError("Invalid datatype: " + datatype)
+
+        cdate = metadata["cycledate"]
+        fdate = metadata["forecastdate"]
+
+        v = (
+            self.__session.query(table.index)
+            .filter(
+                table.forecastcycle == cdate,
+                table.forecasttime == fdate,
+            )
+            .first()
+        )
+
+        if v is not None:
+            return True
+        else:
+            return False
+
+    def add(self, metadata: dict, datatype: str, filepath: str) -> None:
         """
         Adds a file listing to the database
-        :param pair: dict containing cycledate and forecastdate
-        :param datatype: The table that this file will be added to (i.e. gfsfcst)
-        :param filepath: Relative file location
-        :return:
+
+        Args:
+            metadata (dict): dict containing cycledate and forecastdate
+            datatype (str): The table that this metadata will be added to (i.e. gfs_ncep)
+            filepath (str): File location
+
+        Returns:
+            None
         """
         if datatype == "hwrf":
-            sql = self.__generate_sql_hwrf(filepath, pair)
+            self.__add_record_hwrf(filepath, metadata)
         elif datatype == "coamps":
-            sql = self.__generate_sql_coamps(filepath, pair)
+            self.__add_record_coamps(filepath, metadata)
         elif datatype == "nhc_fcst":
-            sql = self.__generate_sql_nhc_fcst(filepath, pair)
+            self.__add_record_nhc_fcst(filepath, metadata)
         elif datatype == "nhc_btk":
-            sql = self.__generate_sql_nhc_btk(filepath, pair)
+            self.__add_record_nhc_btk(filepath, metadata)
         elif datatype == "gefs_ncep":
-            sql = self.__generate_sql_gefs_ncep(filepath, pair)
+            self.__add_record_gefs_ncep(filepath, metadata)
         else:
-            sql = self.__generate_sql_generic(datatype, filepath, pair)
+            self.__add_record_generic(datatype, filepath, metadata)
 
-        self.persistent_cursor().execute(sql["has"])
-        nrows = self.persistent_cursor().fetchone()[0]
-        if nrows == 0:
-            self.persistent_cursor().execute(sql["insert"])
-        elif nrows > 0 and datatype == "nhc_btk":
-            self.persistent_cursor().execute(sql["update"])
+    def __add_record_generic(
+        self, datatype: str, filepath: str, metadata: dict
+    ) -> None:
+        """
+        Adds a generic file listing to the database (i.e. gfs_ncep)
 
-        self.persistent_connection().commit()
+        Args:
+            datatype (str): The table that this metadata will be added to (i.e. gfs_ncep)
+            filepath (str): File location
+            metadata (dict): dict containing cycledate and forecastdate
 
-    @staticmethod
-    def __generate_sql_generic(datatype, filepath, pair) -> dict:
+        Returns:
+            None
+        """
+        from metbuild.tables import (
+            GfsTable,
+            NamTable,
+            WpcTable,
+            HrrrTable,
+            HrrrAlaskaTable,
+        )
         import math
 
-        cdate = str(pair["cycledate"])
-        fdate = str(pair["forecastdate"])
-        tau = int(
-            math.floor(
-                (pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600.0
+        if not self.__has_generic(datatype, metadata):
+
+            if datatype == "gfs_ncep":
+                table = GfsTable
+            elif datatype == "nam_ncep":
+                table = NamTable
+            elif datatype == "wpc_ncep":
+                table = WpcTable
+            elif datatype == "hrrr_ncep":
+                table = HrrrTable
+            elif datatype == "hrrr_alaska_ncep":
+                table = HrrrAlaskaTable
+            else:
+                raise ValueError("Invalid datatype: " + datatype)
+
+            cdate = metadata["cycledate"]
+            fdate = metadata["forecastdate"]
+            tau = int(
+                math.floor(
+                    (metadata["forecastdate"] - metadata["cycledate"]).total_seconds()
+                    / 3600.0
+                )
             )
-        )
-        url = pair["grb"]
+            url = metadata["grb"]
 
-        sqlhas = (
-            "SELECT Count(*) FROM {:s} WHERE "
-            "FORECASTCYCLE = '{:s}' AND FORECASTTIME = '{:s}' "
-            "AND FILEPATH = '{:s}';".format(datatype, cdate, fdate, filepath)
-        )
-
-        sqlinsert = (
-            "INSERT INTO {:s} (FORECASTCYCLE,FORECASTTIME,TAU,FILEPATH,URL,ACCESSED) "
-            "VALUES('{:s}','{:s}',{:d},'{:s}','{:s}', now());".format(
-                datatype, cdate, fdate, tau, filepath, url
+            record = table(
+                forecastcycle=cdate,
+                forecasttime=fdate,
+                tau=tau,
+                filepath=filepath,
+                url=url,
+                accessed=datetime.now(),
             )
-        )
-        return {"has": sqlhas, "insert": sqlinsert, "update": None}
+            self.__session.add(record)
+            self.__session.commit()
 
-    @staticmethod
-    def __generate_sql_gefs_ncep(filepath, pair):
+    def __add_record_gefs_ncep(self, filepath: str, metadata: dict) -> None:
+        """
+        Adds a GEFS file listing to the database
+
+        Args:
+            filepath (str): File location
+            metadata (dict): dict containing the metadata for the file
+
+        Returns:
+            None
+        """
+        from metbuild.tables import GefsTable
         import math
 
-        cdate = str(pair["cycledate"])
-        fdate = str(pair["forecastdate"])
-        member = str(pair["ensemble_member"])
-        url = pair["grb"]
-        tau = int(
-            math.floor(
-                (pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600.0
+        if not self.__has_gefs(metadata):
+            cdate = metadata["cycledate"]
+            fdate = metadata["forecastdate"]
+            member = str(metadata["ensemble_member"])
+            url = metadata["grb"]
+            tau = int(
+                math.floor(
+                    (metadata["forecastdate"] - metadata["cycledate"]).total_seconds()
+                    / 3600.0
+                )
             )
+
+            record = GefsTable(
+                forecastcycle=cdate,
+                forecasttime=fdate,
+                ensemble_member=member,
+                tau=tau,
+                filepath=filepath,
+                url=url,
+                accessed=datetime.now(),
+            )
+            self.__session.add(record)
+            self.__session.commit()
+
+    def __add_record_nhc_btk(self, filepath: str, metadata: dict) -> None:
+        """
+        Adds a NHC BTK file listing to the database
+
+        Args:
+            filepath (str): File location
+            metadata (dict): dict containing the metadata for the file
+
+        Returns:
+            None
+        """
+        from metbuild.tables import NhcBtkTable
+        import json
+
+        if not self.__has_nhc_btk(metadata):
+
+            (
+                year,
+                storm,
+                basin,
+                md5,
+                start,
+                end,
+                duration,
+            ) = Metdb.__generate_nhc_vars_from_dict(metadata)
+
+            if "geojson" in metadata.keys():
+                geojson = json.dumps(metadata["geojson"])
+            else:
+                geojson = None
+
+            record = NhcBtkTable(
+                storm_year=year,
+                basin=basin,
+                storm=storm,
+                advisory_start=start,
+                advisory_end=end,
+                advisory_duration_hr=duration,
+                filepath=filepath,
+                md5=md5,
+                accessed=datetime.utcnow(),
+                geojson=geojson,
+            )
+
+            self.__session.add(record)
+            self.__session.commit()
+
+    def __add_record_nhc_fcst(self, filepath: str, metadata: dict) -> None:
+        """
+        Adds a NHC forecast file listing to the database
+
+        Args:
+            filepath (str): File location
+            metadata (dict): dict containing the metadata for the file
+
+        Returns:
+            None
+        """
+        from metbuild.tables import NhcFcstTable
+        import json
+
+        (
+            year,
+            storm,
+            basin,
+            md5,
+            start,
+            end,
+            duration,
+        ) = Metdb.__generate_nhc_vars_from_dict(metadata)
+        advisory = metadata["advisory"]
+
+        if "geojson" in metadata.keys():
+            geojson = json.dumps(metadata["geojson"])
+        else:
+            geojson = "none"
+
+        record = (
+            self.__session.query(NhcFcstTable.index)
+            .filter(
+                NhcFcstTable.storm_year == year,
+                NhcFcstTable.basin == basin,
+                NhcFcstTable.storm == storm,
+                NhcFcstTable.advisory == advisory,
+            )
+            .first()
         )
 
-        sqlhas = (
-            "SELECT Count(*) FROM gefs_fcst WHERE FORECASTCYCLE = '{:s}' "
-            "AND FORECASTTIME = '{:s}' AND ENSEMBLE_MEMBER = '{:s}';".format(
-                cdate, fdate, member
-            )
-        )
+        if record is None:
 
-        sqlinsert = (
-            "INSERT INTO gefs_fcst "
-            "(FORECASTCYCLE,FORECASTTIME,ENSEMBLE_MEMBER,TAU,FILEPATH,URL,ACCESSED)"
-            "VALUES('{:s}','{:s}','{:s}','{:d}','{:s}','{:s}',now());".format(
-                cdate, fdate, member, tau, filepath, url
+            record = NhcFcstTable(
+                storm_year=year,
+                basin=basin,
+                storm=storm,
+                advisory=advisory,
+                advisory_start=start,
+                advisory_end=end,
+                advisory_duration_hr=duration,
+                filepath=filepath,
+                md5=md5,
+                accessed=datetime.utcnow(),
+                geometry_data=geojson,
             )
-        )
+            self.__session.add(record)
+            self.__session.commit()
+        else:
+            record.advisory_start = start
+            record.advisory_end = end
+            record.advisory_duration_hr = duration
+            record.geometry_data = geojson
+            record.md5 = md5
 
-        return {"has": sqlhas, "insert": sqlinsert, "update": None}
+    def __add_record_hwrf(self, filepath: str, metadata: dict) -> None:
+        """
+        Adds a HWRF file listing to the database
+
+        Args:
+            filepath (str): File location
+            metadata (dict): dict containing the metadata for the file
+
+        Returns:
+            None
+        """
+        from metbuild.tables import HwrfTable
+        import math
+
+        if not self.__has_hwrf(metadata):
+            cdate = metadata["cycledate"]
+            fdate = metadata["forecastdate"]
+            url = metadata["grb"]
+            name = metadata["name"]
+            tau = int(
+                math.floor(
+                    (metadata["forecastdate"] - metadata["cycledate"]).total_seconds()
+                    / 3600.0
+                )
+            )
+
+            record = HwrfTable(
+                forecastcycle=cdate,
+                stormname=name,
+                forecasttime=fdate,
+                tau=tau,
+                filepath=filepath,
+                url=url,
+                accessed=datetime.now(),
+            )
+
+            self.__session.add(record)
+            self.__session.commit()
+
+    def __add_record_coamps(self, filepath: str, metadata: dict) -> None:
+        """
+        Adds a COAMPS file listing to the database
+
+        Args:
+            filepath (str): File location
+            metadata (dict): dict containing the metadata for the file
+
+        Returns:
+            None
+        """
+        import math
+        from metbuild.tables import CoampsTable
+
+        if not self.__has_coamps(metadata):
+            cdate = metadata["cycledate"]
+            fdate = metadata["forecastdate"]
+            name = metadata["name"]
+            tau = int(
+                math.floor(
+                    (metadata["forecastdate"] - metadata["cycledate"]).total_seconds()
+                    / 3600.0
+                )
+            )
+
+            record = CoampsTable(
+                stormname=name,
+                forecastcycle=cdate,
+                forecasttime=fdate,
+                filepath=filepath,
+                tau=tau,
+                accessed=datetime.now(),
+            )
+            self.__session.add(record)
+            self.__session.commit()
 
     @staticmethod
-    def __generate_nhc_vars_from_pair(pair):
-        year = pair["year"]
-        storm = pair["storm"]
-        basin = pair["basin"]
+    def __generate_nhc_vars_from_dict(metadata: dict) -> tuple:
+        """
+        Generates the variables needed for the NHC tables from a pair
 
-        if "md5" in pair:
-            md5 = pair["md5"]
+        Args:
+            metadata (dict): dict containing the metadata for the file
+
+        Returns:
+            tuple: year, storm, basin, md5, start, end, duration
+        """
+        year = metadata["year"]
+        storm = metadata["storm"]
+        basin = metadata["basin"]
+
+        if "md5" in metadata:
+            md5 = metadata["md5"]
         else:
             md5 = "None"
 
-        if "advisory_start" in pair:
-            start = str(pair["advisory_start"])
+        if "advisory_start" in metadata:
+            start = str(metadata["advisory_start"])
         else:
             start = "None"
 
-        if "advisory_end" in pair:
-            end = str(pair["advisory_end"])
+        if "advisory_end" in metadata:
+            end = str(metadata["advisory_end"])
         else:
             end = "None"
 
-        if "advisory_duration_hr" in pair:
-            duration = str(pair["advisory_duration_hr"])
+        if "advisory_duration_hr" in metadata:
+            duration = str(metadata["advisory_duration_hr"])
         else:
             duration = "None"
 
         return year, storm, basin, md5, start, end, duration
-
-    @staticmethod
-    def __generate_sql_nhc_btk(filepath, pair):
-        import json
-
-        (
-            year,
-            storm,
-            basin,
-            md5,
-            start,
-            end,
-            duration,
-        ) = Metdb.__generate_nhc_vars_from_pair(pair)
-
-        if "geojson" in pair.keys():
-            geojson = json.dumps(pair["geojson"])
-        else:
-            geojson = "none"
-
-        sqlhas = (
-            "SELECT Count(*) FROM nhc_btk WHERE storm_year = "
-            + str(year)
-            + " AND BASIN = '"
-            + basin
-            + "' AND STORM = "
-            + str(storm)
-            + ";"
-        )
-        sqlinsert = (
-            "INSERT INTO nhc_btk (STORM_YEAR,BASIN,STORM,ADVISORY_START,ADVISORY_END,"
-            "ADVISORY_DURATION_HR,FILEPATH,MD5,ACCESSED,GEOMETRY_DATA) VALUES("
-            + str(year)
-            + ",'"
-            + basin
-            + "',"
-            + str(storm)
-            + ", '"
-            + start
-            + "', '"
-            + end
-            + "', "
-            + duration
-            + ",'"
-            + filepath
-            + "', '"
-            + md5
-            + "', now()"
-            + ", '"
-            + geojson
-            + "');"
-        )
-        sqlupdate = (
-            "UPDATE nhc_btk SET ACCESSED = now(), MD5 = '"
-            + md5
-            + "', ADVISORY_START = '"
-            + start
-            + "', ADVISORY_END = '"
-            + end
-            + "', ADVISORY_DURATION_HR = "
-            + duration
-            + ", GEOMETRY_DATA = '"
-            + geojson
-            + "' WHERE storm_year = "
-            + str(year)
-            + " AND BASIN = '"
-            + basin
-            + "' AND STORM = "
-            + str(storm)
-            + ";"
-        )
-        return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
-
-    @staticmethod
-    def __generate_sql_nhc_fcst(filepath, pair):
-        import json
-
-        (
-            year,
-            storm,
-            basin,
-            md5,
-            start,
-            end,
-            duration,
-        ) = Metdb.__generate_nhc_vars_from_pair(pair)
-        advisory = pair["advisory"]
-
-        if "geojson" in pair.keys():
-            geojson = json.dumps(pair["geojson"])
-        else:
-            geojson = "none"
-
-        sqlhas = (
-            "SELECT Count(*) FROM nhc_fcst WHERE storm_year = "
-            + str(year)
-            + " AND ADVISORY = '"
-            + advisory
-            + "' AND BASIN = '"
-            + basin
-            + "' AND STORM = "
-            + str(storm)
-            + ";"
-        )
-        sqlinsert = (
-            "INSERT INTO nhc_fcst (STORM_YEAR,BASIN,STORM,ADVISORY,ADVISORY_START,ADVISORY_END,"
-            "ADVISORY_DURATION_HR,FILEPATH,MD5,ACCESSED,GEOMETRY_DATA) VALUES("
-            + str(year)
-            + ",'"
-            + basin
-            + "',"
-            + str(storm)
-            + ",'"
-            + advisory
-            + "', '"
-            + start
-            + "', '"
-            + end
-            + "', "
-            + duration
-            + ",'"
-            + filepath
-            + "', '"
-            + md5
-            + "', now()"
-            + ", '"
-            + geojson
-            + "');"
-        )
-        sqlupdate = ""
-        return {"has": sqlhas, "insert": sqlinsert, "update": sqlupdate}
-
-    @staticmethod
-    def __generate_sql_hwrf(filepath, pair):
-        import math
-
-        cdate = str(pair["cycledate"])
-        fdate = str(pair["forecastdate"])
-        url = pair["grb"]
-        name = pair["name"]
-        tau = int(
-            math.floor(
-                (pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600.0
-            )
-        )
-
-        sqlhas = (
-            "SELECT Count(*) FROM hwrf WHERE FORECASTCYCLE = '{:s}' AND "
-            "FORECASTTIME = '{:s}' AND STORMNAME = '{:s}' AND FILEPATH = '{:s}';".format(
-                cdate, fdate, name, filepath, url
-            )
-        )
-
-        sqlinsert = (
-            "INSERT INTO hwrf (FORECASTCYCLE,FORECASTTIME,STORMNAME,TAU,FILEPATH,URL,ACCESSED) "
-            "VALUES('{:s}', '{:s}', '{:s}', {:d}, '{:s}', '{:s}', now());".format(
-                cdate, fdate, name, tau, filepath, url
-            )
-        )
-
-        return {"has": sqlhas, "insert": sqlinsert, "update": None}
-
-    @staticmethod
-    def __generate_sql_coamps(filepath, pair):
-        import math
-
-        cdate = str(pair["cycledate"])
-        fdate = str(pair["forecastdate"])
-        name = pair["name"]
-        tau = int(
-            math.floor(
-                (pair["forecastdate"] - pair["cycledate"]).total_seconds() / 3600.0
-            )
-        )
-
-        sqlhas = "SELECT Count(*) FROM coamps_tc where stormname = '{}' and forecastcycle = '{}' and forecasttime = '{}';".format(
-            name,
-            cdate,
-            fdate,
-        )
-        sqlinsert = "INSERT INTO coamps_tc(stormname, forecastcycle, forecasttime, filepath, accessed, tau) VALUES('{}', '{}', '{}', '{}', now(), '{}');".format(
-            name, cdate, fdate, filepath, tau
-        )
-        return {"has": sqlhas, "insert": sqlinsert, "update": None}

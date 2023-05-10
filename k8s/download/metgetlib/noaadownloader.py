@@ -166,17 +166,9 @@ class NoaaDownloader:
         month = "{0:02d}".format(time.month)
         day = "{0:02d}".format(time.day)
 
-        destination_folder = self.mettype() + "/" + year + "/" + month + "/" + day
-        local_file = tempfile.gettempdir() + "/" + fn
-
-        if self.use_aws():
-            if self.mettype() == "gefs_ncep":
-                path_found = self.__database.has(self.mettype(), info)
-            else:
-                path_found = self.s3file().exists(destination_folder + "/" + fn)
-
-        else:
-            path_found = os.path.exists(fn)
+        destination_folder = os.path.join(self.mettype(), year, month, day)
+        local_file = os.path.join(tempfile.gettempdir(), fn)
+        path_found = self.__database.has(self.mettype(), info)
 
         if not path_found:
 

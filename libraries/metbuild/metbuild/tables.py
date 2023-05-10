@@ -243,7 +243,6 @@ class CoampsTable(TableBase):
     forecasttime = Column(DateTime)
     tau = Column(Integer)
     filepath = Column(String)
-    url = Column(String)
     accessed = Column(DateTime)
 
 

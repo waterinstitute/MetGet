@@ -1,24 +1,52 @@
-
 class Database:
+    """
+    Database class for interacting with the database
+    """
+
     def __init__(self):
+        """
+        Constructor for Database class
+
+        Initialize the database engine and session
+        """
         from sqlalchemy.orm import Session
+
         self.__engine = self.__init_database_engine()
         self.__session = Session(self.__engine)
 
     def __enter__(self):
+        """
+        Enter method for Database class for use with context managers
+        """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Exit method for Database class for use with context managers. Note that
+        this method will rollback any uncommitted transactions and close the
+        database connection. This method will also dispose of the database
+        engine. This assumes that anything the user wants, they will
+        have already committed to the database.
+        """
         self.__session.rollback()
         self.__session.close()
         self.__engine.dispose()
 
     def __del__(self):
+        """
+        Destructor for Database class. Note that this method will rollback any
+        uncommitted transactions and close the database connection. This method
+        will also dispose of the database engine. This assumes that anything
+        the user wants, they will have already committed to the database.
+        """
         self.__session.rollback()
         self.__session.close()
         self.__engine.dispose()
 
     def session(self):
+        """
+        Return the database session
+        """
         return self.__session
 
     @staticmethod
