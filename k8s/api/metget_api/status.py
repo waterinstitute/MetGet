@@ -456,7 +456,7 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metbuild.tables import Database
+        from metbuild.database import Database
         from metbuild.tables import HwrfTable
 
         db = Database()
