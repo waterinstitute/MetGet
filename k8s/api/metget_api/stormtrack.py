@@ -53,7 +53,12 @@ class StormTrack:
 
         if track_type == "forecast":
             if "advisory" in request.args:
-                advisory = request.args["advisory"]
+                advisory_str = request.args["advisory"]
+                try:
+                    advisory_int = int(advisory_str)
+                    advisory = "{:03d}".format(advisory_int)
+                except ValueError:
+                    advisory = advisory_str
             else:
                 return {
                     "statusCode": 400,
