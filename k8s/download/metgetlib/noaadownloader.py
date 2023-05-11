@@ -20,12 +20,18 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""
-Parent class for downloading noaa grib format data
-"""
+import boto3
+from .s3file import S3file
+from .metdb import Metdb
+from datetime import datetime, timedelta
+from typing import Tuple, Union
 
 
 class NoaaDownloader:
+    """
+    Parent class for downloading noaa grib format data
+    """
+
     def __init__(
         self,
         mettype,
@@ -33,34 +39,29 @@ class NoaaDownloader:
         address,
         begin,
         end,
-        use_aws=True,
         use_aws_big_data=False,
     ):
         """
-        Constructor for the NoaaDownloader class. Initializes the
-        :param mettype: Type of metetrology that is to be downloaded
-        :param address: Server address
-        :param begin: start date for downloaded
-        :param end: end date for downloading
+        Constructor for the NoaaDownloader class. Initializes the class variables
+
+            Args:
+                mettype (str): Type of metetrology that is to be downloaded
+                address (str): Server address
+                begin (datetime): start date for downloaded
+                end (datetime): end date for downloading
+                use_aws_big_data (bool): Use AWS S3 for downloading big data
         """
-        from .metdb import Metdb
-        import os
 
         self.__mettype = mettype
         self.__metstring = metstring
         self.__address = address
         self.__beginDate = begin
         self.__endDate = end
-        self.__use_aws = use_aws
         self.__database = Metdb()
         self.__use_aws_big_data = use_aws_big_data
         self.__big_data_bucket = None
         self.__cycles = None
-
-        if self.__use_aws:
-            from .s3file import S3file
-
-            self.__s3file = S3file()
+        self.__s3file = S3file()
 
         # The default variable list
         self.__variables = [
@@ -68,58 +69,168 @@ class NoaaDownloader:
             {"long_name": "VGRD:10 m above ground", "name": "vvel"},
         ]
 
-    def s3file(self):
+    def s3file(self) -> S3file:
+        """
+        Returns the S3file object
+
+        Returns:
+            S3file: S3file object
+        """
         return self.__s3file
 
-    def use_aws(self):
-        return self.__use_aws
+    def set_cycles(self, cycle_list: list) -> None:
+        """
+        Sets the cycles to download
 
-    def set_cycles(self, cycle_list):
+        Args:
+            cycle_list (list): List of cycles to download
+
+        Returns:
+            None
+        """
         self.__cycles = cycle_list
 
-    def cycles(self):
+    def cycles(self) -> list:
+        """
+        Returns the cycles to download
+
+        Returns:
+            list: List of cycles to download
+        """
         return self.__cycles
 
-    def set_big_data_bucket(self, bucket_name):
+    def set_big_data_bucket(self, bucket_name: str) -> None:
+        """
+        Sets the bucket name for the AWS big data service
+        """
         self.__big_data_bucket = bucket_name
 
-    def big_data_bucket(self):
+    def big_data_bucket(self) -> str:
+        """
+        Returns the bucket name for the AWS big data service
+        """
         return self.__big_data_bucket
 
-    def use_big_data(self):
+    def use_big_data(self) -> bool:
+        """
+        Returns whether to use the AWS big data service
+
+        Returns:
+            bool: True if using AWS big data service, False otherwise
+        """
         return self.__use_aws_big_data
 
-    def add_download_variable(self, long_name, name):
+    def add_download_variable(self, long_name: str, name: str) -> None:
+        """
+        Adds a variable to the list of variables to download
+
+        Args:
+            long_name (str): The long name of the variable
+            name (str): The name of the variable
+
+        Returns:
+            None
+        """
         self.__variables.append({"long_name": long_name, "name": name})
 
-    def variables(self):
+    def variables(self) -> list:
+        """
+        Returns the list of variables to download
+
+        Returns:
+            list: List of variables to download
+        """
         return self.__variables
 
-    def mettype(self):
+    def mettype(self) -> str:
+        """
+        Returns the met type
+
+        Returns:
+            str: The met type
+        """
         return self.__mettype
 
-    def metstring(self):
+    def metstring(self) -> str:
+        """
+        Returns the met string
+
+        Returns:
+            str: The met string
+        """
         return self.__metstring
 
-    def address(self):
+    def address(self) -> str:
+        """
+        Returns the noaa server address
+
+        Returns:
+            str: The server address
+        """
         return self.__address
 
-    def database(self):
+    def database(self) -> Metdb:
+        """
+        Returns the Metdb object
+
+        Returns:
+            Metdb: The Metdb object
+        """
         return self.__database
 
-    def begindate(self):
+    def begindate(self) -> datetime:
+        """
+        Returns the begin date
+
+        Returns:
+            datetime: The begin date
+        """
         return self.__beginDate
 
-    def enddate(self):
+    def enddate(self) -> datetime:
+        """
+        Returns the end date
+
+        Returns:
+            datetime: The end date
+        """
         return self.__endDate
 
-    def setbegindate(self, date):
+    def setbegindate(self, date: datetime) -> None:
+        """
+        Sets the begin date
+
+        Args:
+            date (datetime): The begin date
+
+        Returns:
+            None
+        """
         self.__beginDate = date
 
-    def setenddate(self, date):
+    def setenddate(self, date: datetime) -> None:
+        """
+        Sets the end date
+
+        Args:
+            date (datetime): The end date
+
+        Returns:
+            None
+        """
         self.__endDate = date
 
-    def getgrib(self, info, client=None):
+    def getgrib(self, info: dict, client=None) -> Tuple[str, int, int]:
+        """
+        Gets the grib file from the noaa server
+
+        Args:
+            info (dict): The info dictionary
+            client (boto3.client): The boto3 client for AWS S3
+
+        Returns:
+            str: The path to the grib file
+        """
         if self.use_big_data():
             if client is None:
                 raise RuntimeError(
@@ -130,7 +241,19 @@ class NoaaDownloader:
             return self.__get_grib_noaa_servers(info)
 
     @staticmethod
-    def __get_inventory_byte_list(inventory_data, variable):
+    def __get_inventory_byte_list(
+        inventory_data: list, variable: dict
+    ) -> Union[dict, None]:
+        """
+        Gets the byte list for the variable from the inventory data
+
+        Args:
+            inventory_data (list): The inventory data
+            variable (dict): The variable dictionary
+
+        Returns:
+            dict: The byte list for the variable
+        """
         for i in range(len(inventory_data)):
             if variable["long_name"] in inventory_data[i]:
                 start_bits = inventory_data[i].split(":")[1]
@@ -141,8 +264,62 @@ class NoaaDownloader:
                 return {"name": variable["name"], "start": start_bits, "end": end_bits}
         return None
 
-    def __get_inventory_big_data(self, info, client):
-        inv_obj = client.get_object(Bucket=self.__big_data_bucket, Key=info["inv"])
+    @staticmethod
+    def __try_get_object(
+        bucket: str, key: str, s3_client: boto3.client, byte_range: str = None
+    ) -> dict:
+        """
+        Try to get an object from an s3 bucket. If the object does not exist, wait 5 seconds and try again.
+
+        Args:
+            bucket (str): The name of the bucket
+            key (str): The key of the object
+            s3_client (boto3.client): The s3 client to use
+            byte_range (str): The byte range to get
+
+        Returns:
+            The object from the bucket
+        """
+        from botocore.exceptions import ClientError
+        from time import sleep
+
+        max_tries = 5
+        sleep_interval = 5
+        tries = 0
+
+        while True:
+            try:
+                if byte_range:
+                    return s3_client.get_object(
+                        Bucket=bucket, Key=key, Range=byte_range
+                    )
+                else:
+                    return s3_client.get_object(Bucket=bucket, Key=key)
+            except ClientError as e:
+                if e.response["Error"]["Code"] == "NoSuchKey":
+                    tries += 1
+                    sleep(sleep_interval)
+                    if tries > max_tries:
+                        raise RuntimeError(
+                            "Could not find key {} in bucket {}".format(key, bucket)
+                        )
+                else:
+                    raise e
+
+    def __get_inventory_big_data(self, info: dict, client: boto3.client) -> list:
+        """
+        Gets the inventory data from the AWS big data service
+
+        Args:
+            info (dict): The info dictionary
+            client (boto3.client): The boto3 client for AWS S3
+
+        Returns:
+            list: The inventory data
+        """
+        inv_obj = NoaaDownloader.__try_get_object(
+            self.__big_data_bucket, info["inv"], client
+        )
         inv_data_tmp = str(inv_obj["Body"].read().decode("utf-8")).split("\n")
         inv_data = []
         for line in inv_data_tmp:
@@ -153,7 +330,19 @@ class NoaaDownloader:
             byte_list.append(NoaaDownloader.__get_inventory_byte_list(inv_data, v))
         return byte_list
 
-    def __get_grib_big_data(self, info, s3_client):
+    def __get_grib_big_data(
+        self, info: dict, s3_client: boto3.client
+    ) -> Tuple[Union[str, None], int, int]:
+        """
+        Gets the grib file from the AWS big data service
+
+        Args:
+            info (dict): The info dictionary
+            s3_client (boto3.client): The boto3 client for AWS S3
+
+        Returns:
+            str: The path to the grib file
+        """
         import tempfile
         import os
         import logging
@@ -193,10 +382,8 @@ class NoaaDownloader:
                 for r in byte_list:
                     if r:
                         return_range = "bytes=" + r["start"] + "-" + r["end"]
-                        grb_obj = s3_client.get_object(
-                            Bucket=self.__big_data_bucket,
-                            Key=grb_key,
-                            Range=return_range,
+                        grb_obj = NoaaDownloader.__try_get_object(
+                            self.__big_data_bucket, grb_key, s3_client, return_range
                         )
                         fid.write(grb_obj["Body"].read())
 
@@ -206,31 +393,30 @@ class NoaaDownloader:
             # ...Name of the file in S3
             remote_file = destination_folder + "/" + fn
 
-            if self.use_aws():
-                if file_size > 0:
-                    self.s3file().upload_file(local_file, remote_file)
-                else:
-                    remote_file = None
-                os.remove(local_file)
+            if file_size > 0:
+                self.s3file().upload_file(local_file, remote_file)
             else:
-                os.rename(local_file, fn)
+                remote_file = None
+            os.remove(local_file)
 
             return remote_file, n, 0
 
         else:
             return None, 0, 0
 
-    def __get_grib_noaa_servers(self, info):
+    def __get_grib_noaa_servers(self, info: dict) -> Tuple[Union[str, None], int, int]:
         """
         Gets the grib based upon the input data
-        :param info: variable containing the location of the data
-        :return: returns the name of the file that has been downloaded
+
+        Args:
+            info (dict): variable containing the location of the data
+
+        Returns:
+            str: returns the name of the file that has been downloaded
 
         Pain and suffering this way lies, use the AWS big data option whenever
         available
-
         """
-        import os
         import os.path
         import requests
         import tempfile
@@ -250,7 +436,6 @@ class NoaaDownloader:
         )
         adaptor = HTTPAdapter(max_retries=retry_strategy)
 
-        n = 0
         try:
             with requests.Session() as http:
                 http.mount("https://", adaptor)
@@ -278,13 +463,9 @@ class NoaaDownloader:
                 month = "{0:02d}".format(info["cycledate"].month)
                 day = "{0:02d}".format(info["cycledate"].day)
 
-                dfolder = self.mettype() + "/" + year + "/" + month + "/" + day
-                floc = tempfile.gettempdir() + "/" + fn
-
-                if self.__use_aws:
-                    pathfound = self.__s3file.exists(dfolder + "/" + fn)
-                else:
-                    pathfound = os.path.exists(fn)
+                dfolder = os.path.join(self.mettype(), year, month, day)
+                floc = os.path.join(tempfile.gettempdir(), fn)
+                pathfound = self.__database.has(self.mettype(), info)
 
                 if not pathfound:
                     logger.info(
@@ -336,14 +517,11 @@ class NoaaDownloader:
                     file_size = os.path.getsize(floc)
                     remote_file = dfolder + "/" + fn
 
-                    if self.__use_aws:
-                        if file_size > 0:
-                            self.__s3file.upload_file(floc, remote_file)
-                        else:
-                            remote_file = None
-                        os.remove(floc)
+                    if file_size > 0:
+                        self.__s3file.upload_file(floc, remote_file)
                     else:
-                        os.rename(floc, fn)
+                        remote_file = None
+                    os.remove(floc)
 
                     return remote_file, n, 0
                 else:
@@ -353,18 +531,44 @@ class NoaaDownloader:
             raise
 
     @staticmethod
-    def _generate_prefix(date, hour) -> str:
+    def _generate_prefix(date: datetime, hour: int) -> str:
+        """
+        Generates the prefix for the AWS big data files
+
+        Args:
+            date (datetime): date of the file
+            hour (int): hour of the file
+
+        Returns:
+            str: prefix of the file
+
+        This method is meant to be overridden by the child classes
+
+        """
         raise RuntimeError("Override method not implemented")
 
     @staticmethod
-    def _filename_to_hour(filename) -> int:
+    def _filename_to_hour(filename: str) -> int:
+        """
+        Converts the filename to the hour of the file
+
+        Args:
+            filename (str): filename of the file
+
+        Returns:
+            int: hour of the file
+
+        This method is meant to be overridden by the child classes
+        """
         raise RuntimeError("Override method not implemented")
 
-    def _download_aws_big_data(self):
-        import boto3
-        from datetime import datetime
-        from datetime import timedelta
+    def _download_aws_big_data(self) -> int:
+        """
+        Downloads data from the AWS big data service
 
+        Returns:
+            int: number of files downloaded
+        """
         s3 = boto3.resource("s3")
         client = boto3.client("s3")
         bucket = s3.Bucket(self.big_data_bucket())
@@ -408,7 +612,13 @@ class NoaaDownloader:
 
         return num_download
 
-    def download(self):
+    def download(self) -> int:
+        """
+        Downloads the data from the NOAA server
+
+        Returns:
+            int: number of files downloaded
+        """
         if self.__use_aws_big_data:
             return self._download_aws_big_data()
         else:
@@ -418,10 +628,13 @@ class NoaaDownloader:
     def linkToTime(t):
         """
         Converts a link in NOAA format to a datetime
-        :param t: Link to convert
-        :return: datetime object
+
+        Args:
+            t (str): Link to convert
+
+        Returns:
+            datetime: datetime object
         """
-        from datetime import datetime
 
         if t[-1] == "/":
             dstr = t[1:-1].rsplit("/", 1)[-1]

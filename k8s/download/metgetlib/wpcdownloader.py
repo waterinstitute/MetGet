@@ -69,15 +69,19 @@ class WpcDownloader:
                     )
                 )
 
-                #...The WPC FTP server likes to kick people off. That's annoying, 
+                # ...The WPC FTP server likes to kick people off. That's annoying,
                 #   but we are annoying-er
                 try:
-                    ftp.retrbinary("RETR {:s}".format(f), open(temp_file_path, "wb").write)
+                    ftp.retrbinary(
+                        "RETR {:s}".format(f), open(temp_file_path, "wb").write
+                    )
                 except ConnectionResetError as e:
                     ftp = FTP(ftp_address)
                     ftp.login()
                     ftp.cwd(ftp_folder)
-                    ftp.retrbinary("RETR {:s}".format(f), open(temp_file_path, "wb").write)
+                    ftp.retrbinary(
+                        "RETR {:s}".format(f), open(temp_file_path, "wb").write
+                    )
 
                 s3.upload_file(temp_file_path, remote_path)
                 db.add(data_pair, "wpc_ncep", remote_path)
