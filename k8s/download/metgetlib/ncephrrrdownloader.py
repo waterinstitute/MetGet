@@ -40,8 +40,8 @@ class NcepHrrrdownloader(NoaaDownloader):
         )
         self.set_big_data_bucket(NCEP_HRRR.bucket())
         self.set_cycles(NCEP_HRRR.cycles())
-        for v in NCEP_HRRR.variables().keys():
-            self.add_download_variable(NCEP_HRRR.variables()[v], v)
+        for v in NCEP_HRRR.variables():
+            self.add_download_variable(v["long_name"], v["name"])
 
     @staticmethod
     def _generate_prefix(date, hour) -> str:

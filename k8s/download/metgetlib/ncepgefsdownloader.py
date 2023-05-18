@@ -38,8 +38,8 @@ class NcepGefsdownloader(NoaaDownloader):
             use_aws_big_data=True,
             do_archive=False,
         )
-        for v in NCEP_GEFS.variables().keys():
-            self.add_download_variable(NCEP_GEFS.variables()[v], v)
+        for v in NCEP_GEFS.variables():
+            self.add_download_variable(v["long_name"], v["name"])
         self.set_big_data_bucket(NCEP_GEFS.bucket())
         self.set_cycles(NCEP_GEFS.cycles())
         self.__members = NCEP_GEFS.ensemble_members()

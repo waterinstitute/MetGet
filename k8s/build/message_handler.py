@@ -9,6 +9,7 @@ from metbuild.filelist import Filelist
 from metbuild.input import Input
 from metbuild.s3file import S3file
 from metbuild.tables import RequestTable
+from metbuild.s3gribio import S3GribIO
 
 
 class MessageHandler:
@@ -614,15 +615,62 @@ class MessageHandler:
                 )
             else:
                 MessageHandler.__get_2d_forcing_files(
-                    d, db_files, domain_data, i, met_field
+                    input_data.data_type(), d, db_files, domain_data, i, met_field
                 )
 
     @staticmethod
-    def __get_2d_forcing_files(domain, db_files, domain_data, index, met_field) -> None:
+    def __generate_noaa_s3_remote_instance(data_type: str) -> S3GribIO:
+        """
+        Generates the remote s3 grib instance for NOAA S3 archived files
+
+        Args:
+            data_type (str): The data type
+
+        Returns:
+            S3GribIO: The remote s3 grib instance
+        """
+        from metbuild.gribdataattributes import (
+            NCEP_NAM,
+            NCEP_GFS,
+            NCEP_GEFS,
+            NCEP_HRRR,
+            NCEP_HRRR_ALASKA,
+        )
+
+        remote = None
+
+        if data_type == "gfs-ncep":
+            grib_attrs = NCEP_GFS
+        elif data_type == "nam-ncep":
+            grib_attrs = NCEP_NAM
+        elif data_type == "gefs-ncep":
+            grib_attrs = NCEP_GEFS
+        elif data_type == "hrrr-ncep":
+            grib_attrs = NCEP_HRRR
+        elif data_type == "hrrr-alaska-ncep":
+            grib_attrs = NCEP_HRRR_ALASKA
+        else:
+            grib_attrs = None
+
+        if grib_attrs is not None:
+            remote = S3GribIO(grib_attrs.bucket(), grib_attrs.variables())
+
+        return remote
+
+    @staticmethod
+    def __get_2d_forcing_files(
+        data_type: str,
+        domain: Domain,
+        db_files: list,
+        domain_data: list,
+        index: int,
+        met_field,
+    ) -> None:
         """
         Gets the 2D forcing files from s3
 
         Args:
+            data_type (str): The data type
             domain (Domain): The domain
             db_files (list): The list of files from the database
             domain_data (list): The list of domain data
@@ -634,33 +682,11 @@ class MessageHandler:
 
         """
         import tempfile
-        from metbuild.s3gribio import S3GribIO
-        from metbuild.gribdataattributes import (
-            NCEP_NAM,
-            NCEP_GFS,
-            NCEP_GEFS,
-            NCEP_HRRR,
-            NCEP_HRRR_ALASKA,
-        )
 
         log = logging.getLogger(__name__)
 
         s3 = S3file(os.environ["METGET_S3_BUCKET"])
-
-        if domain.service() == "gfs-ncep":
-            s3_remote = S3GribIO(NCEP_GFS.bucket(), NCEP_GFS.variables())
-        elif domain.service() == "nam-ncep":
-            s3_remote = S3GribIO(NCEP_NAM.bucket(), NCEP_NAM.variables())
-        elif domain.service() == "gefs-ncep":
-            s3_remote = S3GribIO(NCEP_GEFS.bucket(), NCEP_GEFS.variables())
-        elif domain.service() == "hrrr-ncep":
-            s3_remote = S3GribIO(NCEP_HRRR.bucket(), NCEP_HRRR.variables())
-        elif domain.service() == "hrrr-alaska-ncep":
-            s3_remote = S3GribIO(
-                NCEP_HRRR_ALASKA.bucket(), NCEP_HRRR_ALASKA.variables()
-            )
-        else:
-            s3_remote = None
+        s3_remote = MessageHandler.__generate_noaa_s3_remote_instance(domain.service())
 
         f = db_files[index]
         if len(f) < 2:
@@ -692,7 +718,9 @@ class MessageHandler:
                         fn,
                     )
                     local_file = os.path.join(tempdir, fname)
-                    success = s3_remote.download(item["filepath"], local_file)
+                    success = s3_remote.download(
+                        item["filepath"], local_file, data_type
+                    )
                     if not success:
                         raise RuntimeError(
                             "Unable to download file {:s}".format(item["filepath"])

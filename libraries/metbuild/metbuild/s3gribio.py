@@ -8,29 +8,21 @@ class S3GribIO:
     of grib data from s3 resources
     """
 
-    def __init__(self, s3_bucket: str, variable_list: dict):
+    def __init__(self, s3_bucket: str, variable_list: list):
         """
         Constructor
 
         Args:
             s3_bucket (str): The s3 bucket to download from
-            variable_list (dict): The list of variables to download
+            variable_list (list): The list of variables to download
         """
         import boto3
 
         self.__s3_bucket = s3_bucket
+        self.__variable_list = variable_list
         self.__s3_client = boto3.client("s3")
         self.__s3_resource = boto3.resource("s3")
         self.__s3_bucket_object = self.__s3_resource.Bucket(self.__s3_bucket)
-
-        self.__variable_list = []
-        for variable in variable_list.keys():
-            self.__variable_list.append(
-                {
-                    "long_name": variable_list[variable],
-                    "name": variable,
-                }
-            )
 
     def s3_bucket(self) -> str:
         """
@@ -120,7 +112,6 @@ class S3GribIO:
         Returns:
             dict: The byte list for the variable
         """
-        log = logging.getLogger(__name__)
         for i in range(len(inventory_data)):
             if variable["long_name"] in inventory_data[i]:
                 start_bits = inventory_data[i].split(":")[1]
@@ -153,7 +144,59 @@ class S3GribIO:
 
         return byte_list
 
-    def download(self, s3_file: str, local_file: str) -> bool:
+    @staticmethod
+    def __get_variable_candidates(variable_type: str) -> Union[list, None]:
+        """
+        Get the candidate variables for the variable type
+
+        Args:
+            variable_type (str): The variable type to get the candidates for
+
+        Returns:
+            list: The candidate variables
+        """
+        if variable_type == "all":
+            return None
+        elif variable_type == "wind_pressure":
+            candidate_variables = ["uvel", "vvel", "press"]
+        elif variable_type == "rain":
+            candidate_variables = ["precip_rate", "accumulated_precip"]
+        elif variable_type == "temperature":
+            candidate_variables = ["temperature"]
+        elif variable_type == "humidity":
+            candidate_variables = ["humidity"]
+        elif variable_type == "ice":
+            candidate_variables = ["ice"]
+        else:
+            raise ValueError("Unknown variable type {}.".format(variable_type))
+        return candidate_variables
+
+    @staticmethod
+    def __variable_type_to_byte_range(variable_type: str, byte_range: list) -> list:
+        """
+        Select the byte ranges that are actually required to be downloaded
+
+        Args:
+            variable_type (str): The variable type to download
+            byte_range (list): The byte range to download
+
+        Returns:
+            list: The byte range to download
+        """
+
+        candidate_variables = S3GribIO.__get_variable_candidates(variable_type)
+        if candidate_variables is None:
+            return byte_range
+
+        out_byte_range = []
+        for b in byte_range:
+            if b["name"] in candidate_variables:
+                out_byte_range.append(b)
+        return out_byte_range
+
+    def download(
+        self, s3_file: str, local_file: str, variable_type: str = "all"
+    ) -> bool:
         """
         Downloads the grib file from s3 to the local file path
         for the variables specified in the variable list
@@ -161,10 +204,13 @@ class S3GribIO:
         Args:
             s3_file (str): The s3 file to download
             local_file (str): The local file path to download to
+            variable_type (str): The type of variable to download
 
         Returns:
             bool: True if the download was successful, False otherwise
         """
+        import os
+
         log = logging.getLogger(__name__)
 
         bucket, path = self.__parse_path(s3_file)
@@ -176,18 +222,28 @@ class S3GribIO:
             )
             return False
 
+        # ...Parses the grib inventory to the byte ranges for each variable
         inventory = self.__get_grib_inventory(path)
 
-        if len(inventory) == 0:
+        # ...Select the byte ranges that are actually required to be downloaded
+        inventory_subset = self.__variable_type_to_byte_range(variable_type, inventory)
+
+        if len(inventory_subset) == 0:
             log.error("No inventory found for file {}".format(path))
             return False
-        elif len(inventory) != len(self.__variable_list):
+        elif len(inventory_subset) != len(
+            S3GribIO.__get_variable_candidates(variable_type)
+        ):
             log.error("Inventory length does not match variable list length")
             return False
 
+        if os.path.exists(local_file):
+            log.warning("File '{}' already exists, removing".format(local_file))
+            os.remove(local_file)
+
         log.info("Downloading {} to {}".format(s3_file, local_file))
 
-        for var in inventory:
+        for var in inventory_subset:
             byte_range = "bytes={}-{}".format(var["start"], var["end"])
             obj = self.__try_get_object(path, byte_range)
             with open(local_file, "ab") as f:
