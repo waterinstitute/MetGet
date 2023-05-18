@@ -24,7 +24,7 @@ import boto3
 from .s3file import S3file
 from .metdb import Metdb
 from datetime import datetime, timedelta
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 
 
 class NoaaDownloader:
@@ -144,7 +144,7 @@ class NoaaDownloader:
         """
         self.__variables.append({"long_name": long_name, "name": name})
 
-    def variables(self) -> list:
+    def variables(self) -> List[dict]:
         """
         Returns the list of variables to download
 

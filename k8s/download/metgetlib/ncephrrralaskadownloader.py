@@ -39,8 +39,8 @@ class NcepHrrrAlaskadownloader(NoaaDownloader):
             do_archive=False,
         )
 
-        for v in NCEP_HRRR_ALASKA.variables().keys():
-            self.add_download_variable(NCEP_HRRR_ALASKA.variables()[v], v)
+        for v in NCEP_HRRR_ALASKA.variables():
+            self.add_download_variable(v["long_name"], v["name"])
         self.set_big_data_bucket(NCEP_HRRR_ALASKA.bucket())
         self.set_cycles(NCEP_HRRR_ALASKA.cycles())
 

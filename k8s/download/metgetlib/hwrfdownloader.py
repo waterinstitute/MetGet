@@ -32,8 +32,8 @@ class HwrfDownloader(NoaaDownloader):
             self, NCEP_HWRF.table(), NCEP_HWRF.name(), address, begin, end
         )
         self.set_cycles(NCEP_HWRF.cycles())
-        for v in NCEP_HWRF.variables().keys():
-            self.add_download_variable(NCEP_HWRF.variables()[v], v)
+        for v in NCEP_HWRF.variables():
+            self.add_download_variable(v["long_name"], v["name"])
 
     def download(self):
         from .spyder import Spyder

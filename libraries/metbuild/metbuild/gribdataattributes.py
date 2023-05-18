@@ -11,9 +11,17 @@ class GribDataAttributes:
         self.__name = name
         self.__table = table
         self.__bucket = bucket
-        self.__variables = variables
         self.__cycles = cycles
         self.__ensemble_members = ensemble_members
+
+        self.__variables = []
+        for variable in variables.keys():
+            self.__variables.append(
+                {
+                    "name": variable,
+                    "long_name": variables[variable],
+                }
+            )
 
     def name(self) -> str:
         return self.__name
