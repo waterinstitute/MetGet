@@ -22,15 +22,18 @@
 # SOFTWARE.
 
 from .noaadownloader import NoaaDownloader
+from metbuild.gribdataattributes import NCEP_HWRF
 
 
 class HwrfDownloader(NoaaDownloader):
     def __init__(self, begin, end):
         address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hwrf/prod/"
-        NoaaDownloader.__init__(self, "hwrf", "HWRF", address, begin, end)
-        self.add_download_variable("APCP", "accumulated_precip")
-        self.add_download_variable("RH:2 m above ground", "humidity")
-        self.add_download_variable("TMP:2 m above ground", "temperature")
+        NoaaDownloader.__init__(
+            self, NCEP_HWRF.table(), NCEP_HWRF.name(), address, begin, end
+        )
+        self.set_cycles(NCEP_HWRF.cycles())
+        for v in NCEP_HWRF.variables().keys():
+            self.add_download_variable(NCEP_HWRF.variables()[v], v)
 
     def download(self):
         from .spyder import Spyder

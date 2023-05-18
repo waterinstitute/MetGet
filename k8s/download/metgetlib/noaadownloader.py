@@ -40,6 +40,7 @@ class NoaaDownloader:
         begin,
         end,
         use_aws_big_data=False,
+        do_archive=True,
     ):
         """
         Constructor for the NoaaDownloader class. Initializes the class variables
@@ -49,7 +50,8 @@ class NoaaDownloader:
                 address (str): Server address
                 begin (datetime): start date for downloaded
                 end (datetime): end date for downloading
-                use_aws_big_data (bool): Use AWS S3 for downloading big data
+                use_aws_big_data (bool): Use AWS S3 for downloading big data'
+                do_archive (bool): Archive the downloaded data. True indicates that the data will be archived in the s3 bucket. False indicates it will be left on the remote server
         """
 
         self.__mettype = mettype
@@ -61,13 +63,22 @@ class NoaaDownloader:
         self.__use_aws_big_data = use_aws_big_data
         self.__big_data_bucket = None
         self.__cycles = None
-        self.__s3file = S3file()
+        self.__variables = []
+        self.__do_archive = do_archive
 
-        # The default variable list
-        self.__variables = [
-            {"long_name": "UGRD:10 m above ground", "name": "uvel"},
-            {"long_name": "VGRD:10 m above ground", "name": "vvel"},
-        ]
+        if self.__do_archive:
+            self.__s3file = S3file()
+        else:
+            self.__s3file = None
+
+    def do_archive(self):
+        """
+        Returns whether to archive the downloaded data
+
+        Returns:
+            bool: True if the data is to be archived, else False
+        """
+        return self.__do_archive
 
     def s3file(self) -> S3file:
         """
@@ -604,11 +615,17 @@ class NoaaDownloader:
         num_download = 0
 
         for p in pairs:
-            file_path, n, err = self.getgrib(p, client)
-            nerror += err
-            if file_path:
-                self.__database.add(p, self.mettype(), file_path)
-                num_download += n
+            if self.__do_archive:
+                file_path, n, err = self.getgrib(p, client)
+                nerror += err
+                if file_path:
+                    self.__database.add(p, self.mettype(), file_path)
+                    num_download += n
+            else:
+                filepath = "s3://{:s}/{:s}".format(self.big_data_bucket(), p["grb"])
+                if not self.__database.has(self.mettype(), p):
+                    num_download += 1
+                    self.__database.add(p, self.mettype(), filepath)
 
         return num_download
 

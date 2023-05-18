@@ -22,21 +22,26 @@
 # SOFTWARE.
 
 from .noaadownloader import NoaaDownloader
+from metbuild.gribdataattributes import NCEP_GFS
 
 
 class NcepGfsdownloader(NoaaDownloader):
     def __init__(self, begin, end):
         address = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/"
         NoaaDownloader.__init__(
-            self, "gfs_ncep", "GFS-NCEP", address, begin, end, use_aws_big_data=True
+            self,
+            NCEP_GFS.table(),
+            NCEP_GFS.name(),
+            address,
+            begin,
+            end,
+            use_aws_big_data=True,
+            do_archive=False,
         )
-        self.add_download_variable("PRMSL", "press")
-        self.add_download_variable("ICEC:surface", "ice")
-        self.add_download_variable("PRATE", "precip_rate")
-        self.add_download_variable("RH:30-0 mb above ground", "humidity")
-        self.add_download_variable("TMP:30-0 mb above ground", "temperature")
-        self.set_big_data_bucket("noaa-gfs-bdp-pds")
-        self.set_cycles([0, 6, 12, 18])
+        self.set_big_data_bucket(NCEP_GFS.bucket())
+        self.set_cycles(NCEP_GFS.cycles())
+        for v in NCEP_GFS.variables().keys():
+            self.add_download_variable(NCEP_GFS.variables()[v], v)
 
     @staticmethod
     def _generate_prefix(date, hour) -> str:

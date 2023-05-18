@@ -22,48 +22,26 @@
 # SOFTWARE.
 
 from .noaadownloader import NoaaDownloader
+from metbuild.gribdataattributes import NCEP_HRRR
 
 
 class NcepHrrrdownloader(NoaaDownloader):
     def __init__(self, begin, end):
         address = None
         NoaaDownloader.__init__(
-            self, "hrrr_ncep", "HRRR-NCEP", address, begin, end, use_aws_big_data=True
+            self,
+            NCEP_HRRR.table(),
+            NCEP_HRRR.name(),
+            address,
+            begin,
+            end,
+            use_aws_big_data=True,
+            do_archive=False,
         )
-        self.add_download_variable("MSLMA:mean sea level", "press")
-        self.add_download_variable("ICEC:surface", "ice")
-        self.add_download_variable("PRATE", "precip_rate")
-        self.add_download_variable("RH:2 m above ground", "humidity")
-        self.add_download_variable("TMP:2 m above ground", "temperature")
-        self.set_big_data_bucket("noaa-hrrr-bdp-pds")
-        self.set_cycles(
-            [
-                0,
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15,
-                16,
-                17,
-                18,
-                19,
-                20,
-                21,
-                22,
-                23,
-            ]
-        )
+        self.set_big_data_bucket(NCEP_HRRR.bucket())
+        self.set_cycles(NCEP_HRRR.cycles())
+        for v in NCEP_HRRR.variables().keys():
+            self.add_download_variable(NCEP_HRRR.variables()[v], v)
 
     @staticmethod
     def _generate_prefix(date, hour) -> str:

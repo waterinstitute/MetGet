@@ -241,6 +241,10 @@ class MessageHandler:
             return pymetbuild.Meteorology.NAM
         elif data_source == "hwrf":
             return pymetbuild.Meteorology.HWRF
+        elif data_source == "hrrr-ncep":
+            return pymetbuild.Meteorology.HRRR_CONUS
+        elif data_source == "hrrr-alaska-ncep":
+            return pymetbuild.Meteorology.HRRR_ALASKA
         elif data_source == "coamps-tc":
             return pymetbuild.Meteorology.COAMPS
         else:
@@ -629,10 +633,34 @@ class MessageHandler:
             None
 
         """
+        import tempfile
+        from metbuild.s3gribio import S3GribIO
+        from metbuild.gribdataattributes import (
+            NCEP_NAM,
+            NCEP_GFS,
+            NCEP_GEFS,
+            NCEP_HRRR,
+            NCEP_HRRR_ALASKA,
+        )
 
         log = logging.getLogger(__name__)
 
         s3 = S3file(os.environ["METGET_S3_BUCKET"])
+
+        if domain.service() == "gfs-ncep":
+            s3_remote = S3GribIO(NCEP_GFS.bucket(), NCEP_GFS.variables())
+        elif domain.service() == "nam-ncep":
+            s3_remote = S3GribIO(NCEP_NAM.bucket(), NCEP_NAM.variables())
+        elif domain.service() == "gefs-ncep":
+            s3_remote = S3GribIO(NCEP_GEFS.bucket(), NCEP_GEFS.variables())
+        elif domain.service() == "hrrr-ncep":
+            s3_remote = S3GribIO(NCEP_HRRR.bucket(), NCEP_HRRR.variables())
+        elif domain.service() == "hrrr-alaska-ncep":
+            s3_remote = S3GribIO(
+                NCEP_HRRR_ALASKA.bucket(), NCEP_HRRR_ALASKA.variables()
+            )
+        else:
+            s3_remote = None
 
         f = db_files[index]
         if len(f) < 2:
@@ -655,9 +683,24 @@ class MessageHandler:
                     {"time": item["forecasttime"], "filepath": local_file_list}
                 )
             else:
-                local_file = s3.download(
-                    item["filepath"], domain.service(), item["forecasttime"]
-                )
+                if "s3://" in item["filepath"]:
+                    tempdir = tempfile.gettempdir()
+                    fn = os.path.split(item["filepath"])[1]
+                    fname = "{:s}.{:s}.{:s}".format(
+                        domain.service(),
+                        item["forecasttime"].strftime("%Y%m%d%H%M"),
+                        fn,
+                    )
+                    local_file = os.path.join(tempdir, fname)
+                    success = s3_remote.download(item["filepath"], local_file)
+                    if not success:
+                        raise RuntimeError(
+                            "Unable to download file {:s}".format(item["filepath"])
+                        )
+                else:
+                    local_file = s3.download(
+                        item["filepath"], domain.service(), item["forecasttime"]
+                    )
                 if not met_field:
                     new_file = os.path.basename(local_file)
                     os.rename(local_file, new_file)
@@ -803,11 +846,12 @@ class MessageHandler:
                     if ongoing_restore_this:
                         ongoing_restore = True
             else:
-                ongoing_restore_this = s3.check_archive_initiate_restore(
-                    item["filepath"]
-                )
-                if ongoing_restore_this:
-                    ongoing_restore = True
+                if "s3://" not in item["filepath"]:
+                    ongoing_restore_this = s3.check_archive_initiate_restore(
+                        item["filepath"]
+                    )
+                    if ongoing_restore_this:
+                        ongoing_restore = True
         return ongoing_restore
 
     @staticmethod
