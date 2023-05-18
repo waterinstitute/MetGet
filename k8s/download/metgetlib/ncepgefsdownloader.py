@@ -22,30 +22,27 @@
 # SOFTWARE.
 
 from .noaadownloader import NoaaDownloader
+from metbuild.gribdataattributes import NCEP_GEFS
 
 
 class NcepGefsdownloader(NoaaDownloader):
     def __init__(self, begin, end):
         address = None
         NoaaDownloader.__init__(
-            self, "gefs_ncep", "GEFS-NCEP", address, begin, end, use_aws_big_data=True
+            self,
+            NCEP_GEFS.table(),
+            NCEP_GEFS.name(),
+            address,
+            begin,
+            end,
+            use_aws_big_data=True,
+            do_archive=False,
         )
-        self.add_download_variable("PRMSL", "press"),
-        self.add_download_variable("ICETK:surface", "ice")
-        self.add_download_variable("APCP", "accumulated_precip")
-        self.add_download_variable("RH:2 m above ground", "humidity")
-        self.add_download_variable("TMP:2 m above ground", "temperature")
-        self.set_big_data_bucket("noaa-gefs-pds")
-        self.set_cycles([0, 6, 12, 18])
-
-        # ...GEFS ensemble members:
-        #   Valid perturbations for gefs are:
-        #   avg => ensemble mean
-        #   c00 => control
-        #   pXX => perturbation XX (1-30)
-        self.__members = ["avg", "c00"]
-        for i in range(30):
-            self.__members.append("p{:02d}".format(i + 1))
+        for v in NCEP_GEFS.variables().keys():
+            self.add_download_variable(NCEP_GEFS.variables()[v], v)
+        self.set_big_data_bucket(NCEP_GEFS.bucket())
+        self.set_cycles(NCEP_GEFS.cycles())
+        self.__members = NCEP_GEFS.ensemble_members()
 
     def members(self) -> list:
         return self.__members
@@ -110,10 +107,15 @@ class NcepGefsdownloader(NoaaDownloader):
         db = Metdb()
 
         for p in pairs:
-            file_path, n, err = self.getgrib(p, client)
-            nerror += err
-            if file_path:
-                db.add(p, self.mettype(), file_path)
-                num_download += n
+            if self.do_archive():
+                file_path, n, err = self.getgrib(p, client)
+                nerror += err
+                if file_path:
+                    db.add(p, self.mettype(), file_path)
+                    num_download += n
+            else:
+                filepath = "s3://{:s}/{:s}".format(self.big_data_bucket(), p["grb"])
+                num_download += 1
+                db.add(p, self.mettype(), filepath)
 
         return num_download
