@@ -718,10 +718,10 @@ class MessageHandler:
                         fn,
                     )
                     local_file = os.path.join(tempdir, fname)
-                    success = s3_remote.download(
+                    success, fatal = s3_remote.download(
                         item["filepath"], local_file, data_type
                     )
-                    if not success:
+                    if not success and fatal:
                         raise RuntimeError(
                             "Unable to download file {:s}".format(item["filepath"])
                         )
@@ -729,13 +729,16 @@ class MessageHandler:
                     local_file = s3.download(
                         item["filepath"], domain.service(), item["forecasttime"]
                     )
+                    success = True
                 if not met_field:
                     new_file = os.path.basename(local_file)
                     os.rename(local_file, new_file)
                     local_file = new_file
-                domain_data[index].append(
-                    {"time": item["forecasttime"], "filepath": local_file}
-                )
+
+                if success:
+                    domain_data[index].append(
+                        {"time": item["forecasttime"], "filepath": local_file}
+                    )
 
     @staticmethod
     def __print_file_status(filepath: any, time: datetime) -> None:
