@@ -196,7 +196,7 @@ class S3GribIO:
 
     def download(
         self, s3_file: str, local_file: str, variable_type: str = "all"
-    ) -> bool:
+    ) -> Tuple[bool, bool]:
         """
         Downloads the grib file from s3 to the local file path
         for the variables specified in the variable list
@@ -220,7 +220,7 @@ class S3GribIO:
                     bucket, self.__s3_bucket
                 )
             )
-            return False
+            return False, True
 
         # ...Parses the grib inventory to the byte ranges for each variable
         inventory = self.__get_grib_inventory(path)
@@ -230,12 +230,12 @@ class S3GribIO:
 
         if len(inventory_subset) == 0:
             log.error("No inventory found for file {}".format(path))
-            return False
+            return False, False
         elif len(inventory_subset) != len(
             S3GribIO.__get_variable_candidates(variable_type)
         ):
             log.error("Inventory length does not match variable list length")
-            return False
+            return False, False
 
         if os.path.exists(local_file):
             log.warning("File '{}' already exists, removing".format(local_file))
@@ -249,4 +249,4 @@ class S3GribIO:
             with open(local_file, "ab") as f:
                 f.write(obj["Body"].read())
 
-        return True
+        return True, False
