@@ -94,8 +94,15 @@ int Grib::getStepLength(const std::string &filename,
 void Grib::initialize() {
   codes_grib_multi_support_on(grib_context_get_default());
 
-  auto handle = GribHandle(this->filenames()[0],
-                           this->variableNames().pressure().c_str());
+  auto handle = [&](){
+    if(Grib::containsVariable(this->filenames()[0], this->variableNames().pressure())) {    
+      return GribHandle(this->filenames()[0], this->variableNames().pressure().c_str());
+    } else if (Grib::containsVariable(this->filenames()[0], this->variableNames().precipitation())) { 
+      return GribHandle(this->filenames()[0], this->variableNames().precipitation().c_str());
+    } else {
+      metbuild_throw_exception("Could not find a valid variable (tried pressure and precip)");
+    }
+  }();
 
   long ni = 0;
   CODES_CHECK(codes_get_long(handle.ptr(), "Ni", &ni), nullptr);
