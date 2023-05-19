@@ -145,7 +145,7 @@ class S3GribIO:
         return byte_list
 
     @staticmethod
-    def __get_variable_candidates(variable_type: str) -> Union[list, None]:
+    def __get_variable_candidates(variable_type: str) -> Union[dict, None]:
         """
         Get the candidate variables for the variable type
 
@@ -155,10 +155,12 @@ class S3GribIO:
         Returns:
             list: The candidate variables
         """
+        length = 1
         if variable_type == "all":
             return None
         elif variable_type == "wind_pressure":
             candidate_variables = ["uvel", "vvel", "press"]
+            length = 3
         elif variable_type == "rain":
             candidate_variables = ["precip_rate", "accumulated_precip"]
         elif variable_type == "temperature":
@@ -169,7 +171,7 @@ class S3GribIO:
             candidate_variables = ["ice"]
         else:
             raise ValueError("Unknown variable type {}.".format(variable_type))
-        return candidate_variables
+        return {"variables": candidate_variables, "length": length}
 
     @staticmethod
     def __variable_type_to_byte_range(variable_type: str, byte_range: list) -> list:
@@ -190,7 +192,7 @@ class S3GribIO:
 
         out_byte_range = []
         for b in byte_range:
-            if b["name"] in candidate_variables:
+            if b["name"] in candidate_variables["variables"]:
                 out_byte_range.append(b)
         return out_byte_range
 
@@ -231,8 +233,9 @@ class S3GribIO:
         if len(inventory_subset) == 0:
             log.error("No inventory found for file {}".format(path))
             return False, False
-        elif len(inventory_subset) != len(
-            S3GribIO.__get_variable_candidates(variable_type)
+        elif (
+            len(inventory_subset)
+            < S3GribIO.__get_variable_candidates(variable_type)["length"]
         ):
             log.error("Inventory length does not match variable list length")
             return False, False
