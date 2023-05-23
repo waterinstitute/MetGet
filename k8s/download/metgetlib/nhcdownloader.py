@@ -171,7 +171,7 @@ class NhcDownloader:
 
             # ... During month changes, we need to be able to roll
             # the date correctly
-            rss_date_str = feed["date"][5:-4]
+            rss_date_str = feed.entries[0]["published"][5:-4]
             rss_date = datetime.strptime(rss_date_str, "%d %b %Y %H:%M:%S")
 
             for e in feed.entries:
