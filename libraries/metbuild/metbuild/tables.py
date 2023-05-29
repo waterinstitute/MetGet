@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum, BigInteger
 import enum
 
 # This is the base class for all the tables
@@ -19,7 +19,7 @@ class AuthTable(TableBase):
     key = Column(String)
     username = Column(String)
     description = Column(String)
-    credit_limit = Column(Integer)
+    credit_limit = Column(BigInteger)
     enabled = Column(Boolean)
 
 
@@ -55,7 +55,7 @@ class RequestTable(TableBase):
     last_date = Column(DateTime)
     api_key = Column(String)
     source_ip = Column(String)
-    credit_usage = Column(Integer)
+    credit_usage = Column(BigInteger)
     input_data = Column(MutableDict.as_mutable(JSONB))
     message = Column(MutableDict.as_mutable(JSONB))
 
