@@ -107,7 +107,7 @@ CREATE TABLE apikeys(
   key CHAR(41) NOT NULL, 
   username VARCHAR(256) NOT NULL, 
   description VARCHAR(256), 
-  credit_limit INT NOT NULL,
+  credit_limit BIGINT NOT NULL,
   enabled BOOLEAN NOT NULL
 );
 
@@ -123,7 +123,7 @@ CREATE TABLE requests(
   start_date TIMESTAMP NOT NULL, 
   last_date TIMESTAMP NOT NULL, 
   api_key VARCHAR(128) NOT NULL, 
-  credit_usage INT NOT NULL,
+  credit_usage BIGINT NOT NULL,
   source_ip VARCHAR(128) NOT NULL,, 
   input_data JSON NOT NULL,
   message JSON NOT NULL
