@@ -141,3 +141,13 @@ NCEP_HWRF = GribDataAttributes(
     },
     [0, 6, 12, 18],
 )
+
+NCEP_WPC = GribDataAttributes(
+    "WPC",
+    "wpc_ncep",
+    None,
+    {
+        "accumulated_precip": "APCP",
+    },
+    [0, 6, 12, 18],
+)

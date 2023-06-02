@@ -41,7 +41,7 @@ namespace MetBuild {
 
 class Meteorology {
  public:
-  enum SOURCE { GFS, GEFS, NAM, HWRF, COAMPS, HRRR_CONUS, HRRR_ALASKA };
+  enum SOURCE { GFS, GEFS, NAM, HWRF, COAMPS, HRRR_CONUS, HRRR_ALASKA, WPC };
 
   METBUILD_EXPORT explicit Meteorology(const MetBuild::Grid *grid,
                                        Meteorology::SOURCE source_type,

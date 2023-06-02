@@ -246,6 +246,8 @@ class MessageHandler:
             return pymetbuild.Meteorology.HRRR_CONUS
         elif data_source == "hrrr-alaska-ncep":
             return pymetbuild.Meteorology.HRRR_ALASKA
+        elif data_source == "wpc-ncep":
+            return pymetbuild.Meteorology.WPC
         elif data_source == "coamps-tc":
             return pymetbuild.Meteorology.COAMPS
         else:
@@ -649,6 +651,8 @@ class MessageHandler:
             grib_attrs = NCEP_HRRR
         elif data_type == "hrrr-alaska-ncep":
             grib_attrs = NCEP_HRRR_ALASKA
+        elif data_type == "wpc-ncep":
+            grib_attrs = NCEP_WPC
         else:
             grib_attrs = None
 

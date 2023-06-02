@@ -106,7 +106,6 @@ set(metbuild_include_list
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/fmt-8.1.1/include
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eccodes-2.25.0/src
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/date_hh
-    ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/eccodes/src
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/CGAL-5.4/include
     ${NETCDF_INCLUDE_DIRS}
     ${PROJ_INCLUDE_DIR}

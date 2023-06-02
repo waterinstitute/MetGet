@@ -141,6 +141,8 @@ class Filelist:
             return self.__query_files_hrrr_alaska()
         elif self.__query_files == "gefs-ncep":
             return self.__query_files_gefs_ncep()
+        elif self.__query_files == "wpc-ncep":
+            return self.__query_files_wpc_ncep()
         elif self.__service == "nhc":
             return self.__query_files_nhc()
         else:
@@ -343,6 +345,18 @@ class Filelist:
         from .tables import GfsTable
 
         return self.__query_generic_file_list(GfsTable)
+    
+    def __query_files_wpc_ncep(self) -> list:
+        """
+        This method is used to query the database for the files that will be used to
+        generate the requested forcing data. It is used for WPC-NCEP.
+
+        Returns:
+            list: The list of files that will be used to generate the requested forcing
+        """
+        from .tables import WpcTable
+
+        return self.__query_generic_file_list(WpcTable)
 
     def __query_files_nam_ncep(self) -> list:
         """

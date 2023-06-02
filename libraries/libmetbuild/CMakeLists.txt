@@ -71,7 +71,7 @@ mark_as_advanced(
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/python.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/netcdf_check.cmake)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/eccodes.cmake)
+# include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/eccodes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/libmetbuild.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/python_metbuild.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/test_cases.cmake)
