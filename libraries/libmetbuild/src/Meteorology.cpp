@@ -42,6 +42,7 @@
 #include "data_sources/HrrrConusData.h"
 #include "data_sources/HwrfData.h"
 #include "data_sources/NamData.h"
+#include "data_sources/WpcData.h"
 
 using namespace MetBuild;
 
@@ -399,6 +400,8 @@ std::unique_ptr<GriddedData> Meteorology::gridded_data_factory(
       return std::make_unique<MetBuild::HrrrConusData>(filenames[0]);
     case HRRR_ALASKA:
       return std::make_unique<MetBuild::HrrrAlaskaData>(filenames[0]);
+    case WPC:
+      return std::make_unique<MetBuild::WpcData>(filenames[0]);
     default:
       Logging::throwError(
           "No valid source type defined. Cannot create object.");
