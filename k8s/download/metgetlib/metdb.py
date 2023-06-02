@@ -531,9 +531,9 @@ class Metdb:
             ) = Metdb.__generate_nhc_vars_from_dict(metadata)
 
             if "geojson" in metadata.keys():
-                geojson = json.dumps(metadata["geojson"])
+                geojson = metadata["geojson"]
             else:
-                geojson = None
+                geojson = {}
 
             record = NhcBtkTable(
                 storm_year=year,
@@ -545,7 +545,7 @@ class Metdb:
                 filepath=filepath,
                 md5=md5,
                 accessed=datetime.utcnow(),
-                geojson=geojson,
+                geometry_data=geojson,
             )
 
             self.__session.add(record)
@@ -577,9 +577,9 @@ class Metdb:
         advisory = metadata["advisory"]
 
         if "geojson" in metadata.keys():
-            geojson = json.dumps(metadata["geojson"])
+            geojson = metadata["geojson"]
         else:
-            geojson = "none"
+            geojson = {}
 
         record = (
             self.__session.query(NhcFcstTable.index)
@@ -722,8 +722,8 @@ class Metdb:
             end = "None"
 
         if "advisory_duration_hr" in metadata:
-            duration = str(metadata["advisory_duration_hr"])
+            duration = float(metadata["advisory_duration_hr"])
         else:
-            duration = "None"
+            duration = 0
 
         return year, storm, basin, md5, start, end, duration
