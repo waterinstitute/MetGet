@@ -5,6 +5,7 @@ VALID_SERVICES = [
     "gfs-ncep",
     "gefs-ncep",
     "nam-ncep",
+    "wpc-ncep",
     "hwrf",
     "coamps-tc",
     "nhc",

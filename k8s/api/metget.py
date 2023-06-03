@@ -203,4 +203,4 @@ if __name__ == "__main__":
     using flask's built-in server. This is for testing purposes
     only and should not be used in production.
     """
-    application.run(host="0.0.0.0", port=5000)
+    application.run(host="0.0.0.0", port=8080)

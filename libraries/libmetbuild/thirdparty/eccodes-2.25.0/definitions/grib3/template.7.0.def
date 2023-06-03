@@ -1,6 +1,0 @@
-# (C) Copyright 2005- ECMWF.
-#
-# TEMPLATE 7.0, Observable property by discipline, category and number
-
-# Observable property by discipline, category and number
-include "grib3/template.component.7.0.def";

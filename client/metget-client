@@ -35,6 +35,7 @@ AVAILABLE_MODELS = {
     "nam": "nam-ncep",
     "hwrf": "hwrf",
     "hrrr": "hrrr-conus",
+    "wpc": "wpc-ncep",
     "coamps": "coamps-tc",
     "nhc": "nhc",
 }
