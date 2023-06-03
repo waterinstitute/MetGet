@@ -637,6 +637,7 @@ class MessageHandler:
             NCEP_GEFS,
             NCEP_HRRR,
             NCEP_HRRR_ALASKA,
+            NCEP_WPC,
         )
 
         remote = None

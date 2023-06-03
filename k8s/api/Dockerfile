@@ -16,3 +16,6 @@ COPY k8s/api/metget.py /app/.
 
 ENTRYPOINT ["gunicorn"]
 CMD ["-w","4","metget:application","--bind","0.0.0.0:8080"]
+
+#ENTRYPOINT ["python3"]
+#CMD [ "metget.py" ]

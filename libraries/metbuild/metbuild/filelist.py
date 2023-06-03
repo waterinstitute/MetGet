@@ -44,7 +44,6 @@ class Filelist:
             ensemble_member (str): The ensemble member that is being requested
 
         """
-
         self.__service = service
         self.__param = param
         self.__start = start
@@ -125,6 +124,7 @@ class Filelist:
         Returns:
             list: The list of files that will be used to generate the requested forcing
         """
+        import sys
 
         self.__valid = True
         if self.__service == "gfs-ncep":
@@ -139,9 +139,9 @@ class Filelist:
             return self.__query_files_hrrr_conus()
         elif self.__service == "hrrr-alaska":
             return self.__query_files_hrrr_alaska()
-        elif self.__query_files == "gefs-ncep":
+        elif self.__service == "gefs-ncep":
             return self.__query_files_gefs_ncep()
-        elif self.__query_files == "wpc-ncep":
+        elif self.__service == "wpc-ncep":
             return self.__query_files_wpc_ncep()
         elif self.__service == "nhc":
             return self.__query_files_nhc()
@@ -355,6 +355,10 @@ class Filelist:
             list: The list of files that will be used to generate the requested forcing
         """
         from .tables import WpcTable
+
+        #...Skipping the zero hour for wpc rainfall
+        if self.__tau == 0:
+            self.__tau == 1
 
         return self.__query_generic_file_list(WpcTable)
 

@@ -22,7 +22,7 @@ class S3GribIO:
         self.__variable_list = variable_list
         self.__s3_client = boto3.client("s3")
         self.__s3_resource = boto3.resource("s3")
-        self.__s3_bucket_object = self.__s3_resource.Bucket(self.__s3_bucket)
+        # self.__s3_bucket_object = self.__s3_resource.Bucket(self.__s3_bucket)
 
     def s3_bucket(self) -> str:
         """
