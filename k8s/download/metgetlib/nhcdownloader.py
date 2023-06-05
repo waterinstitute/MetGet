@@ -812,6 +812,7 @@ class NhcDownloader:
                 Feature(
                     geometry=Point((longitude, latitude)),
                     properties={
+                        "time_utc": d["time"].isoformat(),
                         "max_wind_speed_mph": round(
                             float(d["data"]["vmax"]) * KNOT_TO_MPH, 2
                         ),
@@ -823,8 +824,7 @@ class NhcDownloader:
                     },
                 )
             )
-        # storm_track = Feature(geometry=LineString(track_points))
-        return FeatureCollection(features=points)  # , storm_track
+        return FeatureCollection(features=points)
 
     def generate_geojson(self, filename: str):
         return self.__generate_track(filename)
