@@ -97,7 +97,7 @@ set_target_properties(metbuild_objectlib PROPERTIES CMAKE_CXX_VISIBILITY_PRESET
 set_target_properties(metbuild_objectlib PROPERTIES CMAKE_CXX_INLINES_HIDDEN
                                                     YES)
 
-add_dependencies(metbuild_objectlib eccodes)
+# add_dependencies(metbuild_objectlib eccodes)
 
 set(metbuild_include_list
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -137,8 +137,5 @@ install(
   PUBLIC_HEADER DESTINATION ${HEADER_DEST} COMPONENT METGET_DEVELOPMENT)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/metbuildConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
-install(
-  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/eccodes-2.25.0/definitions
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/share/eccodes)
 
 # ##############################################################################
