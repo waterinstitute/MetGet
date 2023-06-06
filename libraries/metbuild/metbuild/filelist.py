@@ -357,8 +357,8 @@ class Filelist:
         from .tables import WpcTable
 
         #...Skipping the zero hour for wpc rainfall
-        if self.__tau == 0:
-            self.__tau == 1
+        #if self.__tau == 0:
+        #    self.__tau == 1
 
         return self.__query_generic_file_list(WpcTable)
 
