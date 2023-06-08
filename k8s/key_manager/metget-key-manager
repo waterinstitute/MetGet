@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
+from datetime import datetime
 
 CREDIT_MULTIPLIER = 100000.0
 
 
-def add_key(key: str, user: str, description: str, api_credits: int):
+def add_key(
+    key: str, user: str, description: str, api_credits: int, expiration_date: datetime
+):
     """
     Add a new key to the database
 
@@ -12,6 +15,7 @@ def add_key(key: str, user: str, description: str, api_credits: int):
         user (str): The user associated with the key
         description (str): The description of the key
         api_credits (int): The number of monthly credits to assign to the key
+        expiration_date (datetime): Date when the key expires
 
     Returns:
         None
@@ -28,7 +32,19 @@ def add_key(key: str, user: str, description: str, api_credits: int):
         token = secrets.token_urlsafe(80).replace("-", "").replace("_", "")[:40]
 
     if len(token) != 40:
-        raise Exception("Token is not 40 characters long")
+        raise ValueError("Token is not 40 characters long")
+
+    if not user:
+        raise ValueError("No user name specified")
+
+    if not description:
+        raise ValueError("No user description specified")
+
+    if not api_credits:
+        raise ValueError("No credit count specified")
+
+    if not expiration_date:
+        raise ValueError("No expiration date specified")
 
     # Add the key to the database
     with Database() as db, db.session() as session:
@@ -39,6 +55,7 @@ def add_key(key: str, user: str, description: str, api_credits: int):
                 description=description,
                 enabled="true",
                 credits=int(api_credits * CREDIT_MULTIPLIER),
+                expiration=expiration_date,
             )
         )
         session.commit()
@@ -47,7 +64,9 @@ def add_key(key: str, user: str, description: str, api_credits: int):
     print("The key for user {} is '{}'".format(user, token))
 
 
-def update_key(key: str, user: str, description: str, api_credits: int):
+def update_key(
+    key: str, user: str, description: str, api_credits: int, expiration_date: datetime
+):
     """
     Update an existing key in the database
 
@@ -56,6 +75,7 @@ def update_key(key: str, user: str, description: str, api_credits: int):
         user (str): The user associated with the key
         description (str): The description of the key
         api_credits (int): The number of monthly credits to assign to the key
+        expiration_Date (datetime): Datetime for the key expiration
 
     Returns:
         None
@@ -75,6 +95,8 @@ def update_key(key: str, user: str, description: str, api_credits: int):
             current_key.description = description
         if api_credits:
             current_key.credit_limit = int(float(api_credits) * CREDIT_MULTIPLIER)
+        if expiration_date:
+            current_key.expiration = expiration_date
         session.commit()
 
 
@@ -141,6 +163,7 @@ def list_keys():
             "User",
             "Description",
             "Enabled",
+            "Expiration",
             "Credit Limit",
             "Credits Used",
             "Credit Balance",
@@ -151,6 +174,7 @@ def list_keys():
             AuthTable.username,
             AuthTable.description,
             AuthTable.enabled,
+            AuthTable.expiration,
             AuthTable.credit_limit,
         ).all()
 
@@ -187,6 +211,7 @@ def list_keys():
                     key.username,
                     key.description,
                     key.enabled,
+                    key.expiration,
                     credit_limit,
                     credit_used,
                     credit_balance,
@@ -214,12 +239,15 @@ def main():
     parser.add_argument(
         "--credits", help="Number of monthly credits to assign to the key"
     )
+    parser.add_argument(
+        "--expires", type=datetime.fromisoformat, help="Expiration date of the key"
+    )
     args = parser.parse_args()
 
     if args.command == "add":
-        add_key(args.key, args.user, args.description, args.credits)
+        add_key(args.key, args.user, args.description, args.credits, args.expires)
     elif args.command == "update":
-        update_key(args.key, args.user, args.description, args.credits)
+        update_key(args.key, args.user, args.description, args.credits, args.expires)
     elif args.command == "enable":
         enable_disable_key(args.key, "true")
     elif args.command == "disable":

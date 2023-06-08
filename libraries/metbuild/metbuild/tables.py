@@ -1,5 +1,7 @@
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum, BigInteger
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.mutable import MutableDict
 import enum
 
 # This is the base class for all the tables
@@ -21,6 +23,8 @@ class AuthTable(TableBase):
     description = Column(String)
     credit_limit = Column(BigInteger)
     enabled = Column(Boolean)
+    expiration = Column(DateTime)
+    permissions = Column(MutableDict.as_mutable(JSONB))
 
 
 class RequestEnum(enum.Enum):
@@ -41,8 +45,6 @@ class RequestTable(TableBase):
     being processed or have been fulfilled by the system
     """
 
-    from sqlalchemy.dialects.postgresql import JSONB
-    from sqlalchemy.ext.mutable import MutableDict
     import os
 
     __tablename__ = os.environ["METGET_REQUEST_TABLE"]
@@ -301,8 +303,6 @@ class NhcBtkTable(TableBase):
     """
 
     from sqlalchemy import Column, Integer, String, DateTime
-    from sqlalchemy.dialects.postgresql import JSONB
-    from sqlalchemy.ext.mutable import MutableDict
 
     __tablename__ = "nhc_btk"
 
@@ -326,8 +326,6 @@ class NhcFcstTable(TableBase):
     """
 
     from sqlalchemy import Column, Integer, String, DateTime
-    from sqlalchemy.dialects.postgresql import JSONB
-    from sqlalchemy.ext.mutable import MutableDict
 
     __tablename__ = "nhc_fcst"
 

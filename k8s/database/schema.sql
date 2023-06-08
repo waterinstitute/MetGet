@@ -108,7 +108,9 @@ CREATE TABLE apikeys(
   username VARCHAR(256) NOT NULL, 
   description VARCHAR(256), 
   credit_limit BIGINT NOT NULL,
-  enabled BOOLEAN NOT NULL
+  enabled BOOLEAN NOT NULL,
+  expiration TIMESTAMP,
+  permissions JSON
 );
 
 --Creates tables for the storage of metget's build requests and status

@@ -29,12 +29,18 @@ class AccessControl:
         accidental exposure of the keys and/or sql injection
         """
         from metbuild.tables import AuthTable
+        from datetime import datetime
 
         api_key_hash = AccessControl.hash_access_token(str(api_key))
         with Database() as db, db.session() as session:
             api_key_db = (
-                session.query(AuthTable.id, AuthTable.key)
-                .filter_by(key=api_key)
+                session.query(
+                    AuthTable.id,
+                    AuthTable.key,
+                )
+                .filter(AuthTable.key == api_key)
+                .filter(AuthTable.enabled == True)
+                .filter(AuthTable.expiration >= datetime.utcnow())
                 .first()
             )
 
@@ -43,10 +49,10 @@ class AccessControl:
 
         api_key_db_hash = AccessControl.hash_access_token(api_key_db.key.strip())
 
-        if api_key_db_hash == api_key_hash:
-            return True
-        else:
+        if api_key_db_hash != api_key_hash:
             return False
+        else:
+            return True
 
     @staticmethod
     def check_authorization_token(headers) -> bool:
