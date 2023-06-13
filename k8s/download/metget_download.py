@@ -130,6 +130,18 @@ def coamps_download():
     return n
 
 
+def ctcx_download():
+    from metgetlib.ctcxdownloader import CtcxDownloader
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    ctcx = CtcxDownloader()
+    n = ctcx.download()
+    logger.info("CTCX complete. {:d} files downloaded".format(n))
+    return n
+
+
 def hrrr_download():
     from metgetlib.ncephrrrdownloader import NcepHrrrdownloader
     import logging
@@ -162,9 +174,9 @@ def hrrr_alaska_download():
 def wpc_download():
     from metgetlib.wpcdownloader import WpcDownloader
     import logging
-    
+
     logger = logging.getLogger(__name__)
-    
+
     start, end = generate_default_date_range()
     wpc = WpcDownloader(start, end)
     logger.info("Beginning downloading WPC data")
@@ -206,6 +218,8 @@ def main():
         n = nhc_download()
     elif args.service == "coamps":
         n = coamps_download()
+    elif args.service == "ctcx":
+        n = ctcx_download()
     elif args.service == "hrrr":
         n = hrrr_download()
     elif args.service == "hrrr-alaska":

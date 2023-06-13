@@ -248,6 +248,23 @@ class CoampsTable(TableBase):
     accessed = Column(DateTime)
 
 
+class CtcxTable(TableBase):
+    """
+    This class is used to create the table that holds the CTCX data which has been
+    downloaded from the S3 postings from NRL
+    """
+
+    __tablename__ = "ctcx"
+    index = Column("id", Integer, primary_key=True)
+    forecastcycle = Column(DateTime)
+    stormname = Column(String)
+    ensemble_member = Column(String)
+    forecasttime = Column(DateTime)
+    tau = Column(Integer)
+    filepath = Column(String)
+    accessed = Column(DateTime)
+
+
 class HrrrTable(TableBase):
     """
     This class is used to create the table that holds the HRRR data which has beenq
