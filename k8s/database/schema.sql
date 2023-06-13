@@ -73,6 +73,16 @@ CREATE TABLE coamps_tc(
   filepath VARCHAR(512) NOT NULL, 
   accessed TIMESTAMP NOT NULL
 );
+CREATE TABLE ctcx(
+  id SERIAL PRIMARY KEY,
+  stormname VARCHAR(256) NOT NULL,
+  ensemble_member VARCHAR(32) NOT NULL,
+  forecastcycle TIMESTAMP NOT NULL,
+  forecasttime TIMESTAMP NOT NULL,
+  tau INTEGER NOT NULL,
+  filepath VARCHAR(512) NOT NULL,
+  accessed TIMESTAMP NOT NULL
+);
 CREATE TABLE hrrr_ncep(
   id SERIAL PRIMARY KEY, 
   forecastcycle TIMESTAMP NOT NULL, 
