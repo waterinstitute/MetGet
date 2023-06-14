@@ -155,6 +155,8 @@ class Metdb:
             return self.__has_hwrf(metadata)
         elif datatype == "coamps":
             return self.__has_coamps(metadata)
+        elif datatype == "ctcx":
+            return self.__has_ctcx(metadata)
         elif datatype == "nhc_fcst":
             return self.__has_nhc_fcst(metadata)
         elif datatype == "nhc_btk":
@@ -217,6 +219,39 @@ class Metdb:
                 CoampsTable.stormname == name,
                 CoampsTable.forecastcycle == cdate,
                 CoampsTable.forecasttime == fdate,
+            )
+            .first()
+        )
+
+        if v is not None:
+            return True
+        else:
+            return False
+
+    def __has_ctcx(self, metadata: dict) -> bool:
+        """
+        Check if a ctcx file exists in the database
+
+        Args:
+            metadata (dict): The metadata to check for
+
+        Returns:
+            bool: True if the forecast exists in the database, False otherwise
+        """
+        from metbuild.tables import CtcxTable
+
+        cdate = metadata["cycledate"]
+        fdate = metadata["forecastdate"]
+        name = metadata["name"]
+        member = metadata["ensemble_member"]
+
+        v = (
+            self.__session.query(CtcxTable.index)
+            .filter(
+                CtcxTable.stormname == name,
+                CtcxTable.forecastcycle == cdate,
+                CtcxTable.forecasttime == fdate,
+                CtcxTable.ensemble_member == member,
             )
             .first()
         )
@@ -398,6 +433,8 @@ class Metdb:
             self.__add_record_hwrf(filepath, metadata)
         elif datatype == "coamps":
             self.__add_record_coamps(filepath, metadata)
+        elif datatype == "ctcx":
+            self.__add_record_ctcx(filepath, metadata)
         elif datatype == "nhc_fcst":
             self.__add_record_nhc_fcst(filepath, metadata)
         elif datatype == "nhc_btk":
@@ -684,6 +721,44 @@ class Metdb:
                 stormname=name,
                 forecastcycle=cdate,
                 forecasttime=fdate,
+                filepath=filepath,
+                tau=tau,
+                accessed=datetime.now(),
+            )
+            self.__session.add(record)
+            self.__session.commit()
+
+    def __add_record_ctcx(self, filepath: str, metadata: dict) -> None:
+        """
+        Adds a COAMPS CTCX file listing to the database
+
+        Args:
+            filepath (str): File location
+            metadata (dict): dict containing the metadata for the file
+
+        Returns:
+            None
+        """
+        import math
+        from metbuild.tables import CtcxTable
+
+        if not self.__has_ctcx(metadata):
+            cdate = metadata["cycledate"]
+            fdate = metadata["forecastdate"]
+            ensemble_member = metadata["ensemble_member"]
+            name = metadata["name"]
+            tau = int(
+                math.floor(
+                    (metadata["forecastdate"] - metadata["cycledate"]).total_seconds()
+                    / 3600.0
+                )
+            )
+
+            record = CtcxTable(
+                stormname=name,
+                forecastcycle=cdate,
+                forecasttime=fdate,
+                ensemble_member=ensemble_member,
                 filepath=filepath,
                 tau=tau,
                 accessed=datetime.now(),

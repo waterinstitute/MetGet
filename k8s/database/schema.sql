@@ -76,7 +76,7 @@ CREATE TABLE coamps_tc(
 CREATE TABLE ctcx(
   id SERIAL PRIMARY KEY,
   stormname VARCHAR(256) NOT NULL,
-  ensemble_member VARCHAR(32) NOT NULL,
+  ensemble_member INTEGER NOT NULL,
   forecastcycle TIMESTAMP NOT NULL,
   forecasttime TIMESTAMP NOT NULL,
   tau INTEGER NOT NULL,

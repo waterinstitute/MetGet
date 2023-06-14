@@ -258,7 +258,7 @@ class CtcxTable(TableBase):
     index = Column("id", Integer, primary_key=True)
     forecastcycle = Column(DateTime)
     stormname = Column(String)
-    ensemble_member = Column(String)
+    ensemble_member = Column(Integer)
     forecasttime = Column(DateTime)
     tau = Column(Integer)
     filepath = Column(String)

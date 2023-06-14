@@ -153,9 +153,17 @@ class CtcxSnapshot:
         """
         return self.__domains[0].forecast_time()
 
-    def write(self, prefix: str, output_directory: str):
+    def write(self, prefix: str, output_directory: str) -> dict:
         """
         Write the snapshot to a set of NetCDF files (one per domain)
+
+        Args:
+            prefix: The prefix to use for the output files.
+            output_directory: The directory to write the output files to.
+
+        Returns:
+            A dictionary containing the files written.
+
         """
         import os
 
@@ -163,10 +171,20 @@ class CtcxSnapshot:
         tau_str = "{:03d}".format(self.domain(0).tau())
 
         file_format_string = "{:s}_d{:02d}_{:s}_tau{:s}.nc"
+
+        files_written = {
+            "tau": self.domain(0).tau(),
+            "cycle": self.cycle_time(),
+            "domains": [],
+        }
+
         for i in range(3):
             filename = file_format_string.format(prefix, i + 1, coldstart_str, tau_str)
             output_file = os.path.join(output_directory, filename)
             self.__write_domain(output_file, self.domain(i))
+            files_written["domains"].append(output_file)
+
+        return files_written
 
     def __write_domain(self, filename: str, domain: CtcxDomain) -> None:
         """
@@ -355,7 +373,7 @@ class CtcxFormatter:
                     pressure[metadata["domain"] - 1][metadata["tau"]] = metadata
 
         self.__n_time_steps = len(list(pressure[0].keys()))
-        log.info("Found {:d} time steps".format(self.__n_time_steps))
+        log.debug("Found {:d} time steps".format(self.__n_time_steps))
 
         assert len(list(pressure[0].keys())) == len(list(uwind[0].keys()))
         assert len(list(pressure[0].keys())) == len(list(vwind[0].keys()))
@@ -378,12 +396,20 @@ class CtcxFormatter:
 
         assert len(self.__snapshots) == self.__n_time_steps
 
-    def write(self, prefix: str = "ctcx") -> None:
+    def write(self, prefix: str = "ctcx") -> list:
         """
         Write the data to netCDF files
 
         Args:
             prefix: The prefix to use for the output files.
+
+        Returns:
+            A list of the files written.
         """
+        files_written = []
         for i in range(self.__n_time_steps):
-            self.__snapshots[i].write(prefix, self.__output_directory)
+            files_written.append(
+                self.__snapshots[i].write(prefix, self.__output_directory)
+            )
+
+        return files_written
