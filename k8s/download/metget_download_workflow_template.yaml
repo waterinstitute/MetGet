@@ -63,5 +63,17 @@ spec:
             configMapKeyRef:
               name: metget-configmap
               key: database.name
+        - name: COAMPS_S3_BUCKET
+          value: coamps-tc-data
+        - name: COAMPS_AWS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-coamps-credentials
+              key: username
+        - name: COAMPS_AWS_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: aws-coamps-credentials
+              key: password
       command: [python3, metget_download.py]
       args: ["--service", "{{inputs.parameters.service}}"]
