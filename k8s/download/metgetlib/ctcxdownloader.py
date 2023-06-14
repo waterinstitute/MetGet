@@ -1,5 +1,6 @@
 import tempfile
 import boto3
+from datetime import datetime
 
 
 class CtcxDownloader:
@@ -62,70 +63,132 @@ class CtcxDownloader:
             The number of files downloaded
         """
         from datetime import datetime
-        import os
-        import shutil
         import logging
+        import os
 
         log = logging.getLogger(__name__)
 
         current_year = datetime.utcnow().year - 1
 
-        storm_min = 1
-        storm_max = 41
+        STORM_MIN = 1
+        STORM_MAX = 41
 
         file_count = 0
 
-        ensemble_member_min = 0
-        ensemble_member_max = 20
-
-        for st in range(storm_min, storm_max, 1):
+        for st in range(STORM_MIN, STORM_MAX, 1):
             storm_name = "{:02d}L".format(st)
             prefix = "CTCX/{:04d}/{:s}/".format(current_year, storm_name)
             objects = self.__bucket.objects.filter(Prefix=prefix)
             for obj in objects:
                 path = obj.key
 
-                info = self.__retrieve_files_from_s3(path, storm_name)
+                if path.endswith(".tar.gz"):
 
-                has_missing_cycles = False
-                for ensemble_member in range(
-                    ensemble_member_min, ensemble_member_max, 1
-                ):
-                    metadata = {
-                        "name": storm_name,
-                        "ensemble_member": ensemble_member,
-                        "cycledate": info["cycle_date"],
-                        "forecastdate": info["cycle_date"],
-                    }
-                    if not self.__database.has("ctcx", metadata):
-                        has_missing_cycles = True
-                        break
+                    log.info("Begin processing file {:s}".format(path))
 
-                if not has_missing_cycles:
-                    log.info("Skipping file {:s}".format(info["filename"]))
-                    continue
+                    cycle_date = datetime.strptime(
+                        os.path.basename(path),
+                        "CTCXEPS_{:s}.%Y%m%d%H.tar.gz".format(storm_name),
+                    )
 
-                archive_filename = info["filename"]
+                    has_missing_cycles = self.__check_database_for_ensemble_members(
+                        cycle_date, storm_name
+                    )
 
-                # ...Get the base name of the file (without the extension)
-                base_name = archive_filename[: -len(".tar.gz")]
-
-                # ...Convert the hdf5 files to netCDF format
-                log.info("Begin converting hdf5 files to netCDF format")
-
-                directory = os.path.join(self.__temp_directory, base_name)
-                log.info("Working on directory {:s}".format(directory))
-                for filename in os.listdir(directory):
-                    if filename.endswith(".hdf5"):
-                        ensemble_member = self.__process_hdf5_file(base_name, filename)
-                        self.__add_member_to_db_and_upload(
-                            base_name, storm_name, ensemble_member
-                        )
-                        file_count += ensemble_member["n_snaps"]
-
-                shutil.rmtree(directory)
+                    if has_missing_cycles:
+                        file_count += self.__process_ctcx_ensemble(path, storm_name)
+                    else:
+                        log.info("Skipping file {:s}".format(path))
 
         return file_count
+
+    def __process_ctcx_ensemble(self, path: str, storm_name: str) -> int:
+        """
+        Process the CTCX ensemble file.
+
+        Args:
+            path: The path to the file
+            storm_name: The name of the storm
+
+        Returns:
+            The number of files processed
+        """
+        import logging
+        import os
+
+        log = logging.getLogger(__name__)
+
+        file_count = 0
+
+        info = self.__retrieve_files_from_s3(path, storm_name)
+        archive_filename = info["filename"]
+
+        # ...Get the base name of the file (without the extension)
+        base_name = archive_filename[: -len(".tar.gz")]
+        directory = os.path.join(self.__temp_directory, base_name)
+
+        # ...Convert the hdf5 files to netCDF format
+        log.info(
+            "Begin converting hdf5 files to netCDF format in directory {:s}".format(
+                directory
+            )
+        )
+
+        for filename in os.listdir(directory):
+            if filename.endswith(".hdf5"):
+                ensemble_member = self.__process_hdf5_file(base_name, filename)
+
+                if ensemble_member:
+                    self.__add_member_to_db_and_upload(
+                        base_name, storm_name, ensemble_member
+                    )
+                    file_count += ensemble_member["n_snaps"]
+
+        return file_count
+
+    def __check_database_for_ensemble_members(
+        self, cycle_date: datetime, storm_name: str
+    ):
+        """
+        Check the database to see if we have all the ensemble members for a given cycle date.
+
+        Args:
+            cycle_date: The cycle date to check
+            storm_name: The name of the storm
+
+        Returns:
+            True if we have all the ensemble members for the given cycle date, False otherwise
+
+        """
+        import logging
+
+        log = logging.getLogger(__name__)
+
+        ENSEMBLE_MEMBER_MIN = 0
+        ENSEMBLE_MEMBER_MAX = 20
+
+        has_missing_cycles = False
+
+        for ensemble_member in range(ENSEMBLE_MEMBER_MIN, ENSEMBLE_MEMBER_MAX + 1, 1):
+
+            # ...Scan the database quickly to see if we can skip this file
+            metadata = {
+                "name": storm_name,
+                "ensemble_member": ensemble_member,
+                "cycledate": cycle_date,
+                "forecastdate": cycle_date,
+            }
+
+            if not self.__database.has("ctcx", metadata):
+                log.info(
+                    "Could not find ensemble member {:d} in database for cycle {:s}, storm {:s}".format(
+                        ensemble_member, cycle_date.strftime("%Y%m%d%H"), storm_name
+                    )
+                )
+                has_missing_cycles = True
+                break
+
+        return has_missing_cycles
 
     def __add_member_to_db_and_upload(
         self, base_name: str, storm_name: str, ensemble_member: dict
@@ -155,23 +218,8 @@ class CtcxDownloader:
         for snapshot in ensemble_member["info"]:
             year_str = snapshot["cycle"].strftime("%Y")
             date_str = snapshot["cycle"].strftime("%Y%m%d")
+            hour_str = snapshot["cycle"].strftime("%H")
             forecast_date = snapshot["cycle"] + timedelta(hours=snapshot["tau"])
-
-            domain_files = ""
-            for domain in snapshot["domains"]:
-                s3_path = os.path.join(
-                    "ctcx",
-                    year_str,
-                    storm_name,
-                    date_str,
-                    member_id,
-                    os.path.basename(domain),
-                )
-                domain_files += s3_path + ","
-
-                self.__s3.upload_file(domain, s3_path)
-
-            domain_files = domain_files[:-1]
 
             metadata = {
                 "cycledate": snapshot["cycle"],
@@ -180,12 +228,40 @@ class CtcxDownloader:
                 "ensemble_member": int(member_id),
             }
 
-            # ...Add to the database
-            self.__database.add(
-                metadata,
-                "ctcx",
-                domain_files,
-            )
+            if self.__database.has("ctcx", metadata):
+                log.debug(
+                    "Skipping ensemble member {:s} for cycle {:s}, hour {:d}".format(
+                        member_id,
+                        snapshot["cycle"].strftime("%Y%m%d%H"),
+                        snapshot["tau"],
+                    )
+                )
+                for domain in snapshot["domains"]:
+                    os.remove(domain)
+            else:
+                domain_files = ""
+                for domain in snapshot["domains"]:
+                    s3_path = os.path.join(
+                        "ctcx",
+                        year_str,
+                        storm_name,
+                        date_str,
+                        hour_str,
+                        member_id,
+                        os.path.basename(domain),
+                    )
+                    domain_files += s3_path + ","
+                    self.__s3.upload_file(domain, s3_path)
+                    os.remove(domain)
+
+                domain_files = domain_files[:-1]
+
+                # ...Add to the database
+                self.__database.add(
+                    metadata,
+                    "ctcx",
+                    domain_files,
+                )
 
     def __retrieve_files_from_s3(self, path: str, storm_name: str) -> dict:
         """
@@ -246,15 +322,17 @@ class CtcxDownloader:
 
         ensemble_member = int(filename.split("_")[0][-3:])
         ensemble_member_str = "{:03d}".format(ensemble_member)
+
         member_directory = os.path.join(
             self.__temp_directory, base_name, ensemble_member_str
         )
         os.mkdir(member_directory)
         log.info(
-            "Processing ensemble member {:d} in folder {:s}".format(
+            "Processing ensemble member {:03d} in folder {:s}".format(
                 ensemble_member, member_directory
             )
         )
+
         formatter = CtcxFormatter(
             os.path.join(self.__temp_directory, base_name, filename),
             member_directory,
