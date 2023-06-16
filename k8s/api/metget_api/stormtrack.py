@@ -56,7 +56,7 @@ class StormTrack:
                 advisory_str = request.args["advisory"]
                 try:
                     advisory_int = int(advisory_str)
-                    advisory = "{:03d}".format(advisory_int)
+                    advisory = "{:d}".format(advisory_int)
                 except ValueError:
                     advisory = advisory_str
             else:
