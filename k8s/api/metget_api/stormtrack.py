@@ -56,7 +56,7 @@ class StormTrack:
                 advisory_str = request.args["advisory"]
                 try:
                     advisory_int = int(advisory_str)
-                    advisory = "{:d}".format(advisory_int)
+                    advisory = "{:03d}".format(advisory_int)
                 except ValueError:
                     advisory = advisory_str
             else:
@@ -99,36 +99,58 @@ class StormTrack:
 
         with Database() as db, db.session() as session:
             if track_type == "forecast":
-                query_result = (
-                    session.query(NhcFcstTable.geometry_data)
-                    .filter(
-                        NhcFcstTable.storm_year == year,
-                        NhcFcstTable.basin == basin,
-                        NhcFcstTable.storm == storm,
-                        NhcFcstTable.advisory == advisory,
-                    )
-                    .all()
+                query = session.query(NhcFcstTable.geometry_data).filter(
+                    NhcFcstTable.storm_year == year,
+                    NhcFcstTable.basin == basin,
+                    NhcFcstTable.storm == storm,
+                    NhcFcstTable.advisory == advisory,
                 )
             else:
-                query_result = (
-                    session.query(NhcBtkTable.geometry_data)
-                    .filter(
-                        NhcBtkTable.storm_year == year,
-                        NhcBtkTable.basin == basin,
-                        NhcBtkTable.storm == storm,
-                    )
-                    .all()
+                query = session.query(NhcBtkTable.geometry_data).filter(
+                    NhcBtkTable.storm_year == year,
+                    NhcBtkTable.basin == basin,
+                    NhcBtkTable.storm == storm,
                 )
+            query_result = query.all()
 
         if len(query_result) == 0:
             return {
                 "statusCode": 400,
-                "body": "ERROR: No data found to match request",
+                "body": {
+                    "message": "ERROR: No data found to match request",
+                    "query": {
+                        "type": track_type,
+                        "advisory": advisory,
+                        "basin": basin,
+                        "storm": storm,
+                        "year": year,
+                    },
+                },
             }, 400
         elif len(query_result) > 1:
             return {
                 "statusCode": 400,
-                "body": "ERROR: Too many records found matching request",
+                "body": {
+                    "message": "ERROR: Too many records found matching request",
+                    "query": {
+                        "type": track_type,
+                        "advisory": advisory,
+                        "basin": basin,
+                        "storm": storm,
+                        "year": year,
+                    },
+                },
             }, 400
         else:
-            return {"statusCode": 200, "body": {"geojson": query_result[0][0]}}, 200
+            return {
+                "statusCode": 200,
+                "body": {"geojson": query_result[0][0]},
+                "message": "Success",
+                "query": {
+                    "type": track_type,
+                    "advisory": advisory,
+                    "basin": basin,
+                    "storm": storm,
+                    "year": year,
+                },
+            }, 200
