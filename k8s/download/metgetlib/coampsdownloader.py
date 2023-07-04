@@ -1,215 +1,286 @@
 #!/usr/bin/env python3
 
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Tuple
 
 
 class CoampsDownloader:
+    """
+    Download the latest COAMPS files from the S3 bucket
+    """
+
+    STORM_MIN = 1
+    STORM_MAX = 41
+
     def __init__(self):
-        from ftplib import FTP
+        """
+        Initialize the downloader
+        """
+        import os
 
-        self.__ftp_site = "ftp-ex.nrlmry.navy.mil"
-        self.__folder = "send"
-        self.__ftp_client = None
-
-    def __connect(self):
-        from ftplib import FTP
-        import sys
-        import logging
-
-        logger = logging.getLogger(__name__)
-
-        try:
-            logger.debug("Connecting to " + self.__ftp_site)
-            self.__ftp_client = FTP(self.__ftp_site)
-            self.__ftp_client.login()
-            self.__ftp_client.cwd(self.__folder)
-        except Exception as e:
-            logger.error("Could not start FTP session: " + str(e))
-            sys.exit(1)
-        logger.debug("Connected to {:s}".format(self.__ftp_site))
-
-    def __disconnect(self):
-        self.__ftp_client.quit()
-
-    def download(self):
         from .metdb import Metdb
         from .s3file import S3file
-        from datetime import timedelta
-        import os
-
-        db = Metdb()
-        s3 = S3file()
-
-        forecast_delta_time = 3600 * 6
-
-        storm_min = 1
-        storm_max = 41
-
-        temp_date_min = datetime.utcnow() - timedelta(days=365)
-        temp_date_max = datetime.utcnow() + timedelta(days=1)
-
-        date_min = datetime(
-            temp_date_min.year, temp_date_min.month, temp_date_min.day, 0, 0, 0
-        )
-        date_max = datetime(
-            temp_date_max.year, temp_date_max.month, temp_date_max.day, 0, 0, 0
-        )
-
-        nfiles = 0
-
-        self.__connect()
-
-        for st in range(storm_min, storm_max, 1):
-            storm_name = "{:02d}L".format(st)
-            start_timestamp = int(date_min.timestamp())
-            end_timestamp = int(date_max.timestamp())
-            for dt in range(
-                int(date_min.timestamp()),
-                int(date_max.timestamp()),
-                forecast_delta_time,
-            ):
-                current_date = datetime.fromtimestamp(dt)
-
-                # ...Check if it exists in the database already
-                data_pair = {
-                    "cycledate": current_date,
-                    "forecastdate": current_date,
-                    "name": storm_name,
-                }
-                exists = db.has("coamps", data_pair)
-                if not exists:
-                    status, filename = self.__get(storm_name, current_date)
-                    if status:
-                        temporary_folder = CoampsDownloader.unpack(storm_name, filename)
-                        file_list = CoampsDownloader.get_file_list(temporary_folder)
-
-                        for key in file_list.keys():
-                            dd = file_list[key]
-                            files = ""
-                            data_pair = {
-                                "cycledate": file_list[key][0]["cycle"],
-                                "forecastdate": key,
-                                "name": storm_name,
-                            }
-                            for f in dd:
-                                local_file = f["filename"]
-                                cycle = f["cycle"]
-                                remote_path = (
-                                    "coamps_tc/"
-                                    + storm_name
-                                    + "/"
-                                    + datetime.strftime(cycle, "%Y%m%d/%H")
-                                    + "/"
-                                    + os.path.basename(f["filename"])
-                                )
-                                s3.upload_file(local_file, remote_path)
-                                if files == "":
-                                    files += remote_path
-                                else:
-                                    files += "," + remote_path
-                            db.add(data_pair, "coamps", files)
-                            nfiles += 1
-
-                        CoampsDownloader.wipe(temporary_folder)
-                        os.remove(filename)
-
-        self.__disconnect()
-        return nfiles
-
-    def __get(self, storm, date):
-        import os
-        import ftplib
+        import boto3
         import tempfile
-        import logging
 
-        logger = logging.getLogger(__name__)
+        self.__s3_download_bucket = os.environ["COAMPS_S3_BUCKET"]
+        self.__s3_download_prefix = "deterministic/realtime"
 
-        filename = "{}_{}_netcdf.tar".format(storm, date.strftime("%Y%m%d%H"))
-        if not os.path.exists(filename):
-            logger.debug("Attempting to fetch file: {}".format(filename))
-
-            # ...Check if file exists. Use size method on a known
-            # filename since the list methods are disabled on the
-            # coamps ftp server
-            try:
-                file_size = self.__ftp_client.size(filename)
-                logger.debug("File {} found on server".format(filename))
-            except ftplib.error_perm as e:
-                logger.debug("File {} not found on server".format(filename))
-                return False, ""
-
-            # ...If the file exists, then download
-            floc = tempfile.gettempdir() + "/" + filename
-            try:
-                logger.info("Starting to download filename: {}".format(filename))
-                self.__ftp_client.retrbinary(
-                    "RETR {}".format(filename), open(floc, "wb").write
-                )
-            except Exception as e:
-                os.remove(floc)
-                logger.error(
-                    "Could not retrieve specified file: {}, Error:  {}".format(
-                        filename,
-                        str(e),
-                    )
-                )
-                self.__disconnect()
-                return False, ""
-            logger.info("Got file {}".format(floc))
-            return True, floc
+        if "COAMPS_AWS_KEY" in os.environ:
+            self.__aws_key_id = os.environ["COAMPS_AWS_KEY"]
         else:
-            return False, ""
+            self.__aws_key_id = None
 
-    @staticmethod
-    def unpack(storm, filename) -> str:
-        import tarfile
+        if "COAMPS_AWS_SECRET" in os.environ:
+            self.__aws_access_key = os.environ["COAMPS_AWS_SECRET"]
+        else:
+            self.__aws_access_key = None
+
+        if self.__aws_key_id is None or self.__aws_access_key is None:
+            self.__resource = boto3.resource("s3")
+        else:
+            self.__resource = boto3.resource(
+                "s3",
+                aws_access_key_id=self.__aws_key_id,
+                aws_secret_access_key=self.__aws_access_key,
+            )
+
+        self.__bucket = self.__resource.Bucket(self.__s3_download_bucket)
+        self.__temp_directory = tempfile.mkdtemp(prefix="coamps_")
+        self.__database = Metdb()
+        self.__s3 = S3file()
+
+    def __reset_temp_directory(self, create_new: bool) -> None:
+        """
+        Delete the temporary directory and create a new one if requested.
+        The new directory will be saved in the __temp_directory variable.
+
+        Args:
+            create_new: Create a new temporary directory
+
+        Returns:
+            None
+        """
+        import shutil
         import tempfile
         import logging
 
-        logger = logging.getLogger(__name__)
+        log = logging.getLogger(__name__)
 
-        if not tarfile.is_tarfile(filename):
-            logger.error("Invalid tarfile: {}".format(filename))
+        log.info("Deleting temporary directory: {}".format(self.__temp_directory))
 
-        tempdir = tempfile.mkdtemp(prefix="coamps_")
-        with tarfile.open(filename, "r") as tar:
-            tar.extractall(tempdir)
-        return tempdir
+        shutil.rmtree(self.__temp_directory)
 
-    @staticmethod
-    def wipe(folder) -> bool:
-        import shutil
+        if create_new:
+            self.__temp_directory = tempfile.mkdtemp(prefix="coamps_")
+        else:
+            self.__temp_directory = None
 
-        shutil.rmtree(folder)
-
-    @staticmethod
-    def __sql_time_format(time) -> str:
-        return datetime.strftime(time, "%Y-%m-%d %H:%M:%S")
+    def __del__(self):
+        """
+        Delete the temporary directory when the object is deleted
+        """
+        self.__reset_temp_directory(False)
 
     @staticmethod
-    def __date_from_filename(filename):
-        from datetime import timedelta
+    def __date_from_filename(filename) -> Tuple[datetime, datetime]:
+        """
+        Get the cycle and forecast date from the filename
 
+        Args:
+            filename: Filename to parse
+
+        Returns:
+            Tuple of cycle and forecast date
+        """
         forecast_nhour = int(filename[-6:-3])
         date_str = filename[-20:-10]
         cycle_hour = datetime.strptime(date_str, "%Y%m%d%H")
         forecast_hour = cycle_hour + timedelta(hours=forecast_nhour)
         return cycle_hour, forecast_hour
 
-    def get_file_list(folder) -> dict:
-        import glob
+    def download(self) -> int:
+        """
+        Download the latest COAMPS files from the S3 bucket
 
-        path = "{}/netcdf/*.nc".format(folder)
+        Returns:
+            Number of files downloaded
+        """
+        import logging
+        import os
 
-        filenames = sorted(glob.glob(path, recursive=True))
-        data = {}
-        for f in filenames:
+        log = logging.getLogger(__name__)
+
+        current_year = datetime.utcnow().year
+
+        file_count = 0
+
+        for storm in range(CoampsDownloader.STORM_MIN, CoampsDownloader.STORM_MAX, 1):
+            storm_name = "{:02d}L".format(storm)
+            prefix = os.path.join(
+                self.__s3_download_prefix, "{:04d}".format(current_year), storm_name
+            )
+
+            # ...Check if the prefix exists in s3
+            forecast_list = list(self.__bucket.objects.filter(Prefix=prefix))
+            if len(forecast_list) == 0:
+                continue
+
+            for forecast in forecast_list:
+                filename = forecast.key.split("/")[-1]
+                if "merged" in filename:
+                    continue
+                if "tar" not in filename:
+                    continue
+
+                date_str = filename.split("_")[1]
+                cycle_date = datetime.strptime(date_str, "%Y%m%d%H")
+
+                # ...Check if the file exists in the database
+                has_all_forecast_snaps = self.__check_database_for_forecast(
+                    storm_name, cycle_date
+                )
+
+                if has_all_forecast_snaps:
+                    log.debug(
+                        "Skipping {:s} since all forecast data exists in database".format(
+                            filename
+                        )
+                    )
+                    continue
+
+                # ...Download the file
+                files = self.__download_and_unpack_forecast(filename, forecast)
+                file_list = self.__generate_forecast_snap_list(files)
+
+                for key in file_list.keys():
+                    dd = file_list[key]
+                    files = ""
+                    metadata = {
+                        "cycledate": file_list[key][0]["cycle"],
+                        "forecastdate": key,
+                        "name": storm_name,
+                    }
+                    if self.__database.has("coamps", metadata):
+                        continue
+
+                    log.info(
+                        "Adding Storm: {:s}, Cycle: {:s}, Forecast: {:s} to database".format(
+                            storm_name,
+                            datetime.strftime(
+                                file_list[key][0]["cycle"], "%Y-%m-%d %H:%M"
+                            ),
+                            datetime.strftime(key, "%Y-%m-%d %H:%M"),
+                        )
+                    )
+                    for f in dd:
+                        local_file = f["filename"]
+                        cycle = f["cycle"]
+                        remote_path = os.path.join(
+                            "coamps_tc",
+                            storm_name,
+                            datetime.strftime(cycle, "%Y%m%d"),
+                            datetime.strftime(cycle, "%H"),
+                            os.path.basename(f["filename"]),
+                        )
+                        self.__s3.upload_file(local_file, remote_path)
+                        if files == "":
+                            files += remote_path
+                        else:
+                            files += "," + remote_path
+                    self.__database.add(metadata, "coamps", files)
+                    file_count += 1
+
+                self.__reset_temp_directory(True)
+
+        return file_count
+
+    @staticmethod
+    def __generate_forecast_snap_list(files) -> dict:
+        """
+        Generate a list of forecast snapshots from the list of files
+
+        Args:
+            files: List of files to parse
+
+        Returns:
+            Dictionary of forecast snapshots
+        """
+
+        import os
+
+        file_list = {}
+        for f in files:
             cycle_date, forecast_hour = CoampsDownloader.__date_from_filename(f)
-            domain = int(f[-23:-22])
-            if forecast_hour not in data.keys():
-                data[forecast_hour] = []
+            fn = os.path.basename(f)
+            domain = int(fn.split("_")[1][1:])
+            if forecast_hour not in file_list.keys():
+                file_list[forecast_hour] = []
 
-            data[forecast_hour].append(
+            file_list[forecast_hour].append(
                 {"cycle": cycle_date, "domain": domain, "filename": f}
             )
-        return data
+
+        return file_list
+
+    def __download_and_unpack_forecast(self, filename, forecast):
+        """
+        Download and unpack the forecast file from the tar archive
+
+        Args:
+            filename: Filename to download
+            forecast: Forecast object from S3
+
+        Returns:
+            List of netcdf files in the temporary directory
+        """
+        import logging
+        import os
+        import glob
+        import tarfile
+
+        log = logging.getLogger(__name__)
+
+        # ...Download the file
+        log.info("Downloading file: {}".format(filename))
+        local_file = os.path.join(self.__temp_directory, filename)
+        self.__bucket.download_file(forecast.key, local_file)
+
+        # ...Unpack the file
+        log.info("Unpacking file: {}".format(filename))
+        with tarfile.open(local_file, "r") as tar:
+            tar.extractall(self.__temp_directory)
+
+        # ...Get the list of netcdf files in the temporary directory
+        path = "{}/netcdf/*.nc".format(self.__temp_directory)
+        files = sorted(glob.glob(path, recursive=True))
+        return files
+
+    def __check_database_for_forecast(
+        self, storm_name: str, cycle_date: datetime
+    ) -> bool:
+        """
+        Check if the database has all the forecast snapshots for the given storm and cycle date
+
+        Args:
+            storm_name: Name of the storm
+            cycle_date: Cycle date
+
+        Returns:
+            True if all forecast snapshots exist in the database, False otherwise
+        """
+        has_all_forecast_snaps = True
+
+        for tau in range(0, 126 + 1, 1):
+            forecast_date = cycle_date + timedelta(hours=tau)
+            metadata = {
+                "name": storm_name,
+                "cycledate": cycle_date,
+                "forecastdate": forecast_date,
+            }
+
+            if not self.__database.has("coamps", metadata):
+                has_all_forecast_snaps = False
+                break
+
+        return has_all_forecast_snaps
