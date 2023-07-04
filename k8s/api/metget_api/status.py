@@ -20,7 +20,7 @@ MET_MODEL_FORECAST_DURATION = {
     "hwrf": 126,
     "hrrr": 48,
     "hrrr-alaska": 48,
-    "coamps": 120,
+    "coamps": 126,
     "wpc": 162,
 }
 
@@ -454,25 +454,74 @@ class Status:
         Returns:
             Dictionary containing the status information and the HTTP status code
         """
-        from metbuild.database import Database
         from metbuild.tables import HwrfTable
+
+        return Status.__get_status_deterministic_storm_type(
+            HwrfTable, cycle_duration, limit, start, end
+        )
+
+    @staticmethod
+    def __get_status_coamps(
+        cycle_duration: int, limit: timedelta, start: datetime, end: datetime
+    ) -> dict:
+        """
+        This method is used to generate the status for the COAMPS-TC model
+
+        Args:
+            cycle_duration: The duration of the cycle in hours
+            limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
+
+        Returns:
+            Dictionary containing the status information and the HTTP status code
+        """
+        from metbuild.tables import CoampsTable
+
+        return Status.__get_status_deterministic_storm_type(
+            CoampsTable, cycle_duration, limit, start, end
+        )
+
+    @staticmethod
+    def __get_status_deterministic_storm_type(
+        table_type: any,
+        cycle_duration: int,
+        limit: timedelta,
+        start: datetime,
+        end: datetime,
+    ) -> dict:
+        """
+        This method is used to generate the status for the deterministic storm type models
+        such as HWRF and COAMPS-TC
+
+        Args:
+            table_type: The table type to use when generating the status
+            cycle_duration: The duration of the cycle in hours
+            limit: The limit in days to use when generating the status
+            start: The start date to use when generating the status
+            end: The end date to use when generating the status
+
+        Returns:
+            Dictionary containing the status information and the HTTP status code
+        """
+        from metbuild.database import Database
 
         with Database() as db, db.session() as session:
 
             if limit is not None:
                 limit_time = datetime.utcnow() - limit
                 unique_storms = (
-                    session.query(HwrfTable.stormname)
+                    session.query(table_type.stormname)
                     .distinct()
-                    .filter(HwrfTable.forecastcycle >= limit_time)
+                    .filter(table_type.forecastcycle >= limit_time)
                     .all()
                 )
             else:
                 unique_storms = (
-                    session.query(HwrfTable.stormname)
+                    session.query(table_type.stormname)
                     .distinct()
-                    .filter(HwrfTable.forecastcycle >= start)
-                    .filter(HwrfTable.forecastcycle <= end)
+                    .filter(table_type.forecastcycle >= start)
+                    .filter(table_type.forecastcycle <= end)
                     .all()
                 )
                 limit_time = None
@@ -484,25 +533,25 @@ class Status:
 
                 if limit is not None:
                     unique_cycles = (
-                        session.query(HwrfTable.forecastcycle)
+                        session.query(table_type.forecastcycle)
                         .distinct()
                         .filter(
-                            HwrfTable.stormname == storm_name,
-                            HwrfTable.forecastcycle >= limit_time,
+                            table_type.stormname == storm_name,
+                            table_type.forecastcycle >= limit_time,
                         )
-                        .order_by(HwrfTable.forecastcycle)
+                        .order_by(table_type.forecastcycle)
                         .all()
                     )
                 else:
                     unique_cycles = (
-                        session.query(HwrfTable.forecastcycle)
+                        session.query(table_type.forecastcycle)
                         .distinct()
                         .filter(
-                            HwrfTable.stormname == storm_name,
-                            HwrfTable.forecastcycle >= start,
-                            HwrfTable.forecastcycle <= end,
+                            table_type.stormname == storm_name,
+                            table_type.forecastcycle >= start,
+                            table_type.forecastcycle <= end,
                         )
-                        .order_by(HwrfTable.forecastcycle)
+                        .order_by(table_type.forecastcycle)
                         .all()
                     )
 
@@ -516,12 +565,12 @@ class Status:
                     cycle_time = cycle[0]
                     cycle_time_str = Status.d2s(cycle_time)
                     forecast_times = (
-                        session.query(HwrfTable.forecasttime)
+                        session.query(table_type.forecasttime)
                         .filter(
-                            HwrfTable.stormname == storm_name,
-                            HwrfTable.forecastcycle == cycle_time,
+                            table_type.stormname == storm_name,
+                            table_type.forecastcycle == cycle_time,
                         )
-                        .order_by(HwrfTable.forecasttime)
+                        .order_by(table_type.forecasttime)
                         .all()
                     )
                     min_time = forecast_times[0][0]
@@ -561,28 +610,6 @@ class Status:
                 storms[storm_name] = this_storm
 
         return storms
-
-    @staticmethod
-    def __get_status_coamps(
-        cycle_duration: int, limit: timedelta, start: datetime, end: datetime
-    ) -> dict:
-        """
-        This method is used to generate the status for the COAMPS-TC model
-
-        Args:
-            cycle_duration: The duration of the cycle in hours
-            limit: The limit in days to use when generating the status
-            start: The start date to use when generating the status
-            end: The end date to use when generating the status
-
-        Returns:
-            Dictionary containing the status information and the HTTP status code
-
-        Notes:
-            This method is not yet implemented
-
-        """
-        return {}
 
     @staticmethod
     def __get_status_nhc(limit: timedelta, start: datetime, end: datetime) -> dict:
