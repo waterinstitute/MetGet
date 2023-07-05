@@ -45,12 +45,13 @@ AVAILABLE_VARIABLES = {"wind_pressure", "rain", "temperature", "humidity", "ice"
 
 # Available metget formats
 AVAILABLE_FORMATS = {
-    "raw",
-    "ascii",
-    "owi-ascii",
-    "owi-netcdf",
-    "hec-netcdf",
-    "delft3d",
+    "raw": "raw",
+    "ascii": "ascii",
+    "owi-ascii": "owi-ascii",
+    "owi-netcdf": "owi-netcdf",
+    "hec-netcdf": "hec-netcdf",
+    "generic-netcdf": "hec-netcdf",
+    "delft3d": "delft3d",
 }
 
 
@@ -644,7 +645,7 @@ def main():
     p.add_argument("--endpoint", help="MetGet API endpoint", type=str)
     p.add_argument(
         "--format",
-        help="Output format (owi-ascii, owi-netcdf, hec-netcdf, delft3d)",
+        help="Output format (raw, owi-ascii, owi-netcdf, generic-netcdf (hec-netcdf), delft3d)",
         metavar="f",
         default="owi-ascii",
     )
@@ -761,11 +762,12 @@ def main():
             domains.append(j)
             idx += 1
 
-        if args.format not in AVAILABLE_FORMATS:
-            print("ERROR: Invalid output format selected")
+        if args.format not in AVAILABLE_FORMATS.keys():
+            print("ERROR: Invalid output format '{:s}' selected".format(args.format))
             exit(1)
 
-        if args.format == "delft3d" or args.format == "hec-netcdf":
+        output_format = AVAILABLE_FORMATS[args.format]
+        if output_format == "delft3d" or output_format == "hec-netcdf":
             if len(domains) > 1:
                 print(
                     "[ERROR]: "
@@ -775,7 +777,7 @@ def main():
                 exit(1)
 
         if args.variable not in AVAILABLE_VARIABLES:
-            print("ERROR: Invalid variable selected")
+            print("ERROR: Invalid variable '{:s}' selected".format(args.variable))
             exit(1)
 
         request_from = getpass.getuser() + "." + socket.gethostname()
@@ -788,7 +790,7 @@ def main():
             "multiple_forecasts": args.multiple_forecasts,
             "start_date": str(args.start),
             "end_date": str(args.end),
-            "format": args.format,
+            "format": output_format,
             "data_type": args.variable,
             "time_step": args.timestep,
             "domains": domains,

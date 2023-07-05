@@ -38,6 +38,7 @@ def main():
     """
     import json
     import time
+    import traceback
 
     logging.basicConfig(
         level=logging.INFO,
@@ -99,6 +100,7 @@ def main():
         )
     except RuntimeError as e:
         log.error("Encountered error during processing: " + str(e))
+        log.error(traceback.format_exc())
         RequestTable.update_request(
             json_data["request_id"],
             "error",
@@ -110,6 +112,7 @@ def main():
         )
     except KeyError as e:
         log.error("Encountered malformed json input: " + str(e))
+        log.error(traceback.format_exc())
         RequestTable.update_request(
             json_data["request_id"],
             "error",
@@ -121,6 +124,7 @@ def main():
         )
     except Exception as e:
         log.error("Encountered unexpected error: " + str(e))
+        log.error(traceback.format_exc())
         RequestTable.update_request(
             json_data["request_id"],
             "error",

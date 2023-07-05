@@ -701,7 +701,7 @@ class MessageHandler:
             )
         for item in f:
             if domain.service() == "coamps-tc":
-                files = item[1].split(",")
+                files = item["filepath"].split(",")
                 local_file_list = []
                 for ff in files:
                     local_file = s3.download(ff, domain.service(), item["forecasttime"])
