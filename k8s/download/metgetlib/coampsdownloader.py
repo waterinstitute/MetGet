@@ -249,7 +249,28 @@ class CoampsDownloader:
         # ...Unpack the file
         log.info("Unpacking file: {}".format(filename))
         with tarfile.open(local_file, "r") as tar:
-            tar.extractall(self.__temp_directory)
+
+            def is_within_directory(directory, target):
+
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+
+                return prefix == abs_directory
+
+            def safe_extract(
+                tar_obj, extract_path=".", members=None, *, numeric_owner=False
+            ):
+
+                for member in tar_obj.getmembers():
+                    member_path = os.path.join(extract_path, member.name)
+                    if not is_within_directory(extract_path, member_path):
+                        raise Exception("Attempted Path Traversal in tar File")
+
+                tar_obj.extractall(extract_path, members, numeric_owner=numeric_owner)
+
+            safe_extract(tar, self.__temp_directory)
 
         # ...Get the list of netcdf files in the temporary directory
         path = "{}/netcdf/*.nc".format(self.__temp_directory)
