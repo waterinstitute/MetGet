@@ -1,4 +1,141 @@
-from typing import Tuple
+from typing import Tuple, Union
+
+import flask
+
+
+class StormTrackQueryStringParameters:
+    """
+    This class is used to parse the query string parameters for the storm track endpoint
+    """
+
+    def __init__(self, request: flask.Request):
+        """
+        Constructor for StormTrackQuery class
+
+        Args:
+            request: A flask request object
+        """
+        self.__year = None
+        self.__basin = None
+        self.__storm = None
+        self.__advisory = None
+        self.__type = None
+        self.__valid = False
+        self.__error_message = None
+        self.__parse_request(request)
+
+    def valid(self) -> bool:
+        """
+        Checks if the query string parameters are valid
+
+        Returns:
+            True if the query string parameters are valid, False otherwise
+        """
+        return self.__valid
+
+    def error_message(self) -> str:
+        """
+        Returns the error message if the query string parameters are invalid
+
+        Returns:
+            The error message if the query string parameters are invalid
+        """
+        return self.__error_message
+
+    def year(self) -> str:
+        """
+        Returns the year query string parameter
+
+        Returns:
+            The year query string parameter
+        """
+        return self.__year
+
+    def basin(self) -> str:
+        """
+        Returns the basin query string parameter
+
+        Returns:
+            The basin query string parameter
+        """
+        return self.__basin
+
+    def storm(self) -> str:
+        """
+        Returns the storm query string parameter
+
+        Returns:
+            The storm query string parameter
+        """
+        return self.__storm
+
+    def advisory(self) -> Union[str, None]:
+        """
+        Returns the advisory query string parameter if the track type is forecast
+
+        Returns:
+            The advisory query string parameter or None if the track type is best
+        """
+        if self.__type == "best":
+            return None
+        return self.__advisory
+
+    def type(self) -> str:
+        """
+        Returns the type query string parameter
+
+        Returns:
+            The type query string parameter
+        """
+        return self.__type
+
+    def __parse_request(self, request: flask.Request):
+        """
+        Parses the query string parameters from the request
+
+        Args:
+            request: A flask request object
+
+        Returns:
+            None
+        """
+        if "year" in request.args:
+            self.__year = request.args["year"]
+        else:
+            self.__error_message = "Query string parameter 'year' not provided"
+            return
+
+        if "basin" in request.args:
+            self.__basin = request.args["basin"]
+        else:
+            self.__error_message = "Query string parameter 'basin' not provided"
+
+        if "storm" in request.args:
+            self.__storm = request.args["storm"]
+        else:
+            self.__error_message = "Query string parameter 'storm' not provided"
+
+        if "type" in request.args:
+            self.__type = request.args["type"]
+            if self.__type != "best" and self.__type != "forecast":
+                self.__error_message = "Invalid track type specified: {:s}".format(
+                    self.__type
+                )
+        else:
+            self.__error_message = "Query string parameter 'type' not provided"
+
+        if self.__type == "forecast":
+            if "advisory" in request.args:
+                advisory_str = request.args["advisory"]
+                try:
+                    advisory_int = int(advisory_str)
+                    self.__advisory = "{:03d}".format(advisory_int)
+                except ValueError:
+                    self.__advisory = advisory_str
+            else:
+                self.__error_message = "Query string parameter 'advisory' not provided"
+
+        self.__valid = True
 
 
 class StormTrack:
@@ -12,7 +149,8 @@ class StormTrack:
         """
         pass
 
-    def get(self, request) -> Tuple[dict, int]:
+    @staticmethod
+    def get(request: flask.Request) -> Tuple[dict, int]:
         """
         This method is used to query the NHC storm track data from MetGet
 
@@ -23,134 +161,89 @@ class StormTrack:
             A tuple containing the response message and status code
         """
 
-        from metbuild.tables import NhcBtkTable, NhcFcstTable
-        from metbuild.database import Database
+        query = StormTrackQueryStringParameters(request)
 
-        advisory = None
-        basin = None
-        storm = None
-        year = None
-        track_type = None
-
-        if "type" in request.args:
-            track_type = request.args["type"]
-            if track_type != "best" and track_type != "forecast":
-                return {
-                    "statusCode": 400,
-                    "body": {
-                        "message": "ERROR: Invalid track type specified: {:s}".format(
-                            track_type
-                        )
-                    },
-                }, 400
-        else:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Query string parameter 'type' not provided"
+        return_message = {
+            "body": {
+                "query": {
+                    "type": query.type(),
+                    "advisory": query.advisory(),
+                    "basin": query.basin(),
+                    "storm": query.storm(),
+                    "year": query.year(),
                 },
-            }, 400
+            },
+        }
 
-        if track_type == "forecast":
-            if "advisory" in request.args:
-                advisory_str = request.args["advisory"]
-                try:
-                    advisory_int = int(advisory_str)
-                    advisory = "{:03d}".format(advisory_int)
-                except ValueError:
-                    advisory = advisory_str
-            else:
-                return {
-                    "statusCode": 400,
-                    "body": {
-                        "message": "ERROR: Query string parameter 'advisory' not provided"
-                    },
-                }, 400
+        if not query.valid():
+            status_code = 400
+            return_message["body"]["message"] = query.error_message()
+            return return_message, status_code
 
-        if "basin" in request.args:
-            basin = request.args["basin"]
+        if query.type() == "forecast":
+            query_result = StormTrack.__get_forecast_track(query)
         else:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Query string parameter 'basin' not provided"
-                },
-            }, 400
-
-        if "storm" in request.args:
-            storm = request.args["storm"]
-        else:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Query string parameter 'storm' not provided"
-                },
-            }, 400
-
-        if "year" in request.args:
-            year = request.args["year"]
-        else:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Query string parameter 'year' not provided"
-                },
-            }, 400
-
-        with Database() as db, db.session() as session:
-            if track_type == "forecast":
-                query = session.query(NhcFcstTable.geometry_data).filter(
-                    NhcFcstTable.storm_year == year,
-                    NhcFcstTable.basin == basin,
-                    NhcFcstTable.storm == storm,
-                    NhcFcstTable.advisory == advisory,
-                )
-            else:
-                query = session.query(NhcBtkTable.geometry_data).filter(
-                    NhcBtkTable.storm_year == year,
-                    NhcBtkTable.basin == basin,
-                    NhcBtkTable.storm == storm,
-                )
-            query_result = query.all()
+            query_result = StormTrack.__get_best_track(query)
 
         if len(query_result) == 0:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: No data found to match request",
-                    "query": {
-                        "type": track_type,
-                        "advisory": advisory,
-                        "basin": basin,
-                        "storm": storm,
-                        "year": year,
-                    },
-                },
-            }, 400
+            status_code = 400
+            return_message["body"]["message"] = "ERROR: No data found to match request"
         elif len(query_result) > 1:
-            return {
-                "statusCode": 400,
-                "body": {
-                    "message": "ERROR: Too many records found matching request",
-                    "query": {
-                        "type": track_type,
-                        "advisory": advisory,
-                        "basin": basin,
-                        "storm": storm,
-                        "year": year,
-                    },
-                },
-            }, 400
+            status_code = 400
+            return_message["body"][
+                "message"
+            ] = "ERROR: Too many records found matching request"
         else:
-            return {
-                "statusCode": 200,
-                "body": {"geojson": query_result[0][0]},
-                "message": "Success",
-                "query": {
-                    "type": track_type,
-                    "advisory": advisory,
-                    "basin": basin,
-                    "storm": storm,
-                    "year": year,
-                },
-            }, 200
+            status_code = 200
+            return_message["body"]["message"] = "Success"
+            return_message["body"]["geojson"] = query_result[0][0]
+
+        return_message["statusCode"] = status_code
+        return return_message, status_code
+
+    @staticmethod
+    def __get_best_track(query: StormTrackQueryStringParameters):
+        """
+        This method is used to query the NHC best track data from MetGet
+
+        Args:
+            query: A StormTrackQuery object
+
+        Returns:
+            GEOJSON data for the best track
+        """
+
+        from metbuild.tables import NhcBtkTable
+        from metbuild.database import Database
+
+        with Database() as db, db.session() as session:
+            query = session.query(NhcBtkTable.geometry_data).filter(
+                NhcBtkTable.storm_year == query.year(),
+                NhcBtkTable.basin == query.basin(),
+                NhcBtkTable.storm == query.storm(),
+            )
+        return query.all()
+
+    @staticmethod
+    def __get_forecast_track(query: StormTrackQueryStringParameters):
+        """
+        This method is used to query the NHC forecast track data from MetGet
+
+        Args:
+            query: A StormTrackQuery object
+
+        Returns:
+            GEOJSON data for the forecast track
+        """
+
+        from metbuild.tables import NhcFcstTable
+        from metbuild.database import Database
+
+        with Database() as db, db.session() as session:
+            query = session.query(NhcFcstTable.geometry_data).filter(
+                NhcFcstTable.storm_year == query.year(),
+                NhcFcstTable.basin == query.basin(),
+                NhcFcstTable.storm == query.storm(),
+                NhcFcstTable.advisory == query.advisory(),
+            )
+        return query.all()

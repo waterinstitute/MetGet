@@ -48,7 +48,7 @@ class MetGetStatus(Resource):
     This is found at the /status path
 
     It may take url query arguments of:
-        model: Name of the meteorolgoical model to return. Default is 'all'
+        model: Name of the meteorological model to return. Default is 'all'
         limit: Maximum number of days worth of data to return. Default is 7
     """
 
@@ -161,12 +161,11 @@ class MetGetTrack(Resource):
         #    return self.__get_storm_track()
         # else:
         #    return AccessControl.unauthorized_response()
-        # ...We currently have the stormtrack endpoint without authorization so that
+        # ...We currently have the storm track endpoint without authorization so that
         # web portals can use freely. One day it can be locked up if desired using
         # the above
 
-        s = StormTrack()
-        message, status = s.get(request)
+        message, status = StormTrack.get(request)
         return message, status
 
 
