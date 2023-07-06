@@ -162,9 +162,9 @@ class Status:
                 start_dt,
                 end_dt,
             )
-        elif status_type == "hrrr-alaksa":
+        elif status_type == "hrrr-alaska":
             s = Status.__get_status_hrrr_alaska(
-                MET_MODEL_FORECAST_DURATION["hrrr"], time_limit, start_dt, end_dt
+                MET_MODEL_FORECAST_DURATION["hrrr-alaska"], time_limit, start_dt, end_dt
             )
         elif status_type == "wpc":
             s = Status.__get_status_wpc(
@@ -865,7 +865,7 @@ class Status:
                 storm_name = storm[0]
                 storms[storm_name] = {}
 
-                if ensemble_member is "all":
+                if ensemble_member == "all":
                     unique_ensemble_members = (
                         session.query(table_type.ensemble_member)
                         .distinct()
