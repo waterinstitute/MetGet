@@ -135,6 +135,8 @@ class Filelist:
             return self.__query_files_hwrf()
         elif self.__service == "coamps-tc":
             return self.__query_files_coamps_tc()
+        elif self.__service == "coamps-ctcx":
+            return self.__query_files_coamps_ctcx()
         elif self.__service == "hrrr-conus":
             return self.__query_files_hrrr_conus()
         elif self.__service == "hrrr-alaska":
@@ -345,7 +347,7 @@ class Filelist:
         from .tables import GfsTable
 
         return self.__query_generic_file_list(GfsTable)
-    
+
     def __query_files_wpc_ncep(self) -> list:
         """
         This method is used to query the database for the files that will be used to
@@ -356,8 +358,8 @@ class Filelist:
         """
         from .tables import WpcTable
 
-        #...Skipping the zero hour for wpc rainfall
-        #if self.__tau == 0:
+        # ...Skipping the zero hour for wpc rainfall
+        # if self.__tau == 0:
         #    self.__tau == 1
 
         return self.__query_generic_file_list(WpcTable)
@@ -597,6 +599,211 @@ class Filelist:
         from .tables import CoampsTable
 
         return self.__query_storm_file_list(CoampsTable)
+
+    def __query_files_coamps_ctcx(self) -> list:
+        """
+        This method is used to query the database for the files that will be used to
+        generate the requested forcing data. It is used for CTCX.
+
+        Returns:
+            list: The list of files that will be used to generate the requested forcing
+        """
+        from .tables import CtcxTable
+
+        return self.__query_storm_file_list_ensemble(CtcxTable)
+
+    def __query_storm_file_list_ensemble(self, table: TableBase):
+        """
+        This method is used to query the database for the files that will be used to
+        generate the requested forcing data. It is used for meteorology which supports
+        named storms.
+
+        Args:
+            table (TableBase): The table to query
+
+        Returns:
+            list: The list of files that will be used to generate the requested forcing
+        """
+
+        if self.__nowcast:
+            return self.__query_storm_file_list_nowcast_ensemble(table)
+        else:
+            if self.__multiple_forecasts:
+                return self.__query_storm_file_list_multiple_forecasts_ensemble(table)
+            else:
+                return self.__query_storm_file_list_single_forecast_ensemble(table)
+
+    def __query_storm_file_list_single_forecast_ensemble(
+        self, table: TableBase
+    ) -> list:
+        """
+        This method is used to query the database for the files that will be used to
+        generate the requested forcing data. It is used for meteorology which supports
+        named storms. This method is used to assemble data from a single forecast cycle,
+        i.e. where forecastcycle is constant.
+
+        Args:
+            table (TableBase): The table to query
+
+        Returns:
+            list: The list of files that will be used to generate the requested forcing
+
+        """
+
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(table.forecasttime, func.max(table.index).label("id"))
+                .filter(
+                    table.stormname == self.__storm,
+                    table.ensemble_member == self.__ensemble_member,
+                )
+                .group_by(table.forecasttime)
+                .order_by(table.forecasttime)
+                .subquery()
+            )
+            first_cycle = (
+                session.query(
+                    table.index,
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .join(t2, table.index == t2.c.id)
+                .filter(
+                    table.index == t2.c.id,
+                    table.forecasttime == t2.c.forecasttime,
+                    table.forecastcycle >= self.__start,
+                    table.forecastcycle <= self.__end,
+                )
+                .order_by(table.forecastcycle)
+                .first()
+            )
+
+            pure_forecast = Filelist.__rows2dicts(
+                session.query(
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .filter(
+                    table.forecastcycle == first_cycle[1],
+                    table.tau >= self.__tau,
+                    table.stormname == self.__storm,
+                    table.ensemble_member == self.__ensemble_member,
+                    table.forecasttime >= self.__start,
+                    table.forecasttime <= self.__end,
+                )
+                .order_by(table.forecasttime)
+                .all()
+            )
+
+        # If tau is 0, we don't need to query the fallback data
+        if self.__tau == 0:
+            return pure_forecast
+        else:
+            # Query the fallback data to fill in when we select out the tau
+            # forecasts
+            fallback_data = Filelist.__rows2dicts(
+                self.__query_storm_file_list_multiple_forecasts_ensemble(table)
+            )
+            return Filelist.__merge_tau_excluded_data(pure_forecast, fallback_data)
+
+    def __query_storm_file_list_multiple_forecasts_ensemble(
+        self, table: TableBase
+    ) -> list:
+        """
+        This method is used to query the database for the files that will be used to
+        generate the requested forcing data. It is used for meteorology which supports
+        named storms. This method is used to assemble data from multiple forecast
+        cycles, i.e. where forecastcycle is not constant.
+
+        Args:
+            table (TableBase): The table to query
+
+        Returns:
+            list: The list of files that will be used to generate the requested forcing
+        """
+
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(table.forecasttime, func.max(table.index).label("id"))
+                .filter(
+                    table.tau >= self.__tau,
+                    table.stormname == self.__storm,
+                    table.ensemble_member == self.__ensemble_member,
+                )
+                .group_by(table.forecasttime)
+                .order_by(table.forecasttime)
+                .subquery()
+            )
+            return Filelist.__rows2dicts(
+                session.query(
+                    table.index,
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .join(t2, table.index == t2.c.id)
+                .filter(
+                    table.index == t2.c.id,
+                    table.tau >= self.__tau,
+                    table.forecasttime == t2.c.forecasttime,
+                    table.forecasttime >= self.__start,
+                    table.forecasttime <= self.__end,
+                )
+                .order_by(table.forecasttime)
+                .all()
+            )
+
+    def __query_storm_file_list_nowcast_ensemble(self, table: TableBase) -> list:
+        """
+        This method is used to query the database for the files that will be used to
+        generate the requested forcing data. It is used for meteorology which supports
+        named storms. This method is used to assemble data from multiple forecast
+        cycles, i.e. where forecastcycle is not constant.
+
+        Args:
+            table (TableBase): The table to query
+
+        Returns:
+            list: The list of files that will be used to generate the requested forcing
+        """
+
+        with Database() as db, db.session() as session:
+            t2 = (
+                session.query(table.forecasttime, func.max(table.index).label("id"))
+                .filter(
+                    table.tau == 0,
+                    table.stormname == self.__storm,
+                    table.ensemble_member == self.__ensemble_member,
+                )
+                .group_by(table.forecasttime)
+                .order_by(table.forecasttime)
+                .subquery()
+            )
+
+            return Filelist.__rows2dicts(
+                session.query(
+                    table.index,
+                    table.forecastcycle,
+                    table.forecasttime,
+                    table.filepath,
+                    table.tau,
+                )
+                .join(t2, table.index == t2.c.id)
+                .filter(
+                    table.index == t2.c.id,
+                    table.tau == 0,
+                    table.forecasttime == t2.c.forecasttime,
+                    table.forecasttime >= self.__start,
+                    table.forecasttime <= self.__end,
+                )
+                .order_by(table.forecasttime)
+                .all()
+            )
 
     def __query_storm_file_list(self, table: TableBase):
         """
