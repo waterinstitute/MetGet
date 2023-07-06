@@ -8,6 +8,7 @@ VALID_SERVICES = [
     "wpc-ncep",
     "hwrf",
     "coamps-tc",
+    "coamps-ctcx",
     "nhc",
     "hrrr-conus",
     "hrrr-alaska",
@@ -185,6 +186,7 @@ class Domain:
         if (
             self.service() == "hwrf"
             or self.service() == "coamps-tc"
+            or self.service() == "coamps-ctcx"
             or self.service() == "nhc"
         ):
             if "storm" in self.__json:
@@ -260,7 +262,7 @@ class Domain:
         Returns:
             None
         """
-        if self.service() == "gefs-ncep":
+        if self.service() == "gefs-ncep" or self.service() == "coamps-ctcx":
             if "ensemble_member" in self.__json:
                 self.__ensemble_member = self.__json["ensemble_member"]
             else:

@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: metget-download-hrrr-alaska
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: "Forbid"
+  startingDeadlineSeconds: 0
+  workflowSpec:
+    entrypoint: runner
+    arguments:
+      parameters:
+        - name: input-service
+          value: hrrr-alaska
+    templates:
+      - name: runner
+        steps:
+        - - name: download
+            templateRef: 
+              name: metget-download-template
+              template: metget-download-runner
+            arguments:
+              parameters:
+                - name: service
+                  value: "{{workflow.parameters.input-service}}"
+    dnsConfig:
+      options:
+        - name: ndots
+          value: "0"
