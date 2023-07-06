@@ -94,6 +94,10 @@ class MetGetBuildRest:
         elif "gefs" in model:
             ensemble_member = model.split("-")[1]
             model = "gefs"
+        elif "ctcx" in model:
+            ensemble_member = model.split("-")[2]
+            storm = model.split("-")[1]
+            model = "ctcx"
         elif "nhc" in model:
             keys = model.split("-")
             if len(keys) == 5:
@@ -144,6 +148,20 @@ class MetGetBuildRest:
                 "service": AVAILABLE_MODELS[model],
                 "storm": storm,
                 "tau": tau,
+                "x_init": xmin,
+                "y_init": ymin,
+                "x_end": xmax,
+                "y_end": ymax,
+                "di": res,
+                "dj": res,
+                "level": level,
+            }
+        elif model == "ctcx":
+            return {
+                "name": AVAILABLE_MODELS[model] + "-" + storm + "-" + ensemble_member,
+                "service": AVAILABLE_MODELS[model],
+                "storm": storm,
+                "ensemble_member": ensemble_member,
                 "x_init": xmin,
                 "y_init": ymin,
                 "x_end": xmax,

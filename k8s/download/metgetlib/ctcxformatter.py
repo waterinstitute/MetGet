@@ -212,7 +212,7 @@ class CtcxSnapshot:
         lon = ds.createVariable(
             "lon",
             "f8",
-            ("lon",),
+            ("lat", "lon"),
             compression="zlib",
             complevel=2,
         )
@@ -224,7 +224,7 @@ class CtcxSnapshot:
         lat = ds.createVariable(
             "lat",
             "f8",
-            ("lat",),
+            ("lat", "lon"),
             compression="zlib",
             complevel=2,
         )
@@ -236,7 +236,7 @@ class CtcxSnapshot:
         slpres = ds.createVariable(
             "slpres",
             "f8",
-            ("time", "lat", "lon"),
+            ("lat", "lon"),
             compression="zlib",
             complevel=2,
         )
@@ -247,7 +247,7 @@ class CtcxSnapshot:
         uuwind = ds.createVariable(
             "uuwind",
             "f8",
-            ("time", "lat", "lon"),
+            ("lat", "lon"),
             compression="zlib",
             complevel=2,
         )
@@ -258,7 +258,7 @@ class CtcxSnapshot:
         vvwind = ds.createVariable(
             "vvwind",
             "f8",
-            ("time", "lat", "lon"),
+            ("lat", "lon"),
             compression="zlib",
             complevel=2,
         )
@@ -266,14 +266,19 @@ class CtcxSnapshot:
         vvwind.fill_value = -9999.0
         vvwind.missing_value = -9999.0
 
-        ds.CDI = "Climate Data Interface version 1.9.9rc4 (http://mpimet.mpg.de/cdi)"
-        ds.Conventions = "CF-1.6"
-        ds.history = "Created {:s}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        ds.CDO = "Climate Data Operators version 1.9.9rc5 (http://mpimet.mpg.de/cdo)"
+        ds.Description = "Created by Zach Cobell, The Water Institute"
+        ds.Source = "COAMPS-CTCX Ensemble HDF data"
+        ds.Created = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         ds.variables["time"][:] = domain.forecast_time().timestamp() / 3600.0
-        ds.variables["lon"][:] = domain.get(domain.lon())[0]
-        ds.variables["lat"][:] = domain.get(domain.lat())[:, 0]
+
+        # ...Generate the meshgrid
+        lon, lat = np.meshgrid(
+            domain.get(domain.lon())[0], domain.get(domain.lat())[:, 0]
+        )
+
+        ds.variables["lon"][:] = lon
+        ds.variables["lat"][:] = lat
         ds.variables["slpres"][:] = domain.get(domain.pressure())
         ds.variables["uuwind"][:] = domain.get(domain.uwind())
         ds.variables["vvwind"][:] = domain.get(domain.vwind())

@@ -31,7 +31,7 @@ AVAILABLE_MODELS = {
     "hrrr-alaska": "hrrr-alaska",
     "wpc": "wpc-ncep",
     "coamps": "coamps-tc",
-    "ctcx": "ctcx",
+    "ctcx": "coamps-ctcx",
     "nhc": "nhc",
 }
 

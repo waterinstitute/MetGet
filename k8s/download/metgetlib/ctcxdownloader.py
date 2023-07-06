@@ -242,7 +242,7 @@ class CtcxDownloader:
                 domain_files = ""
                 for domain in snapshot["domains"]:
                     s3_path = os.path.join(
-                        "ctcx",
+                        "coamps_ctcx",
                         year_str,
                         storm_name,
                         date_str,
