@@ -22,24 +22,28 @@
 ################################################################################
 
 
-def main():
+def initialize_build_cli(subparsers):
     """
-    Main function for command line interface
+    This method is used to initialize the build subparser
+
+    Args:
+        subparsers: The build subparser
+
+    Returns:
+        None
     """
-    import argparse
-    import os
     from datetime import datetime
-    from metgetclient.metgetclient import MetGetClient
+    from metgetclient.metget_build import metget_build
+    from metgetclient.metget_data import get_metget_available_model_list
 
-    mlist = str()
-    for m in MetGetClient.AVAILABLE_MODELS.keys():
-        if len(mlist) == 0:
-            mlist += m
-        else:
-            mlist += ", " + m
+    build = subparsers.add_parser(
+        name="build",
+        help="Generate a MetGet build request",
+    )
+    build.set_defaults(func=metget_build)
 
-    p = argparse.ArgumentParser(description="Make a request to MetGet")
-    p.add_argument(
+    mlist = get_metget_available_model_list()
+    build.add_argument(
         "--domain",
         help="Wind domain specification. Model may be any of ["
         + mlist
@@ -53,30 +57,30 @@ def main():
         metavar=("model", "resolution", "x0", "y0", "x1", "y1"),
         action="append",
     )
-    p.add_argument(
+    build.add_argument(
         "--start",
         help="Start time",
         type=datetime.fromisoformat,
         metavar="YYYY-MM-DD hh:mm",
     )
-    p.add_argument(
+    build.add_argument(
         "--end",
         help="End time",
         type=datetime.fromisoformat,
         metavar="YYYY-MM-DD hh:mm",
     )
-    p.add_argument(
+    build.add_argument(
         "--timestep", help="Time step of winds in seconds", metavar="dt", type=int
     )
-    p.add_argument(
+    build.add_argument(
         "--analysis", help="Generate analysis wind fields", action="store_true"
     )
-    p.add_argument(
+    build.add_argument(
         "--multiple-forecasts",
         help="Allow the use of multiple forecast wind fields",
         action="store_true",
     )
-    p.add_argument(
+    build.add_argument(
         "--initialization-skip",
         help="For COAMPS-TC, skip some initialization period of each forecast. "
         "This is considered a discard period where forecast times < [skip] hours are "
@@ -86,47 +90,47 @@ def main():
         required=False,
         default=0,
     )
-    p.add_argument("--output", help="Base name of output data", type=str, metavar="s")
-    p.add_argument("--apikey", help="API key for access to MetGet", type=str)
-    p.add_argument("--endpoint", help="MetGet API endpoint", type=str)
-    p.add_argument(
+    build.add_argument(
+        "--output", help="Base name of output data", type=str, metavar="s"
+    )
+    build.add_argument(
         "--format",
         help="Output format (raw, owi-ascii, owi-netcdf, generic-netcdf (hec-netcdf), delft3d)",
         metavar="f",
         default="owi-ascii",
     )
-    p.add_argument(
+    build.add_argument(
         "--variable",
         help="Variable to request from MetGet (wind_pressure, rain, humidity, temperature, ice)",
         metavar="v",
         default="wind_pressure",
     )
-    p.add_argument(
+    build.add_argument(
         "--check-interval",
         help="Time between status checks (default=10s)",
         metavar="t",
         default=10,
         type=float,
     )
-    p.add_argument(
+    build.add_argument(
         "--max-wait",
         help="Maximum wait time for the request to complete in hours (default=24)",
         metavar="h",
         default=24,
         type=float,
     )
-    p.add_argument(
+    build.add_argument(
         "--strict",
         action="store_true",
         help="Do not allow MetGet to make due with what it has. Force the response to match the request",
     )
-    p.add_argument(
+    build.add_argument(
         "--backfill",
         action="store_true",
         help="Backfill data from lower priority domains",
         default=False,
     )
-    p.add_argument(
+    build.add_argument(
         "--epsg",
         help="Coordinate system of the specified domain and output data (default: 4326)",
         required=False,
@@ -134,135 +138,100 @@ def main():
         type=int,
         default=4326,
     )
-    p.add_argument("--dryrun", help="Perform dry run only", action="store_true")
-    p.add_argument(
+    build.add_argument("--dryrun", help="Perform dry run only", action="store_true")
+    build.add_argument(
         "--request",
         help="Check on and download specified request id",
         type=str,
         metavar="request_id",
     )
-    p.add_argument(
+    build.add_argument(
         "--compression",
         action="store_true",
         help="For ASCII based data formats, use gzip compression in the retreived files",
         default=False,
     )
-    p.add_argument(
+    build.add_argument(
         "--save-json-request",
         action="store_true",
         help="Save the json request sent to the MetGet API as request.json",
         default=False,
     )
+
+
+def initialize_status_cli(subparsers):
+    from datetime import datetime
+    from metgetclient.metget_status import metget_status
+    from metgetclient.metget_data import get_metget_available_model_list
+
+    status = subparsers.add_parser(
+        "status", help="Check the status of the available data"
+    )
+    status.set_defaults(func=metget_status)
+    mlist = get_metget_available_model_list()
+    status.add_argument(
+        "model", help="Name of model to get status for (" + mlist + ")", type=str
+    )
+    status.add_argument(
+        "--start",
+        help="Earlier date to retrieve status for",
+        type=datetime.fromisoformat,
+        metavar="YYYY-MM-DD hh:mm",
+    )
+    status.add_argument(
+        "--end",
+        help="Later date to retrieve status for",
+        type=datetime.fromisoformat,
+        metavar="YYYY-MM-DD hh:mm",
+    )
+    status.add_argument(
+        "--storm",
+        help="For storm based data, request a specific storm",
+        type=str,
+        metavar="s",
+    )
+    status.add_argument(
+        "--ensemble-member",
+        help="Ensemble member to request data for",
+        type=str,
+        metavar="s",
+    )
+    status.add_argument(
+        "--format", help="Output format (json, pretty)", metavar="f", default="json"
+    )
+
+
+def main():
+    """
+    Main function for command line interface
+    """
+    import argparse
+    from metgetclient.metget_environment import metget_version
+
+    p = argparse.ArgumentParser(
+        description="Client for interaction with a MetGet API instance",
+        prog="metget-client",
+    )
+    p.add_argument(
+        "--version", action="version", version="%(prog)s " + metget_version()
+    )
+    p.add_argument(
+        "--apikey", help="API key for access to MetGet", type=str, metavar="s"
+    )
+    p.add_argument("--endpoint", help="MetGet API endpoint", type=str, metavar="s")
     p.add_argument(
         "--api-version",
         type=int,
         help="MetGet API version. Default is 1. When using the k8s MetGet API, this should be 2.",
+        metavar="n",
     )
-    p.add_argument("--version",action="store_true",help="Print the MetGetClient library version")
+
+    subparsers = p.add_subparsers(help="Sub-command help")
+    initialize_build_cli(subparsers)
+    initialize_status_cli(subparsers)
 
     args = p.parse_args()
-
-    if args.version:
-        print(MetGetClient.version())
-        exit(0)
-
-    if not args.endpoint:
-        if "METGET_ENDPOINT" not in os.environ:
-            raise RuntimeError("No endpoint found.")
-        else:
-            endpoint = os.environ["METGET_ENDPOINT"]
-    else:
-        endpoint = args.endpoint
-
-    if not args.apikey:
-        if "METGET_API_KEY" not in os.environ:
-            raise RuntimeError("No API key was found.")
-        else:
-            apikey = os.environ["METGET_API_KEY"]
-    else:
-        apikey = args.apikey
-
-    if not args.api_version:
-        if "METGET_API_VERSION" not in os.environ:
-            api_version = 1
-        else:
-            api_version = int(os.environ["METGET_API_VERSION"])
-    else:
-        api_version = args.api_version
-
-    # ...Initialize the metget client
-    client = MetGetClient(endpoint, apikey, api_version)
-
-    # ...Check for required arguments
-    if not args.request:
-        if not args.start:
-            print("[ERROR]: Must provide '--start'")
-            exit(1)
-        if not args.end:
-            print("[ERROR]: Must provide '--end'")
-            exit(1)
-        if not args.timestep:
-            print("[ERROR]: Must provice '--timestep'")
-            exit(1)
-        if not args.output:
-            print("[ERROR]: Must provide '--output'")
-            exit(1)
-
-        output_format = MetGetClient.AVAILABLE_FORMATS[args.format]
-        if output_format == "delft3d" or output_format == "hec-netcdf":
-            if len(args.domain) > 1:
-                print(
-                    "[ERROR]: "
-                    + args.format
-                    + " does not support more than one domain."
-                )
-                exit(1)
-
-        if args.variable not in MetGetClient.AVAILABLE_VARIABLES:
-            print("ERROR: Invalid variable '{:s}' selected".format(args.variable))
-            exit(1)
-
-        if args.format not in MetGetClient.AVAILABLE_FORMATS.keys():
-            print("ERROR: Invalid output format '{:s}' selected".format(args.format))
-            exit(1)
-
-        # ...Building the request
-        request_data = MetGetClient.generate_request_json(
-            analysis=args.analysis,
-            multiple_forecasts=args.multiple_forecasts,
-            start_date=args.start,
-            end_date=args.end,
-            format=output_format,
-            data_type=args.variable,
-            backfill=args.backfill,
-            time_step=args.timestep,
-            domains=MetGetClient.parse_command_line_domains(
-                args.domain, args.initialization_skip
-            ),
-            compression=args.compression,
-            epsg=args.epsg,
-            filename=args.output,
-            strict=args.strict,
-            dry_run=args.dryrun,
-            save_json_request=args.save_json_request,
-        )
-
-        data_id, status_code = client.make_metget_request(request_data)
-        if not args.dryrun and status_code == 200:
-            client.download_metget_data(
-                data_id,
-                args.check_interval,
-                args.max_wait,
-            )
-        else:
-            print(status_code)
-
-    else:
-        client.download_metget_data(
-            args.request,
-            args.check_interval,
-            args.max_wait,
-        )
+    args.func(args)
 
 
 if __name__ == "__main__":

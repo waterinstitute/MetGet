@@ -26,38 +26,10 @@ import json
 import time
 from datetime import datetime
 from typing import Tuple
+from metget_data import AVAILABLE_MODELS
 
-import requests
 
-
-class MetGetClient:
-
-    # Available metget models
-    AVAILABLE_MODELS = {
-        "gfs": "gfs-ncep",
-        "gefs": "gefs-ncep",
-        "nam": "nam-ncep",
-        "hwrf": "hwrf",
-        "hrrr": "hrrr-conus",
-        "wpc": "wpc-ncep",
-        "coamps": "coamps-tc",
-        "nhc": "nhc",
-    }
-
-    # Available metget variables
-    AVAILABLE_VARIABLES = {"wind_pressure", "rain", "temperature", "humidity", "ice"}
-
-    # Available metget formats
-    AVAILABLE_FORMATS = {
-        "raw": "raw",
-        "ascii": "ascii",
-        "owi-ascii": "owi-ascii",
-        "owi-netcdf": "owi-netcdf",
-        "hec-netcdf": "hec-netcdf",
-        "generic-netcdf": "hec-netcdf",
-        "delft3d": "delft3d",
-    }
-
+class MetGetBuildRest:
     def __init__(
         self, metget_api_server: str, metget_api_key: str, metget_api_version: int
     ):
@@ -72,11 +44,6 @@ class MetGetClient:
         self.__metget_api_server = metget_api_server
         self.__metget_api_key = metget_api_key
         self.__metget_api_version = metget_api_version
-
-    @staticmethod
-    def version() -> str:
-        from . import __version__ as metget_version
-        return metget_version
 
     @staticmethod
     def valid_datetime_type(arg_datetime_str: str) -> datetime:
@@ -147,7 +114,7 @@ class MetGetClient:
         x1 = float(domain_list[4])
         y1 = float(domain_list[5])
 
-        if model not in MetGetClient.AVAILABLE_MODELS.keys():
+        if model not in AVAILABLE_MODELS.keys():
             raise RuntimeError("Specified model '" + model + "' is not available")
 
         xmax = max(x0, x1)
@@ -160,8 +127,8 @@ class MetGetClient:
 
         if model == "hwrf":
             return {
-                "name": MetGetClient.AVAILABLE_MODELS[model] + "-" + storm,
-                "service": MetGetClient.AVAILABLE_MODELS[model],
+                "name": AVAILABLE_MODELS[model] + "-" + storm,
+                "service": AVAILABLE_MODELS[model],
                 "storm": storm,
                 "x_init": xmin,
                 "y_init": ymin,
@@ -173,8 +140,8 @@ class MetGetClient:
             }
         elif model == "coamps":
             return {
-                "name": MetGetClient.AVAILABLE_MODELS[model] + "-" + storm,
-                "service": MetGetClient.AVAILABLE_MODELS[model],
+                "name": AVAILABLE_MODELS[model] + "-" + storm,
+                "service": AVAILABLE_MODELS[model],
                 "storm": storm,
                 "tau": tau,
                 "x_init": xmin,
@@ -188,7 +155,7 @@ class MetGetClient:
         elif model == "gefs":
             return {
                 "name": model,
-                "service": MetGetClient.AVAILABLE_MODELS[model],
+                "service": AVAILABLE_MODELS[model],
                 "ensemble_member": ensemble_member,
                 "x_init": xmin,
                 "y_init": ymin,
@@ -201,7 +168,7 @@ class MetGetClient:
         elif model == "nhc":
             return {
                 "name": model,
-                "service": MetGetClient.AVAILABLE_MODELS[model],
+                "service": AVAILABLE_MODELS[model],
                 "basin": basin,
                 "storm": storm,
                 "storm_year": year,
@@ -217,7 +184,7 @@ class MetGetClient:
         else:
             return {
                 "name": model,
-                "service": MetGetClient.AVAILABLE_MODELS[model],
+                "service": AVAILABLE_MODELS[model],
                 "x_init": xmin,
                 "y_init": ymin,
                 "x_end": xmax,
@@ -242,7 +209,7 @@ class MetGetClient:
         idx = 0
         domains = []
         for d in domain_list:
-            j = MetGetClient.parse_domain_data(d, idx, initialization_skip)
+            j = MetGetBuildRest.parse_domain_data(d, idx, initialization_skip)
             domains.append(j)
             idx += 1
         return domains
@@ -298,6 +265,8 @@ class MetGetClient:
         Returns:
             Tuple[str, int]: Data id and status code
         """
+        import requests
+
         headers = {"x-api-key": self.__metget_api_key}
         r = requests.post(
             self.__metget_api_server + "/build", headers=headers, json=request_json
@@ -339,6 +308,7 @@ class MetGetClient:
         """
         from datetime import datetime, timedelta
         from .spinnerlogger import SpinnerLogger
+        import requests
 
         # ...Wait time
         end_time = datetime.utcnow() + timedelta(hours=max_wait)
@@ -466,6 +436,8 @@ class MetGetClient:
         Returns:
             str: response text
         """
+        import requests
+
         headers = {"x-api-key": self.__metget_api_key}
         request_json = {"request": data_id}
         response = requests.post(
@@ -483,9 +455,104 @@ class MetGetClient:
         Returns:
             str: response text
         """
+        import requests
+
         headers = {"x-api-key": self.__metget_api_key}
         request_params = {"request-id": data_id}
         response = requests.get(
             self.__metget_api_server + "/check", headers=headers, params=request_params
         )
         return response.text
+
+
+def metget_build(args: argparse.Namespace) -> None:
+    """
+    This method is used to build a MetGet request
+
+    Args:
+        args: The arguments passed to the command line
+
+    Returns:
+        None
+    """
+    from .metget_environment import get_metget_environment_variables
+    from .metget_data import AVAILABLE_VARIABLES, AVAILABLE_FORMATS
+
+    # ...Get the environment variables
+    environment = get_metget_environment_variables(args)
+
+    # ...Initialize the metget client
+    client = MetGetBuildRest(
+        environment["endpoint"], environment["apikey"], environment["api_version"]
+    )
+
+    # ...Check for required arguments
+    if not args.request:
+        if not args.start:
+            print("[ERROR]: Must provide '--start'")
+            exit(1)
+        if not args.end:
+            print("[ERROR]: Must provide '--end'")
+            exit(1)
+        if not args.timestep:
+            print("[ERROR]: Must provice '--timestep'")
+            exit(1)
+        if not args.output:
+            print("[ERROR]: Must provide '--output'")
+            exit(1)
+
+        output_format = AVAILABLE_FORMATS[args.format]
+        if output_format == "delft3d" or output_format == "hec-netcdf":
+            if len(args.domain) > 1:
+                print(
+                    "[ERROR]: "
+                    + args.format
+                    + " does not support more than one domain."
+                )
+                exit(1)
+
+        if args.variable not in AVAILABLE_VARIABLES:
+            print("ERROR: Invalid variable '{:s}' selected".format(args.variable))
+            exit(1)
+
+        if args.format not in AVAILABLE_FORMATS.keys():
+            print("ERROR: Invalid output format '{:s}' selected".format(args.format))
+            exit(1)
+
+        # ...Building the request
+        request_data = MetGetBuildRest.generate_request_json(
+            analysis=args.analysis,
+            multiple_forecasts=args.multiple_forecasts,
+            start_date=args.start,
+            end_date=args.end,
+            format=output_format,
+            data_type=args.variable,
+            backfill=args.backfill,
+            time_step=args.timestep,
+            domains=MetGetBuildRest.parse_command_line_domains(
+                args.domain, args.initialization_skip
+            ),
+            compression=args.compression,
+            epsg=args.epsg,
+            filename=args.output,
+            strict=args.strict,
+            dry_run=args.dryrun,
+            save_json_request=args.save_json_request,
+        )
+
+        data_id, status_code = client.make_metget_request(request_data)
+        if not args.dryrun and status_code == 200:
+            client.download_metget_data(
+                data_id,
+                args.check_interval,
+                args.max_wait,
+            )
+        else:
+            print(status_code)
+
+    else:
+        client.download_metget_data(
+            args.request,
+            args.check_interval,
+            args.max_wait,
+        )
