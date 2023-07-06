@@ -1,6 +1,6 @@
 ## MetGet client application
 The MetGet client application is a tool that allows you to interact with the MetGet server. It may be used 
-as a traditional command line tool or the `MetgetClient` class may be imported and run in a custom application.
+as a traditional command line tool or the `MetGetBuildRest` class may be imported and run in a custom application.
 
 The MetGet client handles the interaction with the server via RESTful API calls and downloading output
 data from S3 buckets. The client application is not a requirement for using MetGet, but it is a convenient
@@ -41,7 +41,7 @@ This example requests data from the GFS for a two-day period. We will generate t
 formatted as a single NetCDF file. The data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
 
 ```bash
-$ metget-client --domain gfs 0.25 -100 10 -80 30 --start "2023-06-01 00:00" --end "2023-06-03 00:00" \ 
+$ metget-client build --domain gfs 0.25 -100 10 -80 30 --start "2023-06-01 00:00" --end "2023-06-03 00:00" \ 
                 --output metget_gfs_data.nc --format generic-netcdf --timestep 3600 
 ```
 
@@ -50,7 +50,7 @@ This example requests data from the GFS for a thirty-day period. We will generat
 quasi-hindcast. The data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
 
 ```bash
-$ metget-client --domain gfs 0.25 -100 10 -80 30 --start "2023-05-01 00:00" --end "2023-06-01 00:00" \ 
+$ metget-client build --domain gfs 0.25 -100 10 -80 30 --start "2023-05-01 00:00" --end "2023-06-01 00:00" \ 
                 --output metget_gfs_data.nc --format generic-netcdf --timestep 3600 --multiple-forecasts
 ```
 
@@ -60,7 +60,7 @@ quasi-hindcast. The data will be interpolated to a 0.25 degree grid and cover a 
 skip the first 6 hours of each forecast.
 
 ```bash
-$ metget-client --domain gfs 0.25 -100 10 -80 30 --start "2023-05-01 00:00" --end "2023-06-01 00:00" \ 
+$ metget-client build --domain gfs 0.25 -100 10 -80 30 --start "2023-05-01 00:00" --end "2023-06-01 00:00" \ 
                 --output metget_gfs_data.nc --format generic-netcdf --timestep 3600 --multiple-forecasts --initialization-skip 6
 ```
 
@@ -70,26 +70,51 @@ the output format must support multi-domain data. Currently, the only format tha
 data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
 
 ```bash
-$ metget-client --domain hwrf-mawar02w 0.15 -90 20 -85 25 \
-                --domain gfs 0.25 -100 10 -80 30 \
-                --start "2023-06-01 00:00" --end "2023-06-03 00:00" \ 
-                --output metget_hwrf_data.ow --format owi-ascii --timestep 3600 --background gfs
+$ metget-client build --domain hwrf-mawar02w 0.15 -90 20 -85 25 \
+                      --domain gfs 0.25 -100 10 -80 30 \
+                      --start "2023-06-01 00:00" --end "2023-06-03 00:00" \ 
+                      --output metget_hwrf_data.ow --format owi-ascii \
+                      --timestep 3600 --background gfs
+```
+
+#### Example 5 - Get the status of the GFS model runs
+This example demonstrates the ability for the system to provide information about what data is currently available
+
+```bash
+$ metget-client status gfs --format pretty
+Status for model: GFS (class: synoptic)
++---------------------+---------------------+------------------+
+|    Forecast Cycle   |       End Time      |      Status      |
++---------------------+---------------------+------------------+
+| 2023-07-06 18:00:00 | 2023-07-17 09:00:00 | incomplete (255) |
+| 2023-07-06 12:00:00 | 2023-07-22 12:00:00 |     complete     |
+| 2023-07-06 06:00:00 | 2023-07-22 06:00:00 |     complete     |
+| 2023-07-06 00:00:00 | 2023-07-22 00:00:00 |     complete     |
+| 2023-07-05 18:00:00 | 2023-07-21 18:00:00 |     complete     |
+| 2023-07-05 12:00:00 | 2023-07-21 12:00:00 |     complete     |
+| 2023-07-05 06:00:00 | 2023-07-21 06:00:00 |     complete     |
+| 2023-07-05 00:00:00 | 2023-07-21 00:00:00 |     complete     |
+| 2023-07-04 18:00:00 | 2023-07-20 18:00:00 |     complete     |
+| 2023-07-04 12:00:00 | 2023-07-20 12:00:00 |     complete     |
+| 2023-07-04 06:00:00 | 2023-07-20 06:00:00 |     complete     |
+| 2023-07-04 00:00:00 | 2023-07-20 00:00:00 |     complete     |
++---------------------+---------------------+------------------+
 ```
 
 ### Custom Applications
-The MetGet client library (`MetGetClient`) can be imported and used in custom applications. The below example shows how to use the
+The MetGet client library (`MetGetBuildRest`) can be imported and used in custom applications. The below example shows how to use the
 client application in a custom Python script. Below is a simple version of how the main client application interacts with the `metgetclient` library.
 You can use this as a starting point for your own custom applications.
 
 ```python
-from metgetclient.metgetclient import MetGetClient
+from metgetclient.metget_build import MetGetBuildRest
 
 metget_server = "https://api.metget.org"
 metget_api_key = "my-api-key"
 metget_api_version = 2
 
 # ...Building the request
-request_data = MetGetClient.generate_request_json(
+request_data = MetGetBuildRest.generate_request_json(
     analysis=args.analysis,
     multiple_forecasts=args.multiple_forecasts,
     start_date=args.start,
@@ -109,7 +134,7 @@ request_data = MetGetClient.generate_request_json(
     save_json_request=args.save_json_request,
 )
 
-client = MetgetClient(metget_server, metget_api_key, metget_api_version)
+client = MetGetBuildRest(metget_server, metget_api_key, metget_api_version)
 data_id, status_code = client.make_metget_request(request_data)
 client.download_metget_data(
     data_id,
