@@ -140,3 +140,18 @@ CREATE TABLE requests(
   input_data JSON NOT NULL,
   message JSON NOT NULL
 );
+
+--Create Brin Indexes on forecastcycle for the various tables
+CREATE INDEX gfs_ncep_forecastcycle_idx ON gfs_ncep USING brin (forecastcycle);
+CREATE INDEX gefs_fcst_forecastcycle_idx ON gefs_fcst USING brin (forecastcycle);
+CREATE INDEX hwrf_forecastcycle_idx ON hwrf USING brin (forecastcycle);
+CREATE INDEX nam_ncep_forecastcycle_idx ON nam_ncep USING brin (forecastcycle);
+CREATE INDEX coamps_tc_forecastcycle_idx ON coamps_tc USING brin (forecastcycle);
+CREATE INDEX ctcx_forecastcycle_idx ON ctcx USING brin (forecastcycle);
+CREATE INDEX hrrr_ncep_forecastcycle_idx ON hrrr_ncep USING brin (forecastcycle);
+CREATE INDEX hrrr_alaska_ncep_forecastcycle_idx ON hrrr_alaska_ncep USING brin (forecastcycle);
+CREATE INDEX wpc_ncep_forecastcycle_idx ON wpc_ncep USING brin (forecastcycle);
+
+---Create Brin Index on basin for nhc_fcst and nhc_btk
+CREATE INDEX nhc_fcst_basin_idx ON nhc_fcst USING brin (basin);
+CREATE INDEX nhc_btk_basin_idx ON nhc_btk USING brin (basin);
