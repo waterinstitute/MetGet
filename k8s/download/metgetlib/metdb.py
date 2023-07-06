@@ -553,24 +553,23 @@ class Metdb:
             None
         """
         from metbuild.tables import NhcBtkTable
-        import json
+
+        (
+            year,
+            storm,
+            basin,
+            md5,
+            start,
+            end,
+            duration,
+        ) = Metdb.__generate_nhc_vars_from_dict(metadata)
+
+        if "geojson" in metadata.keys():
+            geojson = metadata["geojson"]
+        else:
+            geojson = {}
 
         if not self.__has_nhc_btk(metadata):
-
-            (
-                year,
-                storm,
-                basin,
-                md5,
-                start,
-                end,
-                duration,
-            ) = Metdb.__generate_nhc_vars_from_dict(metadata)
-
-            if "geojson" in metadata.keys():
-                geojson = metadata["geojson"]
-            else:
-                geojson = {}
 
             record = NhcBtkTable(
                 storm_year=year,
@@ -586,6 +585,26 @@ class Metdb:
             )
 
             self.__session.add(record)
+            self.__session.commit()
+
+        else:
+            # Update the record
+            record = (
+                self.__session.query(NhcBtkTable)
+                .filter(
+                    NhcBtkTable.storm_year == year,
+                    NhcBtkTable.basin == basin,
+                    NhcBtkTable.storm == storm,
+                )
+                .first()
+            )
+            record.advisory_start = start
+            record.advisory_end = end
+            record.advisory_duration_hr = duration
+            record.filepath = filepath
+            record.md5 = md5
+            record.accessed = datetime.utcnow()
+            record.geometry_data = geojson
             self.__session.commit()
 
     def __add_record_nhc_fcst(self, filepath: str, metadata: dict) -> None:
