@@ -209,6 +209,12 @@ def initialize_status_cli(subparsers):
         metavar="YYYY-MM-DD hh:mm",
     )
     status.add_argument(
+        "--basin",
+        help="For NHC based data, request a specific basin",
+        type=str,
+        metavar="s",
+    )
+    status.add_argument(
         "--storm",
         help="For storm based data, request a specific storm",
         type=str,

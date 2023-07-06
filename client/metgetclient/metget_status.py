@@ -62,6 +62,8 @@ class MetGetStatus:
             self.__status_ensemble(model)
         elif self.__model_class == "ensemble-storm":
             self.__status_ensemble_storm(model)
+        elif self.__model_class == "track":
+            self.__status_track(model)
         else:
             raise RuntimeError("Unknown model type.")
 
@@ -84,6 +86,104 @@ class MetGetStatus:
             else:
                 url += "&end={:s}".format(self.__args.end)
         return url
+
+    def __status_track(self, model: str) -> None:
+        """
+        This method is used to get the status of the track data (NHC)
+
+        Args:
+            model: The model to get the status for
+        """
+        import requests
+        import prettytable
+
+        url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
+        url = self.__add_url_start_end_parameters(url)
+        if self.__args.storm:
+            url += "&storm={:s}".format(self.__args.storm)
+        if self.__args.basin:
+            url += "&basin={:s}".format(self.__args.basin)
+
+        response = requests.get(
+            url, headers={"x-api-key": self.__environment["apikey"]}
+        )
+        data = response.json()["body"]
+
+        if self.__args.format == "json":
+            print(data)
+        elif self.__args.format == "pretty":
+            storm_tracks = []
+            for year in data["best_track"].keys():
+                for basin in data["best_track"][year].keys():
+                    for storm in data["best_track"][year][basin]:
+                        start_time = data["best_track"][year][basin][storm][
+                            "best_track_start"
+                        ]
+                        end_time = data["best_track"][year][basin][storm][
+                            "best_track_end"
+                        ]
+                        duration = data["best_track"][year][basin][storm]["duration"]
+
+                        if year in data["forecast"].keys():
+                            if basin in data["forecast"][year].keys():
+                                if storm in data["forecast"][year][basin].keys():
+                                    advisories = list(
+                                        data["forecast"][year][basin][storm].keys()
+                                    )
+                                else:
+                                    advisories = []
+                            else:
+                                advisories = []
+                        else:
+                            advisories = []
+                        storm_tracks.append(
+                            {
+                                "year": year,
+                                "basin": basin,
+                                "storm": storm,
+                                "start_time": start_time,
+                                "end_time": end_time,
+                                "duration": duration,
+                                "advisories": advisories,
+                            }
+                        )
+            table = prettytable.PrettyTable(
+                [
+                    "Year",
+                    "Basin",
+                    "Storm",
+                    "Best Track Start",
+                    "Best Track End",
+                    "Duration (hrs)",
+                    "Forecast Advisories",
+                ]
+            )
+            for storm_track in storm_tracks:
+                advisories = storm_track["advisories"]
+                if len(advisories) > 6:
+                    advisories = advisories[:3] + ["..."] + advisories[-3:]
+                elif len(advisories) == 0:
+                    advisories = ["None"]
+
+                # ...Convert the list to a string
+                advisories = " ".join(advisories)
+
+                table.add_row(
+                    [
+                        storm_track["year"],
+                        storm_track["basin"],
+                        storm_track["storm"],
+                        storm_track["start_time"],
+                        storm_track["end_time"],
+                        storm_track["duration"],
+                        advisories,
+                    ]
+                )
+            table.reversesort = True
+            print(table.get_string(sortby="Best Track End"))
+
+        else:
+            raise RuntimeError("Unknown format")
 
     def __status_ensemble_storm(self, model: str) -> None:
         """
@@ -110,43 +210,46 @@ class MetGetStatus:
         )
         data = response.json()["body"]
 
-        if self.__args.storm and self.__args.ensemble_member:
-            model_name = "{:s}-{:s}-{:s}".format(
-                model, self.__args.storm, self.__args.ensemble_member
-            )
-            self.__print_status_generic(
-                model_name, data[self.__args.storm][self.__args.ensemble_member]
-            )
-        else:
+        if self.__args.format == "json":
+            print(data)
+        elif self.__args.format == "pretty":
+            if self.__args.storm and self.__args.ensemble_member:
+                model_name = "{:s}-{:s}-{:s}".format(
+                    model, self.__args.storm, self.__args.ensemble_member
+                )
+                self.__print_status_generic(
+                    model_name, data[self.__args.storm][self.__args.ensemble_member]
+                )
+            else:
 
-            table = prettytable.PrettyTable(
-                [
-                    "Storm",
-                    "First Forecast Cycle",
-                    "Last Forecast Cycle",
-                    "Earliest Forecast Time",
-                    "Latest Forecast Time",
-                    "Cycle Count",
-                    "Ensemble Members",
-                ]
-            )
-
-            for storm in data.keys():
-                ensemble_members = []
-                for ensemble_member in data[storm].keys():
-                    ensemble_members.append(ensemble_member)
-                table.add_row(
+                table = prettytable.PrettyTable(
                     [
-                        storm,
-                        data[storm][ensemble_members[0]]["first_available_cycle"],
-                        data[storm][ensemble_members[0]]["latest_available_cycle"],
-                        data[storm][ensemble_members[0]]["min_forecast_date"],
-                        data[storm][ensemble_members[0]]["max_forecast_date"],
-                        len(data[storm][ensemble_members[0]]["cycles"]),
-                        ensemble_members,
+                        "Storm",
+                        "First Forecast Cycle",
+                        "Last Forecast Cycle",
+                        "Earliest Forecast Time",
+                        "Latest Forecast Time",
+                        "Cycle Count",
+                        "Ensemble Members",
                     ]
                 )
-            print(table)
+
+                for storm in data.keys():
+                    ensemble_members = []
+                    for ensemble_member in data[storm].keys():
+                        ensemble_members.append(ensemble_member)
+                    table.add_row(
+                        [
+                            storm,
+                            data[storm][ensemble_members[0]]["first_available_cycle"],
+                            data[storm][ensemble_members[0]]["latest_available_cycle"],
+                            data[storm][ensemble_members[0]]["min_forecast_date"],
+                            data[storm][ensemble_members[0]]["max_forecast_date"],
+                            len(data[storm][ensemble_members[0]]["cycles"]),
+                            ensemble_members,
+                        ]
+                    )
+                print(table)
 
     def __status_ensemble(self, model: str) -> None:
         """
@@ -222,7 +325,10 @@ class MetGetStatus:
         )
 
         # ...Print
-        self.__print_status_multi("storm", model, response.json()["body"])
+        if response.json()["body"] == {}:
+            print("No data found")
+        else:
+            self.__print_status_multi("storm", model, response.json()["body"])
 
     def __print_status_multi(self, data_type: str, model: str, data: dict) -> None:
         """
