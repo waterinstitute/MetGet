@@ -248,7 +248,7 @@ class MessageHandler:
             return pymetbuild.Meteorology.HRRR_ALASKA
         elif data_source == "wpc-ncep":
             return pymetbuild.Meteorology.WPC
-        elif data_source == "coamps-tc":
+        elif data_source == "coamps-tc" or data_source == "coamps-ctcx":
             return pymetbuild.Meteorology.COAMPS
         else:
             raise RuntimeError("Invalid data source")
@@ -490,7 +490,7 @@ class MessageHandler:
             MessageHandler.__print_file_status(ff, t0)
 
             met.set_next_file(ff)
-            if d.service() == "coamps-tc":
+            if d.service() == "coamps-tc" or d.service() == "coamps-ctcx":
                 for ff in domain_data[i][0]["filepath"]:
                     domain_files_used.append(os.path.basename(ff))
             else:
@@ -502,7 +502,7 @@ class MessageHandler:
             ff = domain_data[i][index]["filepath"]
             MessageHandler.__print_file_status(ff, t1)
             met.process_data()
-            if d.service() == "coamps-tc":
+            if d.service() == "coamps-tc" or d.service() == "coamps-ctcx":
                 for ff in domain_data[i][index]["filepath"]:
                     domain_files_used.append(os.path.basename(ff))
             else:
@@ -521,7 +521,7 @@ class MessageHandler:
                     MessageHandler.__print_file_status(ff, t1)
                     met.set_next_file(domain_data[i][index]["filepath"])
                     if t0 != t1:
-                        if d.service() == "coamps-tc":
+                        if d.service() == "coamps-tc" or d.service() == "coamps-ctcx":
                             for ff in domain_data[i][index]["filepath"]:
                                 domain_files_used.append(os.path.basename(ff))
                         else:
@@ -700,7 +700,7 @@ class MessageHandler:
                 "No data found for domain {:d}. Giving up.".format(index)
             )
         for item in f:
-            if domain.service() == "coamps-tc":
+            if domain.service() == "coamps-tc" or domain.service() == "coamps-ctcx":
                 files = item["filepath"].split(",")
                 local_file_list = []
                 for ff in files:
@@ -875,7 +875,7 @@ class MessageHandler:
         s3 = S3file(os.environ["METGET_S3_BUCKET"])
         ongoing_restore = False
         for item in filelist:
-            if domain.service() == "coamps-tc":
+            if domain.service() == "coamps-tc" or domain.service() == "coamps-ctcx":
                 files = item["filepath"].split(",")
                 for ff in files:
                     ongoing_restore_this = s3.check_archive_initiate_restore(ff)
