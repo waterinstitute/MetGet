@@ -26,7 +26,7 @@ import json
 import time
 from datetime import datetime
 from typing import Tuple
-from metget_data import AVAILABLE_MODELS
+from .metget_data import AVAILABLE_MODELS
 
 
 class MetGetBuildRest:

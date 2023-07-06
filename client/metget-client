@@ -159,6 +159,30 @@ def initialize_build_cli(subparsers):
     )
 
 
+def initialize_credits_cli(subparsers):
+    """
+    This method is used to initialize the credits subparser
+
+    Args:
+        subparsers: The credits subparser
+
+    Returns:
+        None
+    """
+    from metgetclient.metget_credits import metget_credits
+
+    api_credits = subparsers.add_parser(
+        "credits", help="Check the number of credits available"
+    )
+    api_credits.add_argument(
+        "--format",
+        help="Output format (json, pretty)",
+        default="json",
+        type=str,
+    )
+    api_credits.set_defaults(func=metget_credits)
+
+
 def initialize_status_cli(subparsers):
     from datetime import datetime
     from metgetclient.metget_status import metget_status
@@ -229,6 +253,7 @@ def main():
     subparsers = p.add_subparsers(help="Sub-command help")
     initialize_build_cli(subparsers)
     initialize_status_cli(subparsers)
+    initialize_credits_cli(subparsers)
 
     args = p.parse_args()
     args.func(args)
