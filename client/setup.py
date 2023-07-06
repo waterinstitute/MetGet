@@ -76,5 +76,6 @@ setup(
     install_requires=[
         "requests",
         "halo",
+        "prettytable",
     ],
 )
