@@ -27,62 +27,46 @@
 # Organization: The Water Institute
 #
 ###################################################################################################
-
-from setuptools import setup
-
-DEFAULT_VERSION_NUMBER = "0.0.1"
+import argparse
 
 
-def check_for_path_executable(executable: str) -> tuple:
-    from shutil import which
+def metget_credits(args: argparse.Namespace) -> None:
+    """
+    This method is used to get the number of credits available
 
-    path = which(executable)
-    if path:
-        return True, path
+    Args:
+        args: The arguments passed to the command line
+    """
+    import requests
+    import prettytable
+    from .metget_environment import get_metget_environment_variables
+
+    env = get_metget_environment_variables(args)
+
+    url = env["endpoint"] + "/credits"
+    headers = {"x-api-key": env["apikey"]}
+    response = requests.get(url, headers=headers)
+
+    if args.format == "json":
+        print(response.json())
+    elif args.format == "pretty":
+        table = prettytable.PrettyTable(
+            ["Credit Limit", "Credits Used", "Credit Balance"]
+        )
+        credit_limit = response.json()["body"]["credit_limit"]
+        if credit_limit == 0:
+            credit_limit = "Unlimited"
+        credit_balance = response.json()["body"]["credit_balance"]
+        if credit_balance == 0:
+            credit_balance = "Unlimited"
+        table.add_row(
+            [
+                credit_limit,
+                response.json()["body"]["credits_used"],
+                credit_balance,
+            ]
+        )
+        print("Credit status for apikey: " + env["apikey"])
+        print(table)
     else:
-        return False, None
-
-
-def write_version(version_number) -> str:
-    with open("metgetclient/__init__.py", "w") as f:
-        f.write('__version__ = "{:s}"'.format(version_number))
-    return version_number
-
-
-def check_version() -> str:
-    import subprocess
-
-    has_git, git_path = check_for_path_executable("git")
-    if has_git:
-        try:
-            version = subprocess.run(
-                ["git", "describe", "--always", "--tags"], capture_output=True
-            )
-            version_str = version.stdout.strip().decode("utf-8")
-        except subprocess.CalledProcessError as e:
-            return DEFAULT_VERSION_NUMBER
-        return version_str
-    else:
-        return DEFAULT_VERSION_NUMBER
-
-
-metget_client_version = check_version()
-write_version(metget_client_version)
-
-setup(
-    name="metget-client",
-    version="0.0.1",
-    description="MetGet Client Application",
-    author="Zach Cobell",
-    author_email="zcobell@thewaterinstitute.org",
-    url="https://www.thewaterinstitute.org/",
-    packages=[
-        "metgetclient",
-    ],
-    scripts=["metget-client"],
-    install_requires=[
-        "requests",
-        "halo",
-        "prettytable",
-    ],
-)
+        raise RuntimeError("Invalid format: " + args.format)
