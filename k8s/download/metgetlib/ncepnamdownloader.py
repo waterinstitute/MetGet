@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+###################################################################################################
 # MIT License
 #
-# Copyright (c) 2020 ADCIRC Development Group
+# Copyright (c) 2023 The Water Institute
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +21,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#
+# Author: Zach Cobell
+# Contact: zcobell@thewaterinstitute.org
+# Organization: The Water Institute
+#
+###################################################################################################
 
 from .noaadownloader import NoaaDownloader
 from metbuild.gribdataattributes import NCEP_NAM
