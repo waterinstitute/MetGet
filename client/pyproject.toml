@@ -1,6 +1,6 @@
 [project]
 name = "metget-client"
-version = "0.0.1"
+version = "0.0.1b0"
 description = "A client package for interaction with a MetGet server instance"
 authors = [
     { name = "Zach Cobell", email = "zcobell@thewaterinstitute.org" },
@@ -11,8 +11,13 @@ requires-python = ">=3.8"
 keywords = [ "forecast", "meteorology", "stormsurge" ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "License :: OSI Approved :: MIT License",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Operating System :: OS Independent",
 ]
 dependencies = [
     "requests",
@@ -37,3 +42,20 @@ version = { attr = "metget_client.__version__" }
 
 [project.scripts]
 metget-client = "metget_client:metget_client_cli"
+
+[tool.bumpver]
+current_version = "0.0.1b0"
+version_pattern = 'MAJOR.MINOR.PATCH[PYTAGNUM]'
+commit_message = "bump version {old_version} -> {new_version}"
+commit = true
+tag = true
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"',
+    'version = "{version}"',
+]
+"src/metget_client/__init__.py" = [
+    '__version__ = "{version}"',
+]

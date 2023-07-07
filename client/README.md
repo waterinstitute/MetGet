@@ -1,4 +1,20 @@
-## MetGet client application
+![MetGet Logo](https://raw.githubusercontent.com/waterinstitute/metget/main/img/MetGet_logo_blue.png)
+
+MetGet is an application which allows users to query, format, and blend meteorological data from various sources
+to be used in hydrodynamic modeling applications.
+
+## Development Partners
+
+MetGet is developed by [The Water Institute](https://thewaterinstitute.org) and has been funded by the 
+University of North Carolina at Chapel Hill [Coastal Resilience Center of Excellence](https://www.coastalresiliencecenter.org).
+
+![The Water Institute](https://thewaterinstitute.org/images/01-Primary_Logo_Final.png)
+
+![Coastal Resilience Center of Excellence](https://coastalresiliencecenter.unc.edu/wp-content/uploads/sites/845/2019/01/CoastalResilienceCenter-notexture-horiz-DHS-large.png)
+
+![University of North Carolina at Chapel Hill](https://identity.unc.edu/wp-content/uploads/sites/885/2019/01/UNC_logo_webblue-e1517942350314.png)
+
+## MetGet Client Application
 The MetGet client application is a tool that allows you to interact with the MetGet server. It may be used 
 as a traditional command line tool or the `MetGetBuildRest` class may be imported and run in a custom application.
 
@@ -8,10 +24,9 @@ way to interact with the server.
 
 ### Installation
 
-The MetGet client application can be installed using `pip`. The below commands show how to install the client and its dependencies.
+The MetGet client application can be installed using from the PyPi repository. The below commands show how to install the client and its dependencies.
 ```bash
-$ cd client
-$ pip3 install .
+$ pip3 install metget-client
 ```
 
 ### Terminology
@@ -41,8 +56,12 @@ This example requests data from the GFS for a two-day period. We will generate t
 formatted as a single NetCDF file. The data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
 
 ```bash
-$ metget-client build --domain gfs 0.25 -100 10 -80 30 --start "2023-06-01 00:00" --end "2023-06-03 00:00" \ 
-                --output metget_gfs_data.nc --format generic-netcdf --timestep 3600 
+$ metget-client build --domain gfs 0.25 -100 10 -80 30 \
+                      --start "2023-06-01 00:00" \
+                      --end "2023-06-03 00:00" \ 
+                      --timestep 3600 \ 
+                      --output metget_gfs_data.nc \
+                      --format generic-netcdf 
 ```
 
 #### Example 2 - Request GFS data with multiple forecasts
@@ -50,8 +69,13 @@ This example requests data from the GFS for a thirty-day period. We will generat
 quasi-hindcast. The data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
 
 ```bash
-$ metget-client build --domain gfs 0.25 -100 10 -80 30 --start "2023-05-01 00:00" --end "2023-06-01 00:00" \ 
-                --output metget_gfs_data.nc --format generic-netcdf --timestep 3600 --multiple-forecasts
+$ metget-client build --domain gfs 0.25 -100 10 -80 30 \
+                      --start "2023-05-01 00:00" \
+                      --end "2023-06-01 00:00" \ 
+                      --output metget_gfs_data.nc \
+                      --format generic-netcdf \
+                      --timestep 3600 \
+                      --multiple-forecasts
 ```
 
 #### Example 3 - Request GFS data with multiple forecasts and initialization skip
@@ -60,8 +84,14 @@ quasi-hindcast. The data will be interpolated to a 0.25 degree grid and cover a 
 skip the first 6 hours of each forecast.
 
 ```bash
-$ metget-client build --domain gfs 0.25 -100 10 -80 30 --start "2023-05-01 00:00" --end "2023-06-01 00:00" \ 
-                --output metget_gfs_data.nc --format generic-netcdf --timestep 3600 --multiple-forecasts --initialization-skip 6
+$ metget-client build --domain gfs 0.25 -100 10 -80 30 \
+                      --start "2023-05-01 00:00" \
+                      --end "2023-06-01 00:00" \ 
+                      --timestep 3600 \
+                      --format generic-netcdf \
+                      --multiple-forecasts \
+                      --initialization-skip 6 \
+                      --output metget_gfs_data.nc
 ```
 
 #### Example 4 - Request HWRF data overlaid on GFS data
@@ -72,9 +102,12 @@ data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf 
 ```bash
 $ metget-client build --domain hwrf-mawar02w 0.15 -90 20 -85 25 \
                       --domain gfs 0.25 -100 10 -80 30 \
-                      --start "2023-06-01 00:00" --end "2023-06-03 00:00" \ 
-                      --output metget_hwrf_data.ow --format owi-ascii \
-                      --timestep 3600 --background gfs
+                      --start "2023-06-01 00:00" \
+                      --end "2023-06-03 00:00" \ 
+                      --timestep 3600 \
+                      --backfill \
+                      --format owi-ascii \
+                      --output metget_hwrf_data \
 ```
 
 #### Example 5 - Get the status of the GFS model runs
@@ -103,15 +136,19 @@ Status for model: GFS (class: synoptic)
 
 ### Custom Applications
 The MetGet client library (`MetGetBuildRest`) can be imported and used in custom applications. The below example shows how to use the
-client application in a custom Python script. Below is a simple version of how the main client application interacts with the `metgetclient` library.
+client application in a custom Python script. Below is a simple version of how the main client application interacts with the `metget-client` library.
 You can use this as a starting point for your own custom applications.
 
 ```python
-from metgetclient.metget_build import MetGetBuildRest
+import argparse
+from metget_client.metget_build import MetGetBuildRest
 
 metget_server = "https://api.metget.org"
 metget_api_key = "my-api-key"
 metget_api_version = 2
+
+args = argparse.Namespace
+output_format = 'owi-ascii'
 
 # ...Building the request
 request_data = MetGetBuildRest.generate_request_json(
@@ -123,7 +160,7 @@ request_data = MetGetBuildRest.generate_request_json(
     data_type=args.variable,
     backfill=args.backfill,
     time_step=args.timestep,
-    domains=MetGetClient.parse_command_line_domains(
+    domains=MetGetBuildRest.parse_command_line_domains(
         args.domain, args.initialization_skip
     ),
     compression=args.compression,
@@ -141,6 +178,4 @@ client.download_metget_data(
     args.check_interval,
     args.max_wait,
 )
-
-
 ```
