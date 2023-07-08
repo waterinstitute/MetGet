@@ -1,0 +1,61 @@
+[project]
+name = "metget"
+version = "0.0.0"
+description = "A client package for interaction with a MetGet server instance"
+authors = [
+    { name = "Zach Cobell", email = "zcobell@thewaterinstitute.org" },
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+keywords = [ "forecast", "meteorology", "stormsurge" ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests",
+    "halo",
+    "prettytable"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/waterinstitute/metget"
+"Bug Reports" = "https://github.com/waterinstitute/metget/issues"
+"Source" = "https://github.com/waterinstitute/metget"
+
+[build-system]
+requires = [ "setuptools >= 61.0.0", "wheel" ]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = [ "src" ]
+
+[tool.setuptools.dynamic]
+version = { attr = "metget_client.__version__" }
+
+[project.scripts]
+metget = "metget_client:metget_client_cli"
+
+[tool.bumpver]
+current_version = "0.0.0"
+version_pattern = 'MAJOR.MINOR.PATCH[PYTAGNUM]'
+commit_message = "bump version {old_version} -> {new_version}"
+commit = true
+tag = true
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"',
+    'version = "{version}"',
+]
+"src/metget_client/__init__.py" = [
+    '__version__ = "{version}"',
+]
