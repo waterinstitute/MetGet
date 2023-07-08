@@ -26,7 +26,7 @@ way to interact with the server.
 
 The MetGet client application can be installed using from the PyPi repository. The below commands show how to install the client and its dependencies.
 ```bash
-$ pip3 install metget-client
+$ pip3 install metget
 ```
 
 ### Terminology
@@ -56,12 +56,12 @@ This example requests data from the GFS for a two-day period. We will generate t
 formatted as a single NetCDF file. The data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
 
 ```bash
-$ metget-client build --domain gfs 0.25 -100 10 -80 30 \
-                      --start "2023-06-01 00:00" \
-                      --end "2023-06-03 00:00" \ 
-                      --timestep 3600 \ 
-                      --output metget_gfs_data.nc \
-                      --format generic-netcdf 
+$ metget build --domain gfs 0.25 -100 10 -80 30 \
+               --start "2023-06-01 00:00" \
+               --end "2023-06-03 00:00" \ 
+               --timestep 3600 \ 
+               --output metget_gfs_data.nc \
+               --format generic-netcdf 
 ```
 
 #### Example 2 - Request GFS data with multiple forecasts
@@ -69,13 +69,13 @@ This example requests data from the GFS for a thirty-day period. We will generat
 quasi-hindcast. The data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
 
 ```bash
-$ metget-client build --domain gfs 0.25 -100 10 -80 30 \
-                      --start "2023-05-01 00:00" \
-                      --end "2023-06-01 00:00" \ 
-                      --output metget_gfs_data.nc \
-                      --format generic-netcdf \
-                      --timestep 3600 \
-                      --multiple-forecasts
+$ metget build --domain gfs 0.25 -100 10 -80 30 \
+               --start "2023-05-01 00:00" \
+               --end "2023-06-01 00:00" \ 
+               --output metget_gfs_data.nc \
+               --format generic-netcdf \
+               --timestep 3600 \
+               --multiple-forecasts
 ```
 
 #### Example 3 - Request GFS data with multiple forecasts and initialization skip
@@ -84,14 +84,14 @@ quasi-hindcast. The data will be interpolated to a 0.25 degree grid and cover a 
 skip the first 6 hours of each forecast.
 
 ```bash
-$ metget-client build --domain gfs 0.25 -100 10 -80 30 \
-                      --start "2023-05-01 00:00" \
-                      --end "2023-06-01 00:00" \ 
-                      --timestep 3600 \
-                      --format generic-netcdf \
-                      --multiple-forecasts \
-                      --initialization-skip 6 \
-                      --output metget_gfs_data.nc
+$ metget build --domain gfs 0.25 -100 10 -80 30 \
+               --start "2023-05-01 00:00" \
+               --end "2023-06-01 00:00" \ 
+               --timestep 3600 \
+               --format generic-netcdf \
+               --multiple-forecasts \
+               --initialization-skip 6 \
+               --output metget_gfs_data.nc
 ```
 
 #### Example 4 - Request HWRF data overlaid on GFS data
@@ -100,21 +100,21 @@ the output format must support multi-domain data. Currently, the only format tha
 data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
 
 ```bash
-$ metget-client build --domain hwrf-mawar02w 0.15 -90 20 -85 25 \
-                      --domain gfs 0.25 -100 10 -80 30 \
-                      --start "2023-06-01 00:00" \
-                      --end "2023-06-03 00:00" \ 
-                      --timestep 3600 \
-                      --backfill \
-                      --format owi-ascii \
-                      --output metget_hwrf_data \
+$ metget build --domain hwrf-mawar02w 0.15 -90 20 -85 25 \
+               --domain gfs 0.25 -100 10 -80 30 \
+               --start "2023-06-01 00:00" \
+               --end "2023-06-03 00:00" \ 
+               --timestep 3600 \
+               --backfill \
+               --format owi-ascii \
+               --output metget_hwrf_data \
 ```
 
 #### Example 5 - Get the status of the GFS model runs
 This example demonstrates the ability for the system to provide information about what data is currently available
 
 ```bash
-$ metget-client status gfs --format pretty
+$ metget status gfs --format pretty
 Status for model: GFS (class: synoptic)
 +---------------------+---------------------+------------------+
 |    Forecast Cycle   |       End Time      |      Status      |
