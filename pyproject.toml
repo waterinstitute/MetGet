@@ -1,6 +1,6 @@
 [project]
 name = "metget"
-version = "0.0.2b0"
+version = "0.0.3b0"
 description = "A client package for interaction with a MetGet server instance"
 authors = [
     { name = "Zach Cobell", email = "zcobell@thewaterinstitute.org" },
@@ -44,7 +44,7 @@ version = { attr = "metget_client.__version__" }
 metget = "metget_client:metget_client_cli"
 
 [tool.bumpver]
-current_version = "0.0.2b0"
+current_version = "0.0.3b0"
 version_pattern = 'MAJOR.MINOR.PATCH[PYTAGNUM]'
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
