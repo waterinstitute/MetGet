@@ -248,7 +248,7 @@ def initialize_track_cli(subparsers) -> None:
     from .metget_track import metget_track
 
     track = subparsers.add_parser(
-        "track", help="Get the storm track data for an NHC storm"
+        "track", help="Get the storm track data for a NHC storm"
     )
     track.set_defaults(func=metget_track)
     track.add_argument(
