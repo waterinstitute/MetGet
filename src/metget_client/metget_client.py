@@ -238,7 +238,44 @@ def initialize_status_cli(subparsers):
     )
 
 
-def metget_client_cli():
+def initialize_track_cli(subparsers) -> None:
+    """
+    This method is used to initialize the track subparser
+
+    Returns:
+        None
+    """
+    from .metget_track import metget_track
+
+    track = subparsers.add_parser(
+        "track", help="Get the storm track data for an NHC storm"
+    )
+    track.set_defaults(func=metget_track)
+    track.add_argument(
+        "--year", help="NHC Storm year to get track data for", type=int, metavar="n"
+    )
+    track.add_argument(
+        "--storm", help="NHC Storm number to get track data for", type=int, metavar="n"
+    )
+    track.add_argument(
+        "--basin",
+        help="NHC Storm basin to get track data for (al, ep, wp)",
+        type=str,
+        metavar="s",
+        default="al",
+    )
+    track.add_argument(
+        "--advisory", help="NHC Storm advisory to get", type=str, metavar="s"
+    )
+    track.add_argument(
+        "--type",
+        help="Type of track data to get (besttrack or forecast)",
+        type=str,
+        metavar="s",
+    )
+
+
+def metget_client_cli() -> None:
     """
     Main function for command line interface
     """
@@ -266,6 +303,7 @@ def metget_client_cli():
     subparsers = p.add_subparsers(help="Sub-command help")
     initialize_build_cli(subparsers)
     initialize_status_cli(subparsers)
+    initialize_track_cli(subparsers)
     initialize_credits_cli(subparsers)
 
     args = p.parse_args()

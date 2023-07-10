@@ -22,6 +22,13 @@ The MetGet client handles the interaction with the server via RESTful API calls 
 data from S3 buckets. The client application is not a requirement for using MetGet, but it is a convenient
 way to interact with the server.
 
+## MetGet Server Access
+The `metget` client application interacts with an instance of a [metget-server](https://github.com/waterinstitute/metget-server), 
+which is a Kubernetes application that archives, builds, and provides to users meteorological data through the client application. 
+The client does not require that you use any specific MetGet server instance. Instead, you may choose to operate your own 
+`metget-server` instance or you may [contact](mailto:zcobell@thewaterinstitute.org) The Water Institute to request access to 
+an available instance. 
+
 ### Installation
 
 The MetGet client application can be installed using from the PyPi repository. The below commands show how to install the client and its dependencies.
@@ -132,6 +139,14 @@ Status for model: GFS (class: synoptic)
 | 2023-07-04 06:00:00 | 2023-07-20 06:00:00 |     complete     |
 | 2023-07-04 00:00:00 | 2023-07-20 00:00:00 |     complete     |
 +---------------------+---------------------+------------------+
+```
+
+#### Example 6: Retrieve GEOJSON track data for a specific storm
+This example demonstrates the ability to retrieve track data for a specific storm. The track data is returned in GEOJSON format.
+
+```bash
+$ metget track --year 2022 --storm 9 --basin al --type forecast --advisory 3 #...Hurricane Ian 2022, Advisory 3 track data
+$ metget track --year 2022 --storm 9 --basin al --type besttrack #...Hurricane Ian 2022, best track data
 ```
 
 ### Custom Applications
