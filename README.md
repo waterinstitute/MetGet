@@ -158,7 +158,7 @@ You can use this as a starting point for your own custom applications.
 import argparse
 from metget_client.metget_build import MetGetBuildRest
 
-metget_server = "https://api.metget.org"
+metget_server = "https://metget.server.org"
 metget_api_key = "my-api-key"
 metget_api_version = 2
 
