@@ -47,8 +47,8 @@ aims to explain these terms and why they are available as options in the client 
 ### Environment Variables
 There are three influential environment variables which can be set as a convenience to the user. These variables are:
 * `METGET_API_KEY` - The API key used to authenticate with MetGet
-* `METGET_ENDPOINT` - The URL of the MetGet server, i.e. `https://api.metget.org`
-* `METGET_API_VERSION` - The version of the MetGet API to use. The system will default to `1` and unless you are using the Kubernetes based MetGet deployment at `https://api.metget.org`, the version 1 api is appropriate. For the version at `https://api.metget.org`, this should be set to `2`.
+* `METGET_ENDPOINT` - The URL of the MetGet server, i.e. `https://metget.server.org`
+* `METGET_API_VERSION` - The version of the MetGet API to use. The system will default to `1` and unless you are using the Kubernetes based MetGet deployment, the version 1 api is appropriate.
 
 ### Usage
 
