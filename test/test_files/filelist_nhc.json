@@ -1,0 +1,50 @@
+{
+  "input": {
+    "api_key": "XCjI4pIbVSqNcvvbm3yA9waLfDgTku6Nc04ZzD80",
+    "backfill": false,
+    "background_pressure": 1013.0,
+    "compression": false,
+    "creator": "zcobell.WI-Mac-001.local",
+    "data_type": "wind_pressure",
+    "domains": [
+      {
+        "advisory": "015",
+        "basin": "al",
+        "di": 0.1,
+        "dj": 0.1,
+        "level": 0,
+        "name": "nhc",
+        "service": "nhc",
+        "storm": "09",
+        "storm_year": "2022",
+        "x_end": -80.0,
+        "x_init": -90.0,
+        "y_end": 25.0,
+        "y_init": 15.0
+      }
+    ],
+    "end_date": "2023-06-24 00:00:00",
+    "epsg": 4326,
+    "filename": "metget_test_nhc",
+    "format": "raw",
+    "multiple_forecasts": false,
+    "nowcast": false,
+    "request_id": "50fd51cb-8aaf-4b9f-b929-d82060a13d4e",
+    "source_ip": "67.243.216.17",
+    "start_date": "2023-06-19 00:00:00",
+    "time_step": 3600,
+    "version": "0.0.1"
+  },
+  "input_files": {
+    "nhc": [
+      "nhc_btk_2022_al_09.btk",
+      "nhc_fcst_2022_al_09_015.fcst",
+      "nhc_merge_2022_al_09_015.trk"
+    ]
+  },
+  "output_files": [
+    "nhc_btk_2022_al_09.btk",
+    "nhc_fcst_2022_al_09_015.fcst",
+    "nhc_merge_2022_al_09_015.trk"
+  ]
+}
