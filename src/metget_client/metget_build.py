@@ -53,25 +53,6 @@ class MetGetBuildRest:
         self.__metget_api_version = metget_api_version
 
     @staticmethod
-    def valid_datetime_type(arg_datetime_str: str) -> datetime:
-        """
-        Checks if the given datetime string is valid
-
-        Args:
-            arg_datetime_str (str): Datetime string to check
-
-        Returns:
-            datetime: Datetime object if valid
-        """
-        try:
-            return datetime.strptime(arg_datetime_str, "%Y-%m-%d %H:%M")
-        except ValueError:
-            msg = "Given DateTime ({0}) not valid! Expected format: 'YYYY-MM-DD HH:mm'".format(
-                arg_datetime_str
-            )
-            raise argparse.ArgumentTypeError(msg)
-
-    @staticmethod
     def parse_domain_data(domain_list: list, level: int, tau: int) -> dict:
         """
         Parses the domain data from the given list and returns a dictionary
