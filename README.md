@@ -117,7 +117,7 @@ $ metget build --domain hwrf-mawar02w 0.15 -90 20 -85 25 \
                --timestep 3600 \
                --backfill \
                --format owi-ascii \
-               --output metget_hwrf_data \
+               --output metget_hwrf_data
 ```
 
 #### Example 5 - Get the status of the GFS model runs
