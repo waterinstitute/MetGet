@@ -1,7 +1,9 @@
 ![MetGet Logo](https://raw.githubusercontent.com/waterinstitute/metget/main/static/img/MetGet_logo_blue.png)
-
 MetGet is an application which allows users to query, format, and blend meteorological data from various sources
 to be used in hydrodynamic modeling applications.
+
+[![PyPI version](https://badge.fury.io/py/metget.svg)](https://badge.fury.io/py/metget)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Development Partners
 
