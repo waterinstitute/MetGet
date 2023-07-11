@@ -5,6 +5,7 @@ to be used in hydrodynamic modeling applications.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI version](https://badge.fury.io/py/metget.svg)](https://badge.fury.io/py/metget)
 ![Testing](https://github.com/waterinstitute/metget/actions/workflows/pytest.yaml/badge.svg)
+[![codecov](https://codecov.io/gh/waterinstitute/MetGet/branch/master/graph/badge.svg?token=I36RIBPFMD)](https://codecov.io/gh/waterinstitute/MetGet)
 
 ## Development Partners
 
