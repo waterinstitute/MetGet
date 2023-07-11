@@ -268,3 +268,63 @@ def test_status_gefs(capfd) -> None:
         out, err = capfd.readouterr()
         assert out == GEFS_STATUS_TEXT
 
+
+def test_status_ctcx(capfd) -> None:
+    """
+    Tests the status command for the COAMPS-CTCX model
+    Args:
+        capfd:
+
+    Returns:
+        None
+    """
+    from datetime import datetime
+    import json
+
+    args = argparse.Namespace()
+    args.model = "ctcx"
+    args.start = datetime(2022, 9, 26)
+    args.end = datetime(2022, 9, 30)
+    args.format = "json"
+    args.storm = None
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    with requests_mock.Mocker() as m:
+        m.get(
+            METGET_DMY_ENDPOINT
+            + "/status?"
+            + urlencode(
+                {
+                    "model": "ctcx",
+                    "start": "2022-09-26",
+                    "end": "2022-09-30",
+                }
+            ),
+            json=COAMPS_CTCX_STATUS_JSON,
+        )
+        s = MetGetStatus(args)
+        s.get_status()
+        out, err = capfd.readouterr()
+        out = out.replace("'", '"')
+        assert json.loads(out) == COAMPS_CTCX_STATUS_JSON["body"]
+
+    args.format = "pretty"
+    with requests_mock.Mocker() as m:
+        m.get(
+            METGET_DMY_ENDPOINT
+            + "/status?"
+            + urlencode(
+                {
+                    "model": "ctcx",
+                    "start": "2022-09-26",
+                    "end": "2022-09-30",
+                }
+            ),
+            json=COAMPS_CTCX_STATUS_JSON,
+        )
+        s = MetGetStatus(args)
+        s.get_status()
+        out, err = capfd.readouterr()
+        assert out == COAMPS_CTCX_STATUS_TEXT
