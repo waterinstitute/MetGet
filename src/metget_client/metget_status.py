@@ -91,7 +91,7 @@ class MetGetStatus:
             if not self.__args.end:
                 url += "&end={:s}".format(datetime.utcnow().strftime("%Y-%m-%d"))
             else:
-                url += "&end={:s}".format(self.__args.end)
+                url += "&end={:s}".format(self.__args.end.strftime("%Y-%m-%d"))
         return url
 
     def __status_track(self, model: str) -> None:
