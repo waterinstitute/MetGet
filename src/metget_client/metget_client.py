@@ -234,7 +234,7 @@ def initialize_status_cli(subparsers):
         metavar="s",
     )
     status.add_argument(
-        "--format", help="Output format (json, pretty)", metavar="f", default="json"
+        "--format", help="Output format (json, pretty)", metavar="f", default="pretty"
     )
 
 
