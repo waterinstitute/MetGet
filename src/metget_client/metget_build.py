@@ -269,10 +269,16 @@ class MetGetBuildRest:
             "epsg": kwargs.get("epsg", 4326),
             "filename": kwargs.get("filename", "metget_data"),
         }
+
         if kwargs.get("strict", False):
             request_data["strict"] = True
+        else:
+            request_data["strict"] = False
+
         if kwargs.get("dry_run", False):
             request_data["dry_run"] = True
+        else:
+            request_data["dry_run"] = False
 
         if kwargs.get("save_json_request", False):
             with open("request.json", "w") as f:
@@ -446,6 +452,12 @@ class MetGetBuildRest:
             response = self.__check_metget_status_v1(data_id)
         elif self.__metget_api_version == 2:
             response = self.__check_metget_status_v2(data_id)
+        else:
+            raise RuntimeError(
+                "Invalid MetGet API version. Must be 1 or 2. Got {:d}".format(
+                    self.__metget_api_version
+                )
+            )
         json_response = json.loads(response)
         status = json_response["body"]["status"]
         data_url = json_response["body"]["destination"]

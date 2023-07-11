@@ -307,7 +307,10 @@ def metget_client_cli() -> None:
     initialize_credits_cli(subparsers)
 
     args = p.parse_args()
-    args.func(args)
+    if "func" in args:
+        args.func(args)
+    else:
+        p.print_help()
 
 
 if __name__ == "__main__":
