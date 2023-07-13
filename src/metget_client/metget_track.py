@@ -47,6 +47,7 @@ class MetGetTrack:
         """
         import requests
         from datetime import datetime
+        import json
 
         url = self.__environment["endpoint"] + "/stormtrack"
 
@@ -93,10 +94,10 @@ class MetGetTrack:
 
         # Check the response status code
         if response.status_code == 200:
-            print(response.json()["body"]["geojson"])
+            print(json.dumps(response.json()["body"]["geojson"]))
         else:
             print("Error: {}".format(response.status_code))
-            print(response.json())
+            print(json.dumps(response.json()))
 
 
 def metget_track(args: argparse.Namespace) -> None:

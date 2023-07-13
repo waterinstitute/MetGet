@@ -103,6 +103,7 @@ class MetGetStatus:
         """
         import requests
         import prettytable
+        import json
 
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
@@ -117,7 +118,7 @@ class MetGetStatus:
         data = response.json()["body"]
 
         if self.__args.format == "json":
-            print(data)
+            print(json.dumps(data))
         elif self.__args.format == "pretty":
             storm_tracks = []
             for year in data["best_track"].keys():
@@ -204,6 +205,7 @@ class MetGetStatus:
         """
         import requests
         import prettytable
+        import json
 
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
@@ -218,7 +220,7 @@ class MetGetStatus:
         data = response.json()["body"]
 
         if self.__args.format == "json":
-            print(data)
+            print(json.dumps(data))
         elif self.__args.format == "pretty":
             if self.__args.storm and self.__args.ensemble_member:
                 model_name = "{:s}-{:s}-{:s}".format(
@@ -349,9 +351,10 @@ class MetGetStatus:
             None
         """
         import prettytable
+        import json
 
         if self.__args.format == "json":
-            print(data)
+            print(json.dumps(data))
         elif self.__args.format == "pretty":
             if data == {}:
                 print("No data found.")
@@ -428,9 +431,10 @@ class MetGetStatus:
         """
         import prettytable
         from datetime import datetime, timedelta
+        import json
 
         if self.__args.format == "json":
-            print(data)
+            print(json.dumps(data))
         elif self.__args.format == "pretty":
 
             complete_cycles = data["cycles_complete"]

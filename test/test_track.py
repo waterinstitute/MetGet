@@ -52,7 +52,6 @@ def test_best_track(capfd) -> None:
         s = MetGetTrack(args)
         s.get_track()
         out, err = capfd.readouterr()
-        out = out.replace("'", '"')
         out_dict = json.loads(out)
         assert out_dict == NHC_IAN_BESTRACK_JSON["body"]["geojson"]
 
@@ -96,6 +95,5 @@ def test_forecast_track(capfd) -> None:
         s = MetGetTrack(args)
         s.get_track()
         out, err = capfd.readouterr()
-        out = out.replace("'", '"')
         out_dict = json.loads(out)
         assert out_dict == NHC_IAN_FORECAST_JSON["body"]["geojson"]

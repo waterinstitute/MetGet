@@ -44,7 +44,6 @@ def test_get_status_gfs(capfd) -> None:
         m.get(METGET_DMY_ENDPOINT + "/status?model=gfs", json=GFS_STATUS_JSON)
         s.get_status()
         out, err = capfd.readouterr()
-        out = out.replace("'", '"')
         out_dict = json.loads(out)
         assert out_dict == GFS_STATUS_JSON["body"]
 
@@ -91,7 +90,6 @@ def test_status_hwrf(capfd) -> None:
         m.get(url, json=HWRF_STATUS_JSON)
         s.get_status()
         out, err = capfd.readouterr()
-        out = out.replace("'", '"')
         out_dict = json.loads(out)
         assert out_dict == HWRF_STATUS_JSON["body"]
 
@@ -113,7 +111,6 @@ def test_status_hwrf(capfd) -> None:
         m.get(url, json=HWRF_STATUS_BRET_JSON)
         s2.get_status()
         out, err = capfd.readouterr()
-        out = out.replace("'", '"')
         out_dict = json.loads(out)
         assert out_dict == HWRF_STATUS_BRET_JSON["body"]
 
@@ -160,7 +157,6 @@ def test_status_nhc(capfd) -> None:
         s = MetGetStatus(args)
         s.get_status()
         out, err = capfd.readouterr()
-        out = out.replace("'", '"')
         assert json.loads(out) == NHC_STATUS_JSON["body"]
 
     args.format = "pretty"
@@ -217,7 +213,6 @@ def test_status_gefs(capfd) -> None:
         s = MetGetStatus(args)
         s.get_status()
         out, err = capfd.readouterr()
-        out = out.replace("'", '"')
         assert json.loads(out) == GEFS_STATUS_JSON_C00["body"]["c00"]
 
     args.format = "pretty"
@@ -252,7 +247,6 @@ def test_status_gefs(capfd) -> None:
         s = MetGetStatus(args)
         s.get_status()
         out, err = capfd.readouterr()
-        out = out.replace("'", '"')
         assert json.loads(out) == GEFS_STATUS_JSON["body"]
 
     args.format = "pretty"
@@ -307,7 +301,6 @@ def test_status_ctcx(capfd) -> None:
         s = MetGetStatus(args)
         s.get_status()
         out, err = capfd.readouterr()
-        out = out.replace("'", '"')
         assert json.loads(out) == COAMPS_CTCX_STATUS_JSON["body"]
 
     args.format = "pretty"
