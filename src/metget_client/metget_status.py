@@ -242,22 +242,43 @@ class MetGetStatus:
                         "Ensemble Members",
                     ]
                 )
+                table.align["Ensemble Members"] = "l"
 
-                for storm in data.keys():
-                    ensemble_members = []
-                    for ensemble_member in data[storm].keys():
-                        ensemble_members.append(ensemble_member)
-                    table.add_row(
-                        [
-                            storm,
-                            data[storm][ensemble_members[0]]["first_available_cycle"],
-                            data[storm][ensemble_members[0]]["latest_available_cycle"],
-                            data[storm][ensemble_members[0]]["min_forecast_date"],
-                            data[storm][ensemble_members[0]]["max_forecast_date"],
-                            len(data[storm][ensemble_members[0]]["cycles"]),
-                            ensemble_members,
-                        ]
-                    )
+                for year in data.keys():
+                    for storm in data[year].keys():
+                        ensemble_members = []
+
+                        break_counter = 0
+                        ensemble_members_str = ""
+                        for ensemble_member in data[year][storm].keys():
+                            ensemble_members.append(ensemble_member)
+                            if break_counter == 0:
+                                ensemble_members_str += "{:s}".format(ensemble_member)
+                            else:
+                                ensemble_members_str += ", {:s}".format(ensemble_member)
+                            break_counter += 1
+                            if break_counter == 5:
+                                ensemble_members_str += "\n"
+                                break_counter = 0
+                        table.add_row(
+                            [
+                                storm,
+                                data[year][storm][ensemble_members[0]][
+                                    "first_available_cycle"
+                                ],
+                                data[year][storm][ensemble_members[0]][
+                                    "latest_available_cycle"
+                                ],
+                                data[year][storm][ensemble_members[0]][
+                                    "min_forecast_date"
+                                ],
+                                data[year][storm][ensemble_members[0]][
+                                    "max_forecast_date"
+                                ],
+                                len(data[year][storm][ensemble_members[0]]["cycles"]),
+                                ensemble_members_str,
+                            ]
+                        )
                 print(table)
 
     def __status_ensemble(self, model: str) -> None:
@@ -391,25 +412,37 @@ class MetGetStatus:
                 else:
                     raise ValueError("Unknown data type: {:s}".format(data_type))
 
-                for it in data.keys():
-                    table.add_row(
-                        [
-                            it,
-                            data[it]["first_available_cycle"],
-                            data[it]["latest_available_cycle"],
-                            data[it]["min_forecast_date"],
-                            data[it]["max_forecast_date"],
-                            len(data[it]["cycles"]),
-                        ]
-                    )
-                table.align["Cycle Count"] = "r"
-
                 if data_type == "ensemble":
+                    for it in data.keys():
+                        table.add_row(
+                            [
+                                it,
+                                data[it]["first_available_cycle"],
+                                data[it]["latest_available_cycle"],
+                                data[it]["min_forecast_date"],
+                                data[it]["max_forecast_date"],
+                                len(data[it]["cycles"]),
+                            ]
+                        )
+                    table.align["Cycle Count"] = "r"
                     print(
                         "Status for {:s} Model Ensemble Members".format(model.upper())
                     )
                     print(table.get_string(sortby="Ensemble Member"))
-                elif data_type == "storm":
+                else:
+                    for year in data.keys():
+                        for it in data[year].keys():
+                            table.add_row(
+                                [
+                                    it,
+                                    data[year][it]["first_available_cycle"],
+                                    data[year][it]["latest_available_cycle"],
+                                    data[year][it]["min_forecast_date"],
+                                    data[year][it]["max_forecast_date"],
+                                    len(data[year][it]["cycles"]),
+                                ]
+                            )
+                    table.align["Cycle Count"] = "r"
                     table.reversesort = True
                     print(
                         "Status for {:s} Model Storms (class: {:s})".format(
