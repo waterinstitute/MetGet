@@ -383,7 +383,15 @@ class MetGetStatus:
 
             if self.__args.storm:
                 model_name = "{:s}-{:s}".format(model.upper(), self.__args.storm)
-                self.__print_status_generic(model_name, data[self.__args.storm])
+                if len(data.keys()) > 1:
+                    if "year" not in self.__args:
+                        print("[ERROR]: Must provide a year")
+                        exit(1)
+                    else:
+                        year = self.__args.year
+                else:
+                    year = list(data.keys())[0]
+                self.__print_status_generic(model_name, data[year][self.__args.storm])
             else:
                 if data_type == "ensemble":
                     table = prettytable.PrettyTable(

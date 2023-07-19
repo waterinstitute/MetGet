@@ -122,6 +122,14 @@ def test_status_hwrf(capfd) -> None:
         out, err = capfd.readouterr()
         assert out == HWRF_STATUS_BRET_TEXT
 
+    args.year = "2023"
+    s4 = MetGetStatus(args)
+    with requests_mock.Mocker() as m:
+        m.get(url, json=HWRF_STATUS_BRET_JSON)
+        s4.get_status()
+        out, err = capfd.readouterr()
+        assert out == HWRF_STATUS_BRET_TEXT
+
 
 def test_status_nhc(capfd) -> None:
     """

@@ -222,6 +222,12 @@ def initialize_status_cli(subparsers):
         metavar="s",
     )
     status.add_argument(
+        "--year",
+        help="For storm based data (nhc, coamps, hwrf), the year in which the storm occured",
+        type=int,
+        metavar="YYYY",
+    )
+    status.add_argument(
         "--storm",
         help="For storm based data, request a specific storm",
         type=str,
