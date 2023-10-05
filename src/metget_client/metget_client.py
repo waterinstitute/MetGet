@@ -164,6 +164,13 @@ def initialize_build_cli(subparsers):
         help="Save the json request sent to the MetGet API as request.json",
         default=False,
     )
+    build.add_argument(
+        "--output-directory",
+        type=str,
+        metavar="s",
+        default=None,
+        help="Directory to save output files to",
+    )
 
 
 def initialize_credits_cli(subparsers):

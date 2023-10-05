@@ -38,6 +38,7 @@ def test_build_gfs(capfd) -> None:
     args.epsg = 4326
     args.check_interval = 1
     args.max_wait = 3600
+    args.output_directory = None
 
     args.endpoint = METGET_DMY_ENDPOINT
     args.apikey = METGET_DMY_APIKEY
@@ -114,6 +115,7 @@ def test_build_hwrf_multidomain(capfd) -> None:
     args.epsg = 4326
     args.check_interval = 1
     args.max_wait = 3600
+    args.output_directory = None
 
     args.endpoint = METGET_DMY_ENDPOINT
     args.apikey = METGET_DMY_APIKEY
@@ -199,6 +201,7 @@ def test_build_nhc_raw(capfd) -> None:
     args.request = None
     args.compression = False
     args.save_json_request = True
+    args.output_directory = None
 
     args.endpoint = METGET_DMY_ENDPOINT
     args.apikey = METGET_DMY_APIKEY
@@ -335,7 +338,7 @@ def metget_request_mocker(
                     text="This is only a test",
                 )
 
-            client.download_metget_data(data_id, args.check_interval, args.max_wait)
+            client.download_metget_data(data_id, args.check_interval, args.max_wait, args.output_directory)
             out, err = capfd.readouterr()
 
         # ...Clean up

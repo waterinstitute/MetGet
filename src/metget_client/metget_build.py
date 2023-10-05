@@ -32,7 +32,7 @@ import argparse
 import json
 import time
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, Union
 from .metget_data import AVAILABLE_MODELS
 
 
@@ -306,6 +306,7 @@ class MetGetBuildRest:
         data_id: str,
         sleep_time: int,
         max_wait: int,
+        output_directory: Union[str, None],
     ) -> None:
         """
         Downloads the data from the MetGet API
@@ -314,6 +315,7 @@ class MetGetBuildRest:
             data_id (str): Data id
             sleep_time (int): Time to sleep between status checks
             max_wait (int): Maximum time to wait for data to appear
+            output_directory (Union[str, None]): Output directory
 
         Returns:
             None
@@ -321,6 +323,7 @@ class MetGetBuildRest:
         from datetime import datetime, timedelta
         from .spinnerlogger import SpinnerLogger
         import requests
+        import os
 
         # ...Wait time
         end_time = datetime.utcnow() + timedelta(hours=max_wait)
@@ -372,11 +375,23 @@ class MetGetBuildRest:
         if data_ready:
             file_list = return_data["output_files"]
             for f in file_list:
+
+                if output_directory is not None:
+                    if not os.path.exists(output_directory):
+                        raise RuntimeError(
+                            "Output directory does not exist: {:s}".format(
+                                output_directory
+                            )
+                        )
+                    ff = os.path.join(output_directory, f)
+                else:
+                    ff = f
+
                 time_stamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
                 spinner.start("[{:s}]: Getting file: {:s}".format(time_stamp, f))
                 with requests.get(data_url + "/" + f, stream=True) as r:
                     r.raise_for_status()
-                    with open(f, "wb") as wind_file:
+                    with open(ff, "wb") as wind_file:
                         for chunk in r.iter_content(chunk_size=8192):
                             wind_file.write(chunk)
                 spinner.succeed()
@@ -564,6 +579,7 @@ def metget_build(args: argparse.Namespace) -> None:
                 data_id,
                 args.check_interval,
                 args.max_wait,
+                args.output_directory,
             )
         else:
             print(status_code)
