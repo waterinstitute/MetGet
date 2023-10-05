@@ -69,6 +69,8 @@ class MetGetStatus:
             self.__status_ensemble(model)
         elif self.__model_class == "ensemble-storm":
             self.__status_ensemble_storm(model)
+        elif self.__model_class == "hindcast":
+            self.__status_hindcast(model)
         elif self.__model_class == "track":
             self.__status_track(model)
         else:
@@ -93,6 +95,44 @@ class MetGetStatus:
             else:
                 url += "&end={:s}".format(self.__args.end.strftime("%Y-%m-%d"))
         return url
+
+    def __status_hindcast(self, model: str) -> None:
+        import requests
+        import prettytable
+        import json
+        from datetime import datetime, timedelta
+
+        url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
+        url = self.__add_url_start_end_parameters(url)
+
+        response = requests.get(
+            url, headers={"x-api-key": self.__environment["apikey"]}
+        )
+        data = response.json()["body"]
+
+        if self.__args.format == "json":
+            print(json.dumps(data))
+        else:
+            print(
+                "Status for model: {:s} (class: {:s})".format(model, self.__model_class)
+            )
+            table = prettytable.PrettyTable(["Forecast Cycle", "End Time", "Status"])
+            for cycle in data["cycles"]:
+                cycle_date = datetime.fromisoformat(cycle["cycle"])
+                end_time = cycle_date + timedelta(hours=cycle["duration"])
+                if cycle["cycle"] in data["cycles_complete"]:
+                    status = "Complete"
+                else:
+                    status = "Incomplete ({:d})".format(cycle["duration"])
+                table.add_row(
+                    [
+                        cycle["cycle"],
+                        end_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        status,
+                    ]
+                )
+
+            print(table)
 
     def __status_track(self, model: str) -> None:
         """

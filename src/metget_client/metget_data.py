@@ -34,12 +34,13 @@ AVAILABLE_MODELS = {
     "gefs": "gefs-ncep",
     "nam": "nam-ncep",
     "hwrf": "hwrf",
-    "hrrr": "hrrr-conus",
-    "hrrr-alaska": "hrrr-alaska",
+    "hrrr": "hrrr-ncep",
+    "hrrr-alaska": "hrrr-alaska-ncep",
     "wpc": "wpc-ncep",
     "coamps": "coamps-tc",
     "ctcx": "coamps-ctcx",
     "nhc": "nhc",
+    "era5": "era5",
 }
 
 # Available metget model types
@@ -53,6 +54,7 @@ MODEL_TYPES = {
     "wpc": "synoptic",
     "coamps": "synoptic-storm",
     "ctcx": "ensemble-storm",
+    "era5": "hindcast",
     "nhc": "track",
 }
 
