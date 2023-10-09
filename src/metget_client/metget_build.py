@@ -343,6 +343,16 @@ class MetGetBuildRest:
         return_data = None
         data_url = None
 
+        js = "filelist.json"
+        if output_directory is not None:
+            if not os.path.exists(output_directory):
+                raise RuntimeError(
+                    "Output directory does not exist: {:s}".format(
+                        output_directory
+                    )
+                )
+            js = os.path.join(output_directory, js)
+            
         while datetime.utcnow() <= end_time:
             tries += 1
             try:
@@ -356,7 +366,7 @@ class MetGetBuildRest:
                     u = requests.get(flist_url)
                     if u.status_code == 200:
                         return_data = json.loads(u.text)
-                        with open("filelist.json", "w") as jsonfile:
+                        with open(js, "w") as jsonfile:
                             jsonfile.write(
                                 json.dumps(return_data, indent=2, sort_keys=True)
                             )
