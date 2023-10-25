@@ -400,9 +400,11 @@ class MetGetBuildRest:
             request_duration = request_end_time - request_start_time
             hours, remainder = divmod(request_duration.total_seconds(), 3600)
             minutes, seconds = divmod(remainder, 60)
+
+            time_stamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
             spinner.succeed(
-                "Elapsed time: {:d}h{:02d}m{:02d}s".format(
-                    int(hours), int(minutes), int(seconds)
+                "[{:s}]: Elapsed time: {:d}h{:02d}m{:02d}s".format(
+                    time_stamp, int(hours), int(minutes), int(seconds)
                 )
             )
         else:

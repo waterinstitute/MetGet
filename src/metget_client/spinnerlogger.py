@@ -88,7 +88,8 @@ class SpinnerLogger:
         if self.__is_tty:
             self.__spinner.start(self.__current_text)
         else:
-            SpinnerLogger.__standard_print(self.__current_text)
+            if text is not None:
+                SpinnerLogger.__standard_print(self.__current_text)
 
     def set_text(self, text: str) -> None:
         """
@@ -104,7 +105,8 @@ class SpinnerLogger:
         if self.__is_tty:
             self.__spinner.text = self.__current_text
         else:
-            SpinnerLogger.__standard_print(self.__current_text)
+            if text is not None:
+                SpinnerLogger.__standard_print(self.__current_text)
 
     def succeed(self, text: str = None) -> None:
         """
@@ -122,7 +124,8 @@ class SpinnerLogger:
         if self.__is_tty:
             self.__spinner.succeed(self.__current_text)
         else:
-            SpinnerLogger.__standard_print(self.__current_text)
+            if text is not None:
+                SpinnerLogger.__standard_print(self.__current_text)
 
     def info(self, text: str = None) -> None:
         """
@@ -140,7 +143,8 @@ class SpinnerLogger:
         if self.__is_tty:
             self.__spinner.info(self.__current_text)
         else:
-            SpinnerLogger.__standard_print(self.__current_text)
+            if text is not None:
+                SpinnerLogger.__standard_print(self.__current_text)
 
     def fail(self, text: str = None) -> None:
         """
@@ -158,7 +162,8 @@ class SpinnerLogger:
         if self.__is_tty:
             self.__spinner.fail(self.__current_text)
         else:
-            SpinnerLogger.__standard_print(self.__current_text)
+            if text is not None:
+                SpinnerLogger.__standard_print(self.__current_text)
 
     @staticmethod
     def __standard_print(text: str) -> None:
