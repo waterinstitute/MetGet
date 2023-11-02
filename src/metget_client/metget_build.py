@@ -591,4 +591,5 @@ def metget_build(args: argparse.Namespace) -> None:
             args.request,
             args.check_interval,
             args.max_wait,
+            args.output_directory,
         )
