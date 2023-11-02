@@ -1,6 +1,7 @@
 import argparse
 from datetime import datetime
 
+import pytest
 import requests_mock
 from .build_json import *
 from metget_client.metget_build import MetGetBuildRest
@@ -170,7 +171,7 @@ def test_build_hwrf_multidomain(capfd) -> None:
 
 def test_build_nhc_raw(capfd) -> None:
     """
-    Tests the build request for a multi domain hwrf+gfs data
+    Tests the build request for a raw nhc data
     Args:
         capfd: pytest fixture to capture stdout and stderr
 
@@ -297,6 +298,172 @@ def test_build_nhc_raw(capfd) -> None:
             os.remove("request.json")
 
 
+def test_build_nhc_raw_error(capfd) -> None:
+    """
+    Tests the build request for a nhc data that is not correctly
+    formatted. xfail.
+
+    Args:
+        capfd: pytest fixture to capture stdout and stderr
+
+    Returns:
+        None
+    """
+    args = argparse.Namespace()
+    args.analysis = False
+    args.multiple_forecasts = True
+    args.variable = "wind_pressure"
+    args.backfill = False
+    args.domain = [["nhc-al", 0.1, -90, 15, -80, 25]]
+    args.start = datetime(2023, 6, 19)
+    args.end = datetime(2023, 6, 24)
+    args.initialization_skip = 0
+    args.timestep = 3600
+    args.format = "raw"
+    args.output = "test_build_nhc"
+    args.dryrun = False
+    args.strict = False
+    args.epsg = 4326
+    args.check_interval = 1
+    args.max_wait = 3600
+    args.request = None
+    args.compression = False
+    args.save_json_request = True
+    args.output_directory = None
+
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    with pytest.raises(RuntimeError):
+        request_dict = MetGetBuildRest.generate_request_json(
+            analysis=args.analysis,
+            multiple_forecasts=args.multiple_forecasts,
+            start_date=args.start,
+            end_date=args.end,
+            format=args.format,
+            timestep=args.timestep,
+            data_type=args.variable,
+            backfill=args.backfill,
+            filename=args.output,
+            dry_run=args.dryrun,
+            strict=args.strict,
+            domains=MetGetBuildRest.parse_command_line_domains(
+                args.domain, args.initialization_skip
+            ),
+        )
+
+
+def test_build_hwrf_multidomain_error(capfd) -> None:
+    """
+    Tests the build request for a multi domain hwrf+gfs data
+    which is not correctly formatted. xfail.
+
+    Args:
+        capfd: pytest fixture to capture stdout and stderr
+
+    Returns:
+        None
+    """
+    args = argparse.Namespace()
+    args.analysis = False
+    args.multiple_forecasts = True
+    args.data_type = "wind_pressure"
+    args.backfill = False
+    args.domain = [
+        ["gfs", 0.25, -100, 10, -70, 30],
+        ["hwrf", 0.1, -90, 15, -80, 25],
+    ]
+    args.start = datetime(2023, 6, 19)
+    args.end = datetime(2023, 6, 24)
+    args.initialization_skip = 0
+    args.timestep = 3600
+    args.format = None
+    args.output = "test_build_hwrf"
+    args.dryrun = False
+    args.strict = False
+    args.epsg = 4326
+    args.check_interval = 1
+    args.max_wait = 3600
+    args.output_directory = None
+
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    with pytest.raises(RuntimeError):
+        request_dict = MetGetBuildRest.generate_request_json(
+            analysis=args.analysis,
+            multiple_forecasts=args.multiple_forecasts,
+            start_date=args.start,
+            end_date=args.end,
+            format=args.format,
+            timestep=args.timestep,
+            data_type=args.data_type,
+            backfill=args.backfill,
+            filename=args.output,
+            dry_run=args.dryrun,
+            strict=args.strict,
+            domains=MetGetBuildRest.parse_command_line_domains(
+                args.domain, args.initialization_skip
+            ),
+        )
+
+
+def test_build_gfs_error(capfd) -> None:
+    """
+    Tests the build request for a single domain of gfs data
+    which is not correctly formatted. Should raise.
+
+    Args:
+        capfd: pytest fixture to capture stdout and stderr
+
+    Returns:
+        None
+    """
+
+    args = argparse.Namespace()
+    args.analysis = False
+    args.multiple_forecasts = True
+    args.data_type = "wind_pressure"
+    args.backfill = False
+    args.domain = [["gfs-01", 0.25, -100, 10, -80, 30]]
+    args.start = datetime(2023, 6, 1)
+    args.end = datetime(2023, 6, 2)
+    args.initialization_skip = 0
+    args.timestep = 3600
+    args.format = None
+    args.output = "test_build_gfs"
+    args.dryrun = False
+    args.strict = False
+    args.epsg = 4326
+    args.check_interval = 1
+    args.max_wait = 3600
+    args.output_directory = None
+
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    with pytest.raises(RuntimeError):
+        request_dict = MetGetBuildRest.generate_request_json(
+            analysis=args.analysis,
+            multiple_forecasts=args.multiple_forecasts,
+            start_date=args.start,
+            end_date=args.end,
+            format=args.format,
+            timestep=args.timestep,
+            data_type=args.data_type,
+            backfill=args.backfill,
+            filename=args.output,
+            dry_run=args.dryrun,
+            strict=args.strict,
+            domains=MetGetBuildRest.parse_command_line_domains(
+                args.domain, args.initialization_skip
+            ),
+        )
+
+
 def metget_request_mocker(
     data_id: str,
     client: MetGetBuildRest,
@@ -338,7 +505,9 @@ def metget_request_mocker(
                     text="This is only a test",
                 )
 
-            client.download_metget_data(data_id, args.check_interval, args.max_wait, args.output_directory)
+            client.download_metget_data(
+                data_id, args.check_interval, args.max_wait, args.output_directory
+            )
             out, err = capfd.readouterr()
 
         # ...Clean up

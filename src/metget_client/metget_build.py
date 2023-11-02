@@ -73,20 +73,34 @@ class MetGetBuildRest:
         year = None
 
         model = domain_list[0]
-        if "hwrf" in model:
+        if "hwrf" in model or "coamps" in model:
+            if len(model.split("-")) < 2:
+                raise RuntimeError(
+                    "Must include storm name with HWRF/COAMPS request as 'hwrf-storm' or 'coamps-storm'"
+                )
             storm = model.split("-")[1]
-            model = "hwrf"
-        elif "coamps" in model:
-            storm = model.split("-")[1]
-            model = "coamps"
+            model = model.split("-")[0]
         elif "gefs" in model:
+            if len(model.split("-")) < 2:
+                raise RuntimeError(
+                    "Must include ensemble member with GEFS request as 'gefs-ensemble_member'"
+                )
             ensemble_member = model.split("-")[1]
             model = "gefs"
         elif "ctcx" in model:
+            if len(model.split("-")) < 3:
+                raise RuntimeError(
+                    "Must include storm name and ensemble member with CTCX request as 'ctcx-storm-ensemble_member'"
+                )
             ensemble_member = model.split("-")[2]
             storm = model.split("-")[1]
             model = "ctcx"
         elif "nhc" in model:
+            if len(model.split("-")) < 4:
+                raise RuntimeError(
+                    "Must include basin, storm name, and advisory with NHC request as"
+                    " 'nhc-basin-storm-advisory' or 'nhc-basin-storm-year-advisory'"
+                )
             keys = model.split("-")
             if len(keys) == 5:
                 year = keys[1]
@@ -99,6 +113,14 @@ class MetGetBuildRest:
                 storm = keys[2]
                 advisory = keys[3]
             model = "nhc"
+        else:
+            if len(model.split("-")) > 1:
+                raise RuntimeError(
+                    "Model '"
+                    + model
+                    + "' does not support additional '-' separated arguments"
+                )
+            model = model
 
         res = float(domain_list[1])
         x0 = float(domain_list[2])
