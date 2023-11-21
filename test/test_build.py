@@ -4,8 +4,8 @@ from datetime import datetime
 import pytest
 import requests_mock
 from .build_json import *
-from metget_client.metget_build import MetGetBuildRest
-from metget_client.metget_environment import get_metget_environment_variables
+from metget.metget_build import MetGetBuildRest
+from metget.metget_environment import get_metget_environment_variables
 
 METGET_DMY_ENDPOINT = "https://metget.server.dmy"
 METGET_DMY_APIKEY = "1234567890"
@@ -180,7 +180,7 @@ def test_build_nhc_raw(capfd) -> None:
     """
     import json
     import os
-    from metget_client.metget_build import metget_build
+    from metget.metget_build import metget_build
 
     args = argparse.Namespace()
     args.analysis = False

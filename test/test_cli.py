@@ -5,6 +5,6 @@ def test_cli():
     Returns:
         None
     """
-    from metget_client.metget_client import metget_client_cli
+    from metget.metget_client import metget_client_cli
 
     metget_client_cli()
