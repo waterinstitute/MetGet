@@ -29,7 +29,7 @@ def test_credits(capfd) -> None:
     Returns:
         None
     """
-    from metget_client.metget_credits import metget_credits
+    from metget.metget_credits import metget_credits
     import json
 
     args = argparse.Namespace()

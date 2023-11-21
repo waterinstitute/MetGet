@@ -1,7 +1,7 @@
 import requests_mock
 import argparse
 from urllib.parse import urlencode
-from metget_client.metget_track import MetGetTrack
+from metget.metget_track import MetGetTrack
 from .track_json import *
 
 METGET_DMY_ENDPOINT = "https://metget.server.dmy"

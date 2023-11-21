@@ -38,10 +38,10 @@ build-backend = "setuptools.build_meta"
 where = [ "src" ]
 
 [tool.setuptools.dynamic]
-version = { attr = "metget_client.__version__" }
+version = { attr = "metget.__version__" }
 
 [project.scripts]
-metget = "metget_client:metget_client_cli"
+metget = "metget:metget_client_cli"
 
 [tool.bumpver]
 current_version = "0.3.2"
@@ -56,6 +56,6 @@ push = false
     'current_version = "{version}"',
     'version = "{version}"',
 ]
-"src/metget_client/__init__.py" = [
+"src/metget/__init__.py" = [
     '__version__ = "{version}"',
 ]

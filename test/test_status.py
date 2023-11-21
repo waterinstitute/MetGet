@@ -1,7 +1,7 @@
 import requests_mock
 import argparse
 from urllib.parse import urlencode
-from metget_client.metget_status import MetGetStatus
+from metget.metget_status import MetGetStatus
 from .status_json import *
 from .status_text import *
 

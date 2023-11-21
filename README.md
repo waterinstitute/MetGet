@@ -160,7 +160,7 @@ You can use this as a starting point for your own custom applications.
 
 ```python
 import argparse
-from metget_client.metget_build import MetGetBuildRest
+from metget.metget_build import MetGetBuildRest
 
 metget_server = "https://metget.server.org"
 metget_api_key = "my-api-key"
