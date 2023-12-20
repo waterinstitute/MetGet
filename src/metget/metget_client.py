@@ -191,7 +191,7 @@ def initialize_credits_cli(subparsers):
     api_credits.add_argument(
         "--format",
         help="Output format (json, pretty)",
-        default="json",
+        default="pretty",
         type=str,
     )
     api_credits.set_defaults(func=metget_credits)

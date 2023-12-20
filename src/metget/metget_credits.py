@@ -36,6 +36,8 @@ def metget_credits(args: argparse.Namespace) -> None:
     Args:
         args: The arguments passed to the command line
     """
+    import json
+
     import prettytable
     import requests
 
@@ -48,16 +50,22 @@ def metget_credits(args: argparse.Namespace) -> None:
     response = requests.get(url, headers=headers)
 
     if args.format == "json":
-        print(response.json())
+        credits_balance = response.json()["body"]
+        if (
+            credits_balance["credit_limit"] == 0
+            and credits_balance["credit_balance"] == 0
+        ):
+            credits_balance["credit_balance"] = "Unlimited"
+            credits_balance["credit_limit"] = "Unlimited"
+        print(json.dumps(credits_balance, indent=2))
     elif args.format == "pretty":
         table = prettytable.PrettyTable(
             ["Credit Limit", "Credits Used", "Credit Balance"]
         )
         credit_limit = response.json()["body"]["credit_limit"]
-        if credit_limit == 0:
-            credit_limit = "Unlimited"
         credit_balance = response.json()["body"]["credit_balance"]
-        if credit_balance == 0:
+        if credit_limit == 0 and credit_balance == 0:
+            credit_limit = "Unlimited"
             credit_balance = "Unlimited"
         table.add_row(
             [
@@ -66,7 +74,7 @@ def metget_credits(args: argparse.Namespace) -> None:
                 credit_balance,
             ]
         )
-        print("Credit status for apikey: " + env["apikey"])
+        # print("Credit status for apikey: " + env["apikey"])
         print(table)
     else:
         raise RuntimeError("Invalid format: " + args.format)
