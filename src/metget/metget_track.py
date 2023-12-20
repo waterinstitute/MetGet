@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ###################################################################################################
 # MIT License
 #
@@ -45,17 +44,20 @@ class MetGetTrack:
         """
         This method is used to get the track data from the api
         """
-        import requests
-        from datetime import datetime
         import json
+        from datetime import datetime
+
+        import requests
 
         url = self.__environment["endpoint"] + "/stormtrack"
 
         if not self.__args.storm:
-            raise ValueError("Storm must be specified for track data")
+            msg = "Storm must be specified for track data"
+            raise ValueError(msg)
 
         if not self.__args.type:
-            raise ValueError("Type must be specified for track data")
+            msg = "Type must be specified for track data"
+            raise ValueError(msg)
 
         # ...Default basin is Atlantic
         if not self.__args.basin:
@@ -65,7 +67,7 @@ class MetGetTrack:
         if not self.__args.year:
             self.__args.year = datetime.now().year
 
-        storm_id = "{:02d}".format(int(self.__args.storm))
+        storm_id = f"{int(self.__args.storm):02d}"
 
         if self.__args.type == "besttrack":
             params = {
@@ -76,9 +78,10 @@ class MetGetTrack:
             }
         elif self.__args.type == "forecast":
             if not self.__args.advisory:
-                raise ValueError("Advisory must be specified for forecast track data")
+                msg = "Advisory must be specified for forecast track data"
+                raise ValueError(msg)
 
-            advisory_id = "{:03d}".format(int(self.__args.advisory))
+            advisory_id = f"{int(self.__args.advisory):03d}"
             params = {
                 "type": "forecast",
                 "storm": storm_id,
@@ -87,7 +90,8 @@ class MetGetTrack:
                 "year": self.__args.year,
             }
         else:
-            raise ValueError("Type must be besttrack or forecast")
+            msg = "Type must be besttrack or forecast"
+            raise ValueError(msg)
 
         # Get the track data with the requests library
         response = requests.get(url, params=params)
@@ -96,7 +100,7 @@ class MetGetTrack:
         if response.status_code == 200:
             print(json.dumps(response.json()["body"]["geojson"]))
         else:
-            print("Error: {}".format(response.status_code))
+            print(f"Error: {response.status_code}")
             print(json.dumps(response.json()))
 
 

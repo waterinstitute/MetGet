@@ -6,10 +6,12 @@ to be used in hydrodynamic modeling applications.
 [![PyPI version](https://badge.fury.io/py/metget.svg)](https://badge.fury.io/py/metget)
 ![Testing](https://github.com/waterinstitute/metget/actions/workflows/pytest.yaml/badge.svg)
 [![codecov](https://codecov.io/gh/waterinstitute/MetGet/branch/main/graph/badge.svg?token=I36RIBPFMD)](https://codecov.io/gh/waterinstitute/MetGet)
+[![Downloads](https://static.pepy.tech/badge/metget)](https://pepy.tech/project/metget)
+![black](https://img.shields.io/badge/code%20style-black-000000.svg)
 
 ## Development Partners
 
-MetGet is developed by [The Water Institute](https://thewaterinstitute.org) and has been funded by the 
+MetGet is developed by [The Water Institute](https://thewaterinstitute.org) and has been funded by the
 University of North Carolina at Chapel Hill [Coastal Resilience Center of Excellence](https://www.coastalresiliencecenter.org).
 
 ![The Water Institute](https://thewaterinstitute.org/images/01-Primary_Logo_Final.png)
@@ -19,7 +21,7 @@ University of North Carolina at Chapel Hill [Coastal Resilience Center of Excell
 ![University of North Carolina at Chapel Hill](https://identity.unc.edu/wp-content/uploads/sites/885/2019/01/UNC_logo_webblue-e1517942350314.png)
 
 ## MetGet Client Application
-The MetGet client application is a tool that allows you to interact with the MetGet server. It may be used 
+The MetGet client application is a tool that allows you to interact with the MetGet server. It may be used
 as a traditional command line tool or the `MetGetBuildRest` class may be imported and run in a custom application.
 
 The MetGet client handles the interaction with the server via RESTful API calls and downloading output
@@ -27,11 +29,11 @@ data from S3 buckets. The client application is not a requirement for using MetG
 way to interact with the server.
 
 ## MetGet Server Access
-The `metget` client application interacts with an instance of a [metget-server](https://github.com/waterinstitute/metget-server), 
-which is a Kubernetes application that archives, builds, and provides to users meteorological data through the client application. 
-The client does not require that you use any specific MetGet server instance. Instead, you may choose to operate your own 
-`metget-server` instance or you may [contact](mailto:zcobell@thewaterinstitute.org) The Water Institute to request access to 
-an available instance. 
+The `metget` client application interacts with an instance of a [metget-server](https://github.com/waterinstitute/metget-server),
+which is a Kubernetes application that archives, builds, and provides to users meteorological data through the client application.
+The client does not require that you use any specific MetGet server instance. Instead, you may choose to operate your own
+`metget-server` instance or you may [contact](mailto:zcobell@thewaterinstitute.org) The Water Institute to request access to
+an available instance.
 
 ### Installation
 
@@ -44,9 +46,9 @@ $ pip3 install metget
 There are several terms used in the MetGet client application that are important to understand. The below list of terms
 aims to explain these terms and why they are available as options in the client application.
 
-1. `analysis` - The term analysis is synonymous with the term "nowcast". It is the time when the model is initialized, or the "zero" hour of a model run. Requesting that MetGet provide "analysis" data via the `--analysis` command line option will fore MetGet to return only zero hour for any forecast runs. This option is incompatible with "--multiple-forecasts" and "--initialization-skip". 
+1. `analysis` - The term analysis is synonymous with the term "nowcast". It is the time when the model is initialized, or the "zero" hour of a model run. Requesting that MetGet provide "analysis" data via the `--analysis` command line option will fore MetGet to return only zero hour for any forecast runs. This option is incompatible with "--multiple-forecasts" and "--initialization-skip".
 2. `multiple-forecasts` - This option is used to signify that the user wants to request multiple forecast hours from the model. This allows MetGet to string together different forecasts to create quasi-hindcast data. The selection of available data is done by selecting unique times with the smallest offset from the start of their respective forecasts. This option is incompatible with `--analysis`.
-3. `initialization-skip` - In some instances, it may be useful to skip the first [n] hours of a particular forecast when there is a potentially severe initialization that occurs in the atmospheric model. This option instructs MetGet to ignore the first [n] hours of a forecast. 
+3. `initialization-skip` - In some instances, it may be useful to skip the first [n] hours of a particular forecast when there is a potentially severe initialization that occurs in the atmospheric model. This option instructs MetGet to ignore the first [n] hours of a forecast.
 
 ### Environment Variables
 There are three influential environment variables which can be set as a convenience to the user. These variables are:
@@ -69,10 +71,10 @@ formatted as a single NetCDF file. The data will be interpolated to a 0.25 degre
 ```bash
 $ metget build --domain gfs 0.25 -100 10 -80 30 \
                --start "2023-06-01 00:00" \
-               --end "2023-06-03 00:00" \ 
-               --timestep 3600 \ 
+               --end "2023-06-03 00:00" \
+               --timestep 3600 \
                --output metget_gfs_data.nc \
-               --format generic-netcdf 
+               --format generic-netcdf
 ```
 
 #### Example 2 - Request GFS data with multiple forecasts
@@ -82,7 +84,7 @@ quasi-hindcast. The data will be interpolated to a 0.25 degree grid and cover a 
 ```bash
 $ metget build --domain gfs 0.25 -100 10 -80 30 \
                --start "2023-05-01 00:00" \
-               --end "2023-06-01 00:00" \ 
+               --end "2023-06-01 00:00" \
                --output metget_gfs_data.nc \
                --format generic-netcdf \
                --timestep 3600 \
@@ -97,7 +99,7 @@ skip the first 6 hours of each forecast.
 ```bash
 $ metget build --domain gfs 0.25 -100 10 -80 30 \
                --start "2023-05-01 00:00" \
-               --end "2023-06-01 00:00" \ 
+               --end "2023-06-01 00:00" \
                --timestep 3600 \
                --format generic-netcdf \
                --multiple-forecasts \
@@ -106,7 +108,7 @@ $ metget build --domain gfs 0.25 -100 10 -80 30 \
 ```
 
 #### Example 4 - Request HWRF data overlaid on GFS data
-This example requests data from the HWRF model (Hurricane Mawar) with background forcing from the GFS model. Note that at the present time, 
+This example requests data from the HWRF model (Hurricane Mawar) with background forcing from the GFS model. Note that at the present time,
 the output format must support multi-domain data. Currently, the only format that supports this is `owi-ascii`. The
 data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
 
@@ -114,7 +116,7 @@ data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf 
 $ metget build --domain hwrf-mawar02w 0.15 -90 20 -85 25 \
                --domain gfs 0.25 -100 10 -80 30 \
                --start "2023-06-01 00:00" \
-               --end "2023-06-03 00:00" \ 
+               --end "2023-06-03 00:00" \
                --timestep 3600 \
                --backfill \
                --format owi-ascii \

@@ -1,5 +1,6 @@
-import requests_mock
 import argparse
+
+import requests_mock
 
 METGET_DMY_ENDPOINT = "https://metget.server.dmy"
 METGET_DMY_APIKEY = "1234567890"
@@ -29,8 +30,9 @@ def test_credits(capfd) -> None:
     Returns:
         None
     """
-    from metget.metget_credits import metget_credits
     import json
+
+    from metget.metget_credits import metget_credits
 
     args = argparse.Namespace()
     args.endpoint = METGET_DMY_ENDPOINT

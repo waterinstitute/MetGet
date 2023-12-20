@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ###################################################################################################
 # MIT License
 #
@@ -37,8 +36,9 @@ def metget_credits(args: argparse.Namespace) -> None:
     Args:
         args: The arguments passed to the command line
     """
-    import requests
     import prettytable
+    import requests
+
     from .metget_environment import get_metget_environment_variables
 
     env = get_metget_environment_variables(args)

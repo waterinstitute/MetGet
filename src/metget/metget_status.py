@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ###################################################################################################
 # MIT License
 #
@@ -48,9 +47,8 @@ class MetGetStatus:
         self.__model_class = None
 
         if self.__environment["api_version"] == 1:
-            raise RuntimeError(
-                "API version 1 is not supported with the status command. You should query the endpoint directly."
-            )
+            msg = "API version 1 is not supported with the status command. You should query the endpoint directly."
+            raise RuntimeError(msg)
 
     def get_status(self) -> None:
         """
@@ -74,7 +72,8 @@ class MetGetStatus:
         elif self.__model_class == "track":
             self.__status_track(model)
         else:
-            raise RuntimeError("Unknown model type.")
+            msg = "Unknown model type."
+            raise RuntimeError(msg)
 
     def __add_url_start_end_parameters(self, url):
         """
@@ -97,10 +96,11 @@ class MetGetStatus:
         return url
 
     def __status_hindcast(self, model: str) -> None:
-        import requests
-        import prettytable
         import json
         from datetime import datetime, timedelta
+
+        import prettytable
+        import requests
 
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
@@ -113,9 +113,7 @@ class MetGetStatus:
         if self.__args.format == "json":
             print(json.dumps(data))
         else:
-            print(
-                "Status for model: {:s} (class: {:s})".format(model, self.__model_class)
-            )
+            print(f"Status for model: {model:s} (class: {self.__model_class:s})")
             table = prettytable.PrettyTable(["Forecast Cycle", "End Time", "Status"])
             for cycle in data["cycles"]:
                 cycle_date = datetime.fromisoformat(cycle["cycle"])
@@ -141,16 +139,17 @@ class MetGetStatus:
         Args:
             model: The model to get the status for
         """
-        import requests
-        import prettytable
         import json
+
+        import prettytable
+        import requests
 
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
         if self.__args.storm:
-            url += "&storm={:s}".format(self.__args.storm)
+            url += f"&storm={self.__args.storm:s}"
         if self.__args.basin:
-            url += "&basin={:s}".format(self.__args.basin)
+            url += f"&basin={self.__args.basin:s}"
 
         response = requests.get(
             url, headers={"x-api-key": self.__environment["apikey"]}
@@ -161,8 +160,8 @@ class MetGetStatus:
             print(json.dumps(data))
         elif self.__args.format == "pretty":
             storm_tracks = []
-            for year in data["best_track"].keys():
-                for basin in data["best_track"][year].keys():
+            for year in data["best_track"]:
+                for basin in data["best_track"][year]:
                     for storm in data["best_track"][year][basin]:
                         start_time = data["best_track"][year][basin][storm][
                             "best_track_start"
@@ -172,9 +171,9 @@ class MetGetStatus:
                         ]
                         duration = data["best_track"][year][basin][storm]["duration"]
 
-                        if year in data["forecast"].keys():
-                            if basin in data["forecast"][year].keys():
-                                if storm in data["forecast"][year][basin].keys():
+                        if year in data["forecast"]:
+                            if basin in data["forecast"][year]:
+                                if storm in data["forecast"][year][basin]:
                                     advisories = list(
                                         data["forecast"][year][basin][storm].keys()
                                     )
@@ -231,7 +230,8 @@ class MetGetStatus:
             print(table.get_string(sortby="Best Track End"))
 
         else:
-            raise RuntimeError("Unknown format")
+            msg = "Unknown format"
+            raise RuntimeError(msg)
 
     def __status_ensemble_storm(self, model: str) -> None:
         """
@@ -243,16 +243,17 @@ class MetGetStatus:
         Returns:
             None
         """
-        import requests
-        import prettytable
         import json
+
+        import prettytable
+        import requests
 
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
         if self.__args.storm:
-            url += "&storm={:s}".format(self.__args.storm)
+            url += f"&storm={self.__args.storm:s}"
             if self.__args.ensemble_member:
-                url += "&member={:s}".format(self.__args.ensemble_member)
+                url += f"&member={self.__args.ensemble_member:s}"
 
         response = requests.get(
             url, headers={"x-api-key": self.__environment["apikey"]}
@@ -270,7 +271,6 @@ class MetGetStatus:
                     model_name, data[self.__args.storm][self.__args.ensemble_member]
                 )
             else:
-
                 table = prettytable.PrettyTable(
                     [
                         "Storm",
@@ -284,18 +284,18 @@ class MetGetStatus:
                 )
                 table.align["Ensemble Members"] = "l"
 
-                for year in data.keys():
-                    for storm in data[year].keys():
+                for year in data:
+                    for storm in data[year]:
                         ensemble_members = []
 
                         break_counter = 0
                         ensemble_members_str = ""
-                        for ensemble_member in data[year][storm].keys():
+                        for ensemble_member in data[year][storm]:
                             ensemble_members.append(ensemble_member)
                             if break_counter == 0:
-                                ensemble_members_str += "{:s}".format(ensemble_member)
+                                ensemble_members_str += f"{ensemble_member:s}"
                             else:
-                                ensemble_members_str += ", {:s}".format(ensemble_member)
+                                ensemble_members_str += f", {ensemble_member:s}"
                             break_counter += 1
                             if break_counter == 5:
                                 ensemble_members_str += "\n"
@@ -336,13 +336,13 @@ class MetGetStatus:
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
         if self.__args.ensemble_member:
-            url += "&member={:s}".format(self.__args.ensemble_member)
+            url += f"&member={self.__args.ensemble_member:s}"
         response = requests.get(
             url, headers={"x-api-key": self.__environment["apikey"]}
         )
 
         if self.__args.ensemble_member:
-            model_name = "{:s}-{:s}".format(model, self.__args.ensemble_member)
+            model_name = f"{model:s}-{self.__args.ensemble_member:s}"
             self.__print_status_generic(
                 model_name, response.json()["body"][self.__args.ensemble_member]
             )
@@ -387,7 +387,7 @@ class MetGetStatus:
         url = self.__add_url_start_end_parameters(url)
 
         if self.__args.storm:
-            url += "&storm={:s}".format(self.__args.storm)
+            url += f"&storm={self.__args.storm:s}"
 
         # ...Get the json from the endpoint
         response = requests.get(
@@ -411,8 +411,9 @@ class MetGetStatus:
         Returns:
             None
         """
-        import prettytable
         import json
+
+        import prettytable
 
         if self.__args.format == "json":
             print(json.dumps(data))
@@ -422,7 +423,7 @@ class MetGetStatus:
                 return
 
             if self.__args.storm:
-                model_name = "{:s}-{:s}".format(model.upper(), self.__args.storm)
+                model_name = f"{model.upper():s}-{self.__args.storm:s}"
                 if len(data.keys()) > 1:
                     if "year" not in self.__args:
                         print("[ERROR]: Must provide a year")
@@ -430,7 +431,7 @@ class MetGetStatus:
                     else:
                         year = self.__args.year
                 else:
-                    year = list(data.keys())[0]
+                    year = next(iter(data.keys()))
                 self.__print_status_generic(model_name, data[year][self.__args.storm])
             else:
                 if data_type == "ensemble":
@@ -458,10 +459,11 @@ class MetGetStatus:
                     )
                     table.align["Storm"] = "r"
                 else:
-                    raise ValueError("Unknown data type: {:s}".format(data_type))
+                    msg = f"Unknown data type: {data_type:s}"
+                    raise ValueError(msg)
 
                 if data_type == "ensemble":
-                    for it in data.keys():
+                    for it in data:
                         table.add_row(
                             [
                                 it,
@@ -473,13 +475,11 @@ class MetGetStatus:
                             ]
                         )
                     table.align["Cycle Count"] = "r"
-                    print(
-                        "Status for {:s} Model Ensemble Members".format(model.upper())
-                    )
+                    print(f"Status for {model.upper():s} Model Ensemble Members")
                     print(table.get_string(sortby="Ensemble Member"))
                 else:
-                    for year in data.keys():
-                        for it in data[year].keys():
+                    for year in data:
+                        for it in data[year]:
                             table.add_row(
                                 [
                                     it,
@@ -510,19 +510,17 @@ class MetGetStatus:
         Returns:
             None
         """
-        import prettytable
-        from datetime import datetime, timedelta
         import json
+        from datetime import datetime, timedelta
+
+        import prettytable
 
         if self.__args.format == "json":
             print(json.dumps(data))
         elif self.__args.format == "pretty":
-
             complete_cycles = data["cycles_complete"]
 
-            print(
-                "Status for model: {:s} (class: {:s})".format(model, self.__model_class)
-            )
+            print(f"Status for model: {model:s} (class: {self.__model_class:s})")
             table = prettytable.PrettyTable(["Forecast Cycle", "End Time", "Status"])
 
             for cycle in data["cycles"]:

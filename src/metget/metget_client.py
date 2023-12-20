@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ###################################################################################################
 # MIT License
 #
@@ -40,6 +39,7 @@ def initialize_build_cli(subparsers):
         None
     """
     from datetime import datetime
+
     from .metget_build import metget_build
     from .metget_data import get_metget_available_model_list
 
@@ -199,8 +199,9 @@ def initialize_credits_cli(subparsers):
 
 def initialize_status_cli(subparsers):
     from datetime import datetime
-    from .metget_status import metget_status
+
     from .metget_data import get_metget_available_model_list
+    from .metget_status import metget_status
 
     status = subparsers.add_parser(
         "status", help="Check the status of the available data"
@@ -293,6 +294,7 @@ def metget_client_cli() -> None:
     Main function for command line interface
     """
     import argparse
+
     from .metget_environment import metget_version
 
     p = argparse.ArgumentParser(

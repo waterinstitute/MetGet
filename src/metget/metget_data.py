@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ###################################################################################################
 # MIT License
 #
@@ -80,8 +79,8 @@ def get_metget_available_model_list() -> str:
     Returns:
         A comma separated list of available models
     """
-    mlist = str()
-    for m in AVAILABLE_MODELS.keys():
+    mlist = ""
+    for m in AVAILABLE_MODELS:
         if len(mlist) == 0:
             mlist += m
         else:

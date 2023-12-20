@@ -1,8 +1,11 @@
-import requests_mock
 import argparse
 from urllib.parse import urlencode
+
+import requests_mock
+
 from metget.metget_track import MetGetTrack
-from .track_json import *
+
+from .track_json import NHC_IAN_BESTRACK_JSON, NHC_IAN_FORECAST_JSON
 
 METGET_DMY_ENDPOINT = "https://metget.server.dmy"
 METGET_DMY_APIKEY = "1234567890"

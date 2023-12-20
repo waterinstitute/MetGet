@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ###################################################################################################
 # MIT License
 #
@@ -27,6 +26,8 @@
 # Organization: The Water Institute
 #
 ###################################################################################################
+from typing import Optional
+
 
 class SpinnerLogger:
     """
@@ -73,7 +74,7 @@ class SpinnerLogger:
 
         return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 
-    def start(self, text: str = None) -> None:
+    def start(self, text: Optional[str] = None) -> None:
         """
         Starts the spinner animation
 
@@ -108,7 +109,7 @@ class SpinnerLogger:
             if text is not None:
                 SpinnerLogger.__standard_print(self.__current_text)
 
-    def succeed(self, text: str = None) -> None:
+    def succeed(self, text: Optional[str] = None) -> None:
         """
         Stops the spinner animation and displays a success message
 
@@ -127,7 +128,7 @@ class SpinnerLogger:
             if text is not None:
                 SpinnerLogger.__standard_print(self.__current_text)
 
-    def info(self, text: str = None) -> None:
+    def info(self, text: Optional[str] = None) -> None:
         """
         Displays an info message in the spinner
 
@@ -146,7 +147,7 @@ class SpinnerLogger:
             if text is not None:
                 SpinnerLogger.__standard_print(self.__current_text)
 
-    def fail(self, text: str = None) -> None:
+    def fail(self, text: Optional[str] = None) -> None:
         """
         Stops the spinner animation and displays a failure message
 

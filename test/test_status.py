@@ -1,9 +1,28 @@
-import requests_mock
 import argparse
 from urllib.parse import urlencode
+
+import requests_mock
+
 from metget.metget_status import MetGetStatus
-from .status_json import *
-from .status_text import *
+
+from .status_json import (
+    COAMPS_CTCX_STATUS_JSON,
+    GEFS_STATUS_JSON,
+    GEFS_STATUS_JSON_C00,
+    GFS_STATUS_JSON,
+    HWRF_STATUS_BRET_JSON,
+    HWRF_STATUS_JSON,
+    NHC_STATUS_JSON,
+)
+from .status_text import (
+    COAMPS_CTCX_STATUS_TEXT,
+    GEFS_STATUS_TEXT,
+    GEFS_STATUS_TEXT_C00,
+    GFS_STATUS_TEXT,
+    HWRF_STATUS_BRET_TEXT,
+    HWRF_STATUS_TEXT,
+    NHC_STATUS_TEXT,
+)
 
 METGET_DMY_ENDPOINT = "https://metget.server.dmy"
 METGET_DMY_APIKEY = "1234567890"
@@ -140,8 +159,8 @@ def test_status_nhc(capfd) -> None:
     Returns:
         None
     """
-    from datetime import datetime
     import json
+    from datetime import datetime
 
     args = argparse.Namespace()
     args.model = "nhc"
@@ -155,7 +174,6 @@ def test_status_nhc(capfd) -> None:
     args.api_version = METGET_API_VERSION
 
     with requests_mock.Mocker() as m:
-
         m.get(
             METGET_DMY_ENDPOINT
             + "/status?"
@@ -190,8 +208,8 @@ def test_status_gefs(capfd) -> None:
     Returns:
         None
     """
-    from datetime import datetime
     import json
+    from datetime import datetime
 
     args = argparse.Namespace()
     args.model = "gefs"
@@ -280,8 +298,8 @@ def test_status_ctcx(capfd) -> None:
     Returns:
         None
     """
-    from datetime import datetime
     import json
+    from datetime import datetime
 
     args = argparse.Namespace()
     args.model = "ctcx"

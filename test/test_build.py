@@ -3,9 +3,19 @@ from datetime import datetime
 
 import pytest
 import requests_mock
-from .build_json import *
+
 from metget.metget_build import MetGetBuildRest
 from metget.metget_environment import get_metget_environment_variables
+
+from .build_json import (
+    METGET_BUILD_GFS_JSON,
+    METGET_BUILD_HWRF_JSON,
+    METGET_BUILD_NHC_JSON,
+    METGET_BUILD_POST_RETURN,
+    METGET_BUILD_RETURN_COMPLETE,
+    METGET_BUILD_RETURN_QUEUED,
+    METGET_BUILD_RETURN_RUNNING,
+)
 
 METGET_DMY_ENDPOINT = "https://metget.server.dmy"
 METGET_DMY_APIKEY = "1234567890"
@@ -180,6 +190,7 @@ def test_build_nhc_raw(capfd) -> None:
     """
     import json
     import os
+
     from metget.metget_build import metget_build
 
     args = argparse.Namespace()
@@ -272,20 +283,20 @@ def test_build_nhc_raw(capfd) -> None:
         ]
         m.post(METGET_DMY_ENDPOINT + "/build", json=METGET_BUILD_POST_RETURN)
         m.get(
-            METGET_DMY_ENDPOINT + "/check?request-id={:s}".format(data_id),
+            METGET_DMY_ENDPOINT + f"/check?request-id={data_id:s}",
             response_list,
         )
         data_id, status_code = client.make_metget_request(request_dict)
         with open(path, "rb") as filelist_file:
             filelist_data = json.load(filelist_file)
             m.get(
-                "https://s3.amazonaws.com/metget/{:s}/filelist.json".format(data_id),
+                f"https://s3.amazonaws.com/metget/{data_id:s}/filelist.json",
                 json=filelist_data,
             )
 
             for file in output_files:
                 m.get(
-                    "https://s3.amazonaws.com/metget/{:s}/{:s}".format(data_id, file),
+                    f"https://s3.amazonaws.com/metget/{data_id:s}/{file:s}",
                     text="This is only a test",
                 )
 
@@ -336,7 +347,7 @@ def test_build_nhc_raw_error(capfd) -> None:
     args.api_version = METGET_API_VERSION
 
     with pytest.raises(RuntimeError):
-        request_dict = MetGetBuildRest.generate_request_json(
+        MetGetBuildRest.generate_request_json(
             analysis=args.analysis,
             multiple_forecasts=args.multiple_forecasts,
             start_date=args.start,
@@ -392,7 +403,7 @@ def test_build_hwrf_multidomain_error(capfd) -> None:
     args.api_version = METGET_API_VERSION
 
     with pytest.raises(RuntimeError):
-        request_dict = MetGetBuildRest.generate_request_json(
+        MetGetBuildRest.generate_request_json(
             analysis=args.analysis,
             multiple_forecasts=args.multiple_forecasts,
             start_date=args.start,
@@ -446,7 +457,7 @@ def test_build_gfs_error(capfd) -> None:
     args.api_version = METGET_API_VERSION
 
     with pytest.raises(RuntimeError):
-        request_dict = MetGetBuildRest.generate_request_json(
+        MetGetBuildRest.generate_request_json(
             analysis=args.analysis,
             multiple_forecasts=args.multiple_forecasts,
             start_date=args.start,
@@ -472,8 +483,8 @@ def metget_request_mocker(
     args: argparse.Namespace,
     capfd,
 ) -> None:
-    import os
     import json
+    import os
 
     response_list = [
         {"json": METGET_BUILD_RETURN_QUEUED, "status_code": 200},
@@ -484,7 +495,7 @@ def metget_request_mocker(
 
     with requests_mock.Mocker() as m:
         m.get(
-            METGET_DMY_ENDPOINT + "/check?request-id={:s}".format(data_id),
+            METGET_DMY_ENDPOINT + f"/check?request-id={data_id:s}",
             response_list,
         )
         path = os.path.join(
@@ -495,13 +506,13 @@ def metget_request_mocker(
         with open(path, "rb") as filelist_file:
             filelist_data = json.load(filelist_file)
             m.get(
-                "https://s3.amazonaws.com/metget/{:s}/filelist.json".format(data_id),
+                f"https://s3.amazonaws.com/metget/{data_id:s}/filelist.json",
                 json=filelist_data,
             )
 
             for file in output_files:
                 m.get(
-                    "https://s3.amazonaws.com/metget/{:s}/{:s}".format(data_id, file),
+                    f"https://s3.amazonaws.com/metget/{data_id:s}/{file:s}",
                     text="This is only a test",
                 )
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ###################################################################################################
 # MIT License
 #
@@ -57,7 +56,8 @@ def get_metget_environment_variables(args: argparse.Namespace) -> dict:
 
     if not args.endpoint:
         if "METGET_ENDPOINT" not in os.environ:
-            raise RuntimeError("No endpoint found.")
+            msg = "No endpoint found."
+            raise RuntimeError(msg)
         else:
             endpoint = os.environ["METGET_ENDPOINT"]
     else:
@@ -65,7 +65,8 @@ def get_metget_environment_variables(args: argparse.Namespace) -> dict:
 
     if not args.apikey:
         if "METGET_API_KEY" not in os.environ:
-            raise RuntimeError("No API key was found.")
+            msg = "No API key was found."
+            raise RuntimeError(msg)
         else:
             apikey = os.environ["METGET_API_KEY"]
     else:

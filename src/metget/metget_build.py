@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ###################################################################################################
 # MIT License
 #
@@ -33,6 +32,7 @@ import json
 import time
 from datetime import datetime
 from typing import Tuple, Union
+
 from .metget_data import AVAILABLE_MODELS
 
 
@@ -75,32 +75,27 @@ class MetGetBuildRest:
         model = domain_list[0]
         if "hwrf" in model or "coamps" in model:
             if len(model.split("-")) < 2:
-                raise RuntimeError(
-                    "Must include storm name with HWRF/COAMPS request as 'hwrf-storm' or 'coamps-storm'"
-                )
+                msg = "Must include storm name with HWRF/COAMPS request as 'hwrf-storm' or 'coamps-storm'"
+                raise RuntimeError(msg)
             storm = model.split("-")[1]
             model = model.split("-")[0]
         elif "gefs" in model:
             if len(model.split("-")) < 2:
-                raise RuntimeError(
-                    "Must include ensemble member with GEFS request as 'gefs-ensemble_member'"
-                )
+                msg = "Must include ensemble member with GEFS request as 'gefs-ensemble_member'"
+                raise RuntimeError(msg)
             ensemble_member = model.split("-")[1]
             model = "gefs"
         elif "ctcx" in model:
             if len(model.split("-")) < 3:
-                raise RuntimeError(
-                    "Must include storm name and ensemble member with CTCX request as 'ctcx-storm-ensemble_member'"
-                )
+                msg = "Must include storm name and ensemble member with CTCX request as 'ctcx-storm-ensemble_member'"
+                raise RuntimeError(msg)
             ensemble_member = model.split("-")[2]
             storm = model.split("-")[1]
             model = "ctcx"
         elif "nhc" in model:
             if len(model.split("-")) < 4:
-                raise RuntimeError(
-                    "Must include basin, storm name, and advisory with NHC request as"
-                    " 'nhc-basin-storm-advisory' or 'nhc-basin-storm-year-advisory'"
-                )
+                msg = "Must include basin, storm name, and advisory with NHC request as 'nhc-basin-storm-advisory' or 'nhc-basin-storm-year-advisory'"
+                raise RuntimeError(msg)
             keys = model.split("-")
             if len(keys) == 5:
                 year = keys[1]
@@ -120,7 +115,6 @@ class MetGetBuildRest:
                     + model
                     + "' does not support additional '-' separated arguments"
                 )
-            model = model
 
         res = float(domain_list[1])
         x0 = float(domain_list[2])
@@ -128,7 +122,7 @@ class MetGetBuildRest:
         x1 = float(domain_list[4])
         y1 = float(domain_list[5])
 
-        if model not in AVAILABLE_MODELS.keys():
+        if model not in AVAILABLE_MODELS:
             raise RuntimeError("Specified model '" + model + "' is not available")
 
         xmax = max(x0, x1)
@@ -137,7 +131,8 @@ class MetGetBuildRest:
         ymin = min(y0, y1)
         res = abs(res)
         if res <= 0:
-            raise RuntimeError("Specified model resolution is invalid")
+            msg = "Specified model resolution is invalid"
+            raise RuntimeError(msg)
 
         if model == "hwrf":
             return {
@@ -342,10 +337,12 @@ class MetGetBuildRest:
         Returns:
             None
         """
-        from datetime import datetime, timedelta
-        from .spinnerlogger import SpinnerLogger
-        import requests
         import os
+        from datetime import datetime, timedelta
+
+        import requests
+
+        from .spinnerlogger import SpinnerLogger
 
         # ...Wait time
         end_time = datetime.utcnow() + timedelta(hours=max_wait)
@@ -359,7 +356,7 @@ class MetGetBuildRest:
         status = None
 
         spinner = SpinnerLogger()
-        print("Waiting for request id {:s}".format(data_id), flush=True)
+        print(f"Waiting for request id {data_id:s}", flush=True)
         spinner.start()
 
         return_data = None
@@ -397,20 +394,16 @@ class MetGetBuildRest:
         if data_ready:
             file_list = return_data["output_files"]
             for f in file_list:
-
                 if output_directory is not None:
                     if not os.path.exists(output_directory):
-                        raise RuntimeError(
-                            "Output directory does not exist: {:s}".format(
-                                output_directory
-                            )
-                        )
+                        msg = f"Output directory does not exist: {output_directory:s}"
+                        raise RuntimeError(msg)
                     ff = os.path.join(output_directory, f)
                 else:
                     ff = f
 
                 time_stamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-                spinner.start("[{:s}]: Getting file: {:s}".format(time_stamp, f))
+                spinner.start(f"[{time_stamp:s}]: Getting file: {f:s}")
                 with requests.get(data_url + "/" + f, stream=True) as r:
                     r.raise_for_status()
                     with open(ff, "wb") as wind_file:
@@ -473,11 +466,8 @@ class MetGetBuildRest:
         elif self.__metget_api_version == 2:
             response = self.__check_metget_status_v2(data_id)
         else:
-            raise RuntimeError(
-                "Invalid MetGet API version. Must be 1 or 2. Got {:d}".format(
-                    self.__metget_api_version
-                )
-            )
+            msg = f"Invalid MetGet API version. Must be 1 or 2. Got {self.__metget_api_version:d}"
+            raise RuntimeError(msg)
         json_response = json.loads(response)
         status = json_response["body"]["status"]
         data_url = json_response["body"]["destination"]
@@ -532,8 +522,8 @@ def metget_build(args: argparse.Namespace) -> None:
     Returns:
         None
     """
+    from .metget_data import AVAILABLE_FORMATS, AVAILABLE_VARIABLES
     from .metget_environment import get_metget_environment_variables
-    from .metget_data import AVAILABLE_VARIABLES, AVAILABLE_FORMATS
 
     # ...Get the environment variables
     environment = get_metget_environment_variables(args)
@@ -559,21 +549,18 @@ def metget_build(args: argparse.Namespace) -> None:
             exit(1)
 
         output_format = AVAILABLE_FORMATS[args.format]
-        if output_format == "delft3d" or output_format == "hec-netcdf":
-            if len(args.domain) > 1:
-                print(
-                    "[ERROR]: "
-                    + args.format
-                    + " does not support more than one domain."
-                )
-                exit(1)
-
-        if args.variable not in AVAILABLE_VARIABLES:
-            print("ERROR: Invalid variable '{:s}' selected".format(args.variable))
+        if (output_format == "delft3d" or output_format == "hec-netcdf") and len(
+            args.domain
+        ) > 1:
+            print("[ERROR]: " + args.format + " does not support more than one domain.")
             exit(1)
 
-        if args.format not in AVAILABLE_FORMATS.keys():
-            print("ERROR: Invalid output format '{:s}' selected".format(args.format))
+        if args.variable not in AVAILABLE_VARIABLES:
+            print(f"ERROR: Invalid variable '{args.variable:s}' selected")
+            exit(1)
+
+        if args.format not in AVAILABLE_FORMATS:
+            print(f"ERROR: Invalid output format '{args.format:s}' selected")
             exit(1)
 
         # ...Building the request
