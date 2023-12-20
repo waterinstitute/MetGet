@@ -46,8 +46,8 @@ class MetGetStatus:
         self.__environment = get_metget_environment_variables(args)
         self.__model_class = None
 
-        if self.__environment["api_version"] == 1:
-            msg = "API version 1 is not supported with the status command. You should query the endpoint directly."
+        if self.__environment["api_version"] != 2:
+            msg = "Only API version 2 is supported."
             raise RuntimeError(msg)
 
     def get_status(self) -> None:

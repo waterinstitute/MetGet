@@ -74,7 +74,7 @@ def get_metget_environment_variables(args: argparse.Namespace) -> dict:
 
     if not args.api_version:
         if "METGET_API_VERSION" not in os.environ:
-            api_version = 1
+            api_version = 2
         else:
             api_version = int(os.environ["METGET_API_VERSION"])
     else:

@@ -460,38 +460,16 @@ class MetGetBuildRest:
         Returns:
             Tuple[str, str]: Data url and status
         """
-        response = None
-
-        if self.__metget_api_version == 1:
-            response = self.__check_metget_status_v1(data_id)
-        elif self.__metget_api_version == 2:
+        if self.__metget_api_version == 2:
             response = self.__check_metget_status_v2(data_id)
         else:
-            msg = f"Invalid MetGet API version. Must be 1 or 2. Got {self.__metget_api_version:d}"
+            msg = f"Invalid MetGet API version. Must be 2. Got {self.__metget_api_version:d}"
             raise RuntimeError(msg)
+
         json_response = json.loads(response)
         status = json_response["body"]["status"]
         data_url = json_response["body"]["destination"]
         return data_url, status
-
-    def __check_metget_status_v1(self, data_id: str) -> str:
-        """
-        Checks the status of a MetGet request using the v1 API
-
-        Args:
-            data_id (str): Data id
-
-        Returns:
-            str: response text
-        """
-        import requests
-
-        headers = {"x-api-key": self.__metget_api_key}
-        request_json = {"request": data_id}
-        response = requests.post(
-            self.__metget_api_server + "/check", headers=headers, json=request_json
-        )
-        return response.text
 
     def __check_metget_status_v2(self, data_id: str) -> str:
         """
