@@ -166,6 +166,7 @@ class MetGetBuildRest:
                 "name": AVAILABLE_MODELS[model] + "-" + storm + "-" + ensemble_member,
                 "service": AVAILABLE_MODELS[model],
                 "storm": storm,
+                "tau": tau,
                 "ensemble_member": ensemble_member,
                 "x_init": xmin,
                 "y_init": ymin,

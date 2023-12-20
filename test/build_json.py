@@ -1,4 +1,4 @@
-METGET_BUILD_GFS_JSON = METGET_BUILD_GFS_JSON = {
+METGET_BUILD_GFS_JSON = {
     "version": "0.0.1",
     "creator": "pytest",
     "background_pressure": 1013.0,
@@ -26,6 +26,108 @@ METGET_BUILD_GFS_JSON = METGET_BUILD_GFS_JSON = {
     "compression": False,
     "epsg": 4326,
     "filename": "test_build_gfs",
+    "dry_run": False,
+    "strict": False,
+}
+
+METGET_BUILD_GEFS_JSON = {
+    "version": "0.0.1",
+    "creator": "pytest",
+    "background_pressure": 1013.0,
+    "backfill": False,
+    "nowcast": False,
+    "multiple_forecasts": True,
+    "start_date": "2023-06-01 00:00:00",
+    "end_date": "2023-06-02 00:00:00",
+    "format": None,
+    "data_type": "wind_pressure",
+    "time_step": 3600,
+    "domains": [
+        {
+            "name": "gefs",
+            "service": "gefs-ncep",
+            "x_init": -100.0,
+            "y_init": 10.0,
+            "x_end": -80.0,
+            "y_end": 30.0,
+            "di": 0.25,
+            "dj": 0.25,
+            "ensemble_member": "c00",
+            "level": 0,
+        }
+    ],
+    "compression": False,
+    "epsg": 4326,
+    "filename": "test_build_gefs",
+    "dry_run": False,
+    "strict": False,
+}
+
+METGET_BUILD_COAMPS_JSON = {
+    "version": "0.0.1",
+    "creator": "pytest",
+    "background_pressure": 1013.0,
+    "backfill": False,
+    "nowcast": False,
+    "multiple_forecasts": True,
+    "start_date": "2023-06-01 00:00:00",
+    "end_date": "2023-06-02 00:00:00",
+    "format": None,
+    "data_type": "wind_pressure",
+    "time_step": 3600,
+    "domains": [
+        {
+            "name": "coamps-tc-09L",
+            "service": "coamps-tc",
+            "x_init": -100.0,
+            "y_init": 10.0,
+            "x_end": -80.0,
+            "y_end": 30.0,
+            "di": 0.25,
+            "dj": 0.25,
+            "storm": "09L",
+            "level": 0,
+            "tau": 0,
+        }
+    ],
+    "compression": False,
+    "epsg": 4326,
+    "filename": "test_build_coamps",
+    "dry_run": False,
+    "strict": False,
+}
+
+METGET_BUILD_CTCX_JSON = {
+    "version": "0.0.1",
+    "creator": "pytest",
+    "background_pressure": 1013.0,
+    "backfill": False,
+    "nowcast": False,
+    "multiple_forecasts": True,
+    "start_date": "2023-06-01 00:00:00",
+    "end_date": "2023-06-02 00:00:00",
+    "format": None,
+    "data_type": "wind_pressure",
+    "time_step": 3600,
+    "domains": [
+        {
+            "name": "coamps-ctcx-09L-01",
+            "service": "coamps-ctcx",
+            "x_init": -100.0,
+            "y_init": 10.0,
+            "x_end": -80.0,
+            "y_end": 30.0,
+            "di": 0.25,
+            "dj": 0.25,
+            "ensemble_member": "01",
+            "storm": "09L",
+            "tau": 4,
+            "level": 0,
+        }
+    ],
+    "compression": False,
+    "epsg": 4326,
+    "filename": "test_build_ctcx",
     "dry_run": False,
     "strict": False,
 }
@@ -130,6 +232,10 @@ METGET_BUILD_RETURN_QUEUED = {
         "destination": "https://s3.amazonaws.com/metget/5f9b5b3c-5b7a-4c5e-8b0a-1b5b3c5d7e8f",
     },
 }
+
+METGET_BUILD_RETURN_RESTORE = METGET_BUILD_RETURN_QUEUED
+METGET_BUILD_RETURN_RESTORE["body"]["status"] = "restore"
+METGET_BUILD_RETURN_RESTORE["body"]["message"] = "Data in restore state"
 
 METGET_BUILD_RETURN_RUNNING = METGET_BUILD_RETURN_QUEUED
 METGET_BUILD_RETURN_RUNNING["body"]["status"] = "running"

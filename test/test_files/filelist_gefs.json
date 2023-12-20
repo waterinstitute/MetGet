@@ -1,0 +1,67 @@
+{
+  "input": {
+    "api_key": "1234567890",
+    "backfill": false,
+    "background_pressure": 1013.0,
+    "compression": false,
+    "creator": "pytest",
+    "data_type": "wind_pressure",
+    "domains": [
+      {
+        "di": 0.25,
+        "dj": 0.25,
+        "level": 0,
+        "name": "gefs-c00",
+        "service": "gfes-ncep",
+        "x_end": -80.0,
+        "x_init": -100.0,
+        "y_end": 30.0,
+        "y_init": 10.0
+      }
+    ],
+    "end_date": "2023-06-02 00:00:00",
+    "epsg": 4326,
+    "filename": "test_build_gefs",
+    "format": "owi-ascii",
+    "multiple_forecasts": true,
+    "nowcast": false,
+    "request_id": "5f9b5b3c-5b7a-4c5e-8b0a-1b5b3c5d7e8f",
+    "source_ip": "10.0.0.1",
+    "start_date": "2023-06-01 00:00:00",
+    "time_step": 3600,
+    "version": "0.0.1"
+  },
+  "input_files": {
+    "gfs": [
+      "gfs-ncep.202306010000.gfs.t00z.pgrb2.0p25.f000",
+      "gfs-ncep.202306010100.gfs.t00z.pgrb2.0p25.f001",
+      "gfs-ncep.202306010200.gfs.t00z.pgrb2.0p25.f002",
+      "gfs-ncep.202306010300.gfs.t00z.pgrb2.0p25.f003",
+      "gfs-ncep.202306010400.gfs.t00z.pgrb2.0p25.f004",
+      "gfs-ncep.202306010500.gfs.t00z.pgrb2.0p25.f005",
+      "gfs-ncep.202306010600.gfs.t06z.pgrb2.0p25.f000",
+      "gfs-ncep.202306010700.gfs.t06z.pgrb2.0p25.f001",
+      "gfs-ncep.202306010800.gfs.t06z.pgrb2.0p25.f002",
+      "gfs-ncep.202306010900.gfs.t06z.pgrb2.0p25.f003",
+      "gfs-ncep.202306011000.gfs.t06z.pgrb2.0p25.f004",
+      "gfs-ncep.202306011100.gfs.t06z.pgrb2.0p25.f005",
+      "gfs-ncep.202306011200.gfs.t12z.pgrb2.0p25.f000",
+      "gfs-ncep.202306011300.gfs.t12z.pgrb2.0p25.f001",
+      "gfs-ncep.202306011400.gfs.t12z.pgrb2.0p25.f002",
+      "gfs-ncep.202306011500.gfs.t12z.pgrb2.0p25.f003",
+      "gfs-ncep.202306011600.gfs.t12z.pgrb2.0p25.f004",
+      "gfs-ncep.202306011700.gfs.t12z.pgrb2.0p25.f005",
+      "gfs-ncep.202306011800.gfs.t18z.pgrb2.0p25.f000",
+      "gfs-ncep.202306011900.gfs.t18z.pgrb2.0p25.f001",
+      "gfs-ncep.202306012000.gfs.t18z.pgrb2.0p25.f002",
+      "gfs-ncep.202306012100.gfs.t18z.pgrb2.0p25.f003",
+      "gfs-ncep.202306012200.gfs.t18z.pgrb2.0p25.f004",
+      "gfs-ncep.202306012300.gfs.t18z.pgrb2.0p25.f005",
+      "gfs-ncep.202306020000.gfs.t00z.pgrb2.0p25.f000"
+    ]
+  },
+  "output_files": [
+    "test_build_gefs_00.pre",
+    "test_build_gefs_00.wnd"
+  ]
+}

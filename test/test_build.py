@@ -8,12 +8,16 @@ from metget.metget_build import MetGetBuildRest
 from metget.metget_environment import get_metget_environment_variables
 
 from .build_json import (
+    METGET_BUILD_COAMPS_JSON,
+    METGET_BUILD_CTCX_JSON,
+    METGET_BUILD_GEFS_JSON,
     METGET_BUILD_GFS_JSON,
     METGET_BUILD_HWRF_JSON,
     METGET_BUILD_NHC_JSON,
     METGET_BUILD_POST_RETURN,
     METGET_BUILD_RETURN_COMPLETE,
     METGET_BUILD_RETURN_QUEUED,
+    METGET_BUILD_RETURN_RESTORE,
     METGET_BUILD_RETURN_RUNNING,
 )
 
@@ -421,6 +425,232 @@ def test_build_hwrf_multidomain_error(capfd) -> None:
         )
 
 
+def test_build_gefs(capfd) -> None:
+    """
+    Tests the build request for a single domain of gefs data
+
+    Args:
+        capfd: pytest fixture to capture stdout and stderr
+
+    Returns:
+        None
+    """
+    args = argparse.Namespace()
+    args.analysis = False
+    args.multiple_forecasts = True
+    args.data_type = "wind_pressure"
+    args.backfill = False
+    args.domain = [["gefs-c00", 0.25, -100, 10, -80, 30]]
+    args.start = datetime(2023, 6, 1)
+    args.end = datetime(2023, 6, 2)
+    args.initialization_skip = 0
+    args.timestep = 3600
+    args.format = None
+    args.output = "test_build_gefs"
+    args.dryrun = False
+    args.strict = False
+    args.epsg = 4326
+    args.check_interval = 1
+    args.max_wait = 3600
+    args.output_directory = None
+
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    request_dict = MetGetBuildRest.generate_request_json(
+        analysis=args.analysis,
+        multiple_forecasts=args.multiple_forecasts,
+        start_date=args.start,
+        end_date=args.end,
+        format=args.format,
+        timestep=args.timestep,
+        data_type=args.data_type,
+        backfill=args.backfill,
+        filename=args.output,
+        dry_run=args.dryrun,
+        strict=args.strict,
+        domains=MetGetBuildRest.parse_command_line_domains(
+            args.domain, args.initialization_skip
+        ),
+    )
+
+    request_dict["creator"] = "pytest"
+    assert request_dict == METGET_BUILD_GEFS_JSON
+
+    environment = get_metget_environment_variables(args)
+    client = MetGetBuildRest(
+        environment["endpoint"], environment["apikey"], environment["api_version"]
+    )
+
+    with requests_mock.Mocker() as m:
+        m.post(METGET_DMY_ENDPOINT + "/build", json=METGET_BUILD_POST_RETURN)
+        data_id, status_code = client.make_metget_request(request_dict)
+
+    assert data_id == "5f9b5b3c-5b7a-4c5e-8b0a-1b5b3c5d7e8f"
+    assert status_code == 200
+
+    metget_request_mocker(
+        data_id,
+        client,
+        ["test_build_gefs_00.pre", "test_build_gefs_00.wnd"],
+        "filelist_gefs.json",
+        args,
+        capfd,
+    )
+
+
+def test_build_coamps(capfd) -> None:
+    """
+    Tests the build request for a single domain of coamps data
+
+    Args:
+        capfd: pytest fixture to capture stdout and stderr
+
+    Returns:
+        None
+    """
+    args = argparse.Namespace()
+    args.analysis = False
+    args.multiple_forecasts = True
+    args.data_type = "wind_pressure"
+    args.backfill = False
+    args.domain = [["coamps-09L", 0.25, -100, 10, -80, 30]]
+    args.start = datetime(2023, 6, 1)
+    args.end = datetime(2023, 6, 2)
+    args.initialization_skip = 0
+    args.timestep = 3600
+    args.format = None
+    args.output = "test_build_coamps"
+    args.tau = 0
+    args.dryrun = False
+    args.strict = False
+    args.epsg = 4326
+    args.check_interval = 1
+    args.max_wait = 3600
+    args.output_directory = None
+
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    request_dict = MetGetBuildRest.generate_request_json(
+        analysis=args.analysis,
+        multiple_forecasts=args.multiple_forecasts,
+        start_date=args.start,
+        end_date=args.end,
+        format=args.format,
+        timestep=args.timestep,
+        data_type=args.data_type,
+        backfill=args.backfill,
+        filename=args.output,
+        dry_run=args.dryrun,
+        strict=args.strict,
+        domains=MetGetBuildRest.parse_command_line_domains(
+            args.domain, args.initialization_skip
+        ),
+    )
+
+    request_dict["creator"] = "pytest"
+    assert request_dict == METGET_BUILD_COAMPS_JSON
+
+    environment = get_metget_environment_variables(args)
+    client = MetGetBuildRest(
+        environment["endpoint"], environment["apikey"], environment["api_version"]
+    )
+
+    with requests_mock.Mocker() as m:
+        m.post(METGET_DMY_ENDPOINT + "/build", json=METGET_BUILD_POST_RETURN)
+        data_id, status_code = client.make_metget_request(request_dict)
+
+    assert data_id == "5f9b5b3c-5b7a-4c5e-8b0a-1b5b3c5d7e8f"
+    assert status_code == 200
+
+    metget_request_mocker(
+        data_id,
+        client,
+        ["test_build_gefs_00.pre", "test_build_gefs_00.wnd"],
+        "filelist_gefs.json",
+        args,
+        capfd,
+    )
+
+
+def test_build_ctcx(capfd) -> None:
+    """
+    Tests the build request for a single domain of ctcx data
+
+    Args:
+        capfd: pytest fixture to capture stdout and stderr
+
+    Returns:
+        None
+    """
+    args = argparse.Namespace()
+    args.analysis = False
+    args.multiple_forecasts = True
+    args.data_type = "wind_pressure"
+    args.backfill = False
+    args.domain = [["ctcx-09L-01", 0.25, -100, 10, -80, 30]]
+    args.start = datetime(2023, 6, 1)
+    args.end = datetime(2023, 6, 2)
+    args.initialization_skip = 4
+    args.timestep = 3600
+    args.format = None
+    args.output = "test_build_ctcx"
+    args.dryrun = False
+    args.strict = False
+    args.epsg = 4326
+    args.check_interval = 1
+    args.max_wait = 3600
+    args.output_directory = None
+
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    request_dict = MetGetBuildRest.generate_request_json(
+        analysis=args.analysis,
+        multiple_forecasts=args.multiple_forecasts,
+        start_date=args.start,
+        end_date=args.end,
+        format=args.format,
+        timestep=args.timestep,
+        data_type=args.data_type,
+        backfill=args.backfill,
+        filename=args.output,
+        dry_run=args.dryrun,
+        strict=args.strict,
+        domains=MetGetBuildRest.parse_command_line_domains(
+            args.domain, args.initialization_skip
+        ),
+    )
+
+    request_dict["creator"] = "pytest"
+    assert request_dict == METGET_BUILD_CTCX_JSON
+
+    environment = get_metget_environment_variables(args)
+    client = MetGetBuildRest(
+        environment["endpoint"], environment["apikey"], environment["api_version"]
+    )
+
+    with requests_mock.Mocker() as m:
+        m.post(METGET_DMY_ENDPOINT + "/build", json=METGET_BUILD_POST_RETURN)
+        data_id, status_code = client.make_metget_request(request_dict)
+
+    assert data_id == "5f9b5b3c-5b7a-4c5e-8b0a-1b5b3c5d7e8f"
+    assert status_code == 200
+
+    metget_request_mocker(
+        data_id,
+        client,
+        ["test_build_gefs_00.pre", "test_build_gefs_00.wnd"],
+        "filelist_gefs.json",
+        args,
+        capfd,
+    )
+
+
 def test_build_gfs_error(capfd) -> None:
     """
     Tests the build request for a single domain of gfs data
@@ -489,6 +719,7 @@ def metget_request_mocker(
     response_list = [
         {"json": METGET_BUILD_RETURN_QUEUED, "status_code": 200},
         {"json": METGET_BUILD_RETURN_QUEUED, "status_code": 200},
+        {"json": METGET_BUILD_RETURN_RESTORE, "status_code": 200},
         {"json": METGET_BUILD_RETURN_RUNNING, "status_code": 200},
         {"json": METGET_BUILD_RETURN_COMPLETE, "status_code": 200},
     ]
