@@ -4,6 +4,8 @@ to be used in hydrodynamic modeling applications.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI version](https://badge.fury.io/py/metget.svg)](https://badge.fury.io/py/metget)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/metget.svg)](https://anaconda.org/conda-forge/metget)
+[![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/metget.svg)](https://anaconda.org/conda-forge/metget)
 ![Testing](https://github.com/waterinstitute/metget/actions/workflows/pytest.yaml/badge.svg)
 [![codecov](https://codecov.io/gh/waterinstitute/MetGet/branch/main/graph/badge.svg?token=I36RIBPFMD)](https://codecov.io/gh/waterinstitute/MetGet)
 [![Downloads](https://static.pepy.tech/badge/metget)](https://pepy.tech/project/metget)
@@ -37,9 +39,17 @@ an available instance.
 
 ### Installation
 
-The MetGet client application can be installed using from the PyPi repository. The below commands show how to install the client and its dependencies.
+The MetGet client application can be installed using from the PyPi repository or via Anaconda using the
+`conda-forge` repository. The below commands show how to install the client and its dependencies.
+
+Using PyPi:
 ```bash
 $ pip3 install metget
+```
+
+Using Anaconda:
+```bash
+$ conda install -c conda-forge metget
 ```
 
 ### Terminology
@@ -54,7 +64,7 @@ aims to explain these terms and why they are available as options in the client 
 There are three influential environment variables which can be set as a convenience to the user. These variables are:
 * `METGET_API_KEY` - The API key used to authenticate with MetGet
 * `METGET_ENDPOINT` - The URL of the MetGet server, i.e. `https://metget.server.org`
-* `METGET_API_VERSION` - The version of the MetGet API to use. The system will default to `1` and unless you are using the Kubernetes based MetGet deployment, the version 1 api is appropriate.
+* `METGET_API_VERSION` - The version of the MetGet API to use. The system will default to `2`.
 
 ### Usage
 
