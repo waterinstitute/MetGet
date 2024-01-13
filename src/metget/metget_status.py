@@ -382,6 +382,8 @@ class MetGetStatus:
         Returns:
             None
         """
+        import json
+
         import requests
 
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
@@ -397,7 +399,10 @@ class MetGetStatus:
 
         # ...Print
         if response.json()["body"] == {}:
-            print("No data found")
+            if self.__args.format == "json":
+                print(json.dumps(response.json()["body"]))
+            else:
+                print("No data found.")
         else:
             self.__print_status_multi("storm", model, response.json()["body"])
 
