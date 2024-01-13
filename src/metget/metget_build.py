@@ -73,9 +73,9 @@ class MetGetBuildRest:
         year = None
 
         model = domain_list[0]
-        if "hwrf" in model or "coamps" in model:
+        if "hwrf" in model or "coamps" in model or "hafs" in model:
             if len(model.split("-")) < 2:
-                msg = "Must include storm name with HWRF/COAMPS request as 'hwrf-storm' or 'coamps-storm'"
+                msg = "Must include storm name with HWRF/COAMPS/HAFS request as 'hwrf-storm' or 'coamps-storm'"
                 raise RuntimeError(msg)
             storm = model.split("-")[1]
             model = model.split("-")[0]
@@ -98,7 +98,7 @@ class MetGetBuildRest:
                 raise RuntimeError(msg)
             keys = model.split("-")
             if len(keys) == 5:
-                year = keys[1]
+                year = int(keys[1])
                 basin = keys[2]
                 storm = keys[3]
                 advisory = keys[4]
@@ -134,7 +134,7 @@ class MetGetBuildRest:
             msg = "Specified model resolution is invalid"
             raise RuntimeError(msg)
 
-        if model == "hwrf":
+        if model == "hwrf" or model == "hafsa" or model == "hafsb" or model == "coamps":
             return {
                 "name": AVAILABLE_MODELS[model] + "-" + storm,
                 "service": AVAILABLE_MODELS[model],
@@ -145,20 +145,7 @@ class MetGetBuildRest:
                 "y_end": ymax,
                 "di": res,
                 "dj": res,
-                "level": level,
-            }
-        elif model == "coamps":
-            return {
-                "name": AVAILABLE_MODELS[model] + "-" + storm,
-                "service": AVAILABLE_MODELS[model],
-                "storm": storm,
                 "tau": tau,
-                "x_init": xmin,
-                "y_init": ymin,
-                "x_end": xmax,
-                "y_end": ymax,
-                "di": res,
-                "dj": res,
                 "level": level,
             }
         elif model == "ctcx":

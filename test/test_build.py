@@ -202,7 +202,7 @@ def test_build_nhc_raw(capfd) -> None:
     args.multiple_forecasts = True
     args.variable = "wind_pressure"
     args.backfill = False
-    args.domain = [["nhc-al-09-015", 0.1, -90, 15, -80, 25]]
+    args.domain = [["nhc-2023-al-09-015", 0.1, -90, 15, -80, 25]]
     args.start = datetime(2023, 6, 19)
     args.end = datetime(2023, 6, 24)
     args.initialization_skip = 0

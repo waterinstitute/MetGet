@@ -166,6 +166,7 @@ METGET_BUILD_HWRF_JSON = {
             "y_end": 25.0,
             "di": 0.1,
             "dj": 0.1,
+            "tau": 0,
             "level": 1,
         },
     ],
