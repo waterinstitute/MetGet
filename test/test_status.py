@@ -10,6 +10,7 @@ from .status_json import (
     GEFS_STATUS_JSON,
     GEFS_STATUS_JSON_C00,
     GFS_STATUS_JSON,
+    HAFS_STATUS_JSON,
     HWRF_STATUS_BRET_JSON,
     HWRF_STATUS_JSON,
     NHC_STATUS_JSON,
@@ -19,6 +20,7 @@ from .status_text import (
     GEFS_STATUS_TEXT,
     GEFS_STATUS_TEXT_C00,
     GFS_STATUS_TEXT,
+    HAFS_STATUS_TEXT,
     HWRF_STATUS_BRET_TEXT,
     HWRF_STATUS_TEXT,
     NHC_STATUS_TEXT,
@@ -347,3 +349,49 @@ def test_status_ctcx(capfd) -> None:
         s.get_status()
         out, err = capfd.readouterr()
         assert out == COAMPS_CTCX_STATUS_TEXT
+
+
+def test_get_status_hafs(capfd) -> None:
+    """
+    Tests the status command for the HAFS-A model
+
+    Args:
+        capfd: pytest fixture to capture stdout and stderr
+
+    Returns:
+        None
+    """
+    import json
+    from datetime import datetime
+
+    args = argparse.Namespace()
+    args.model = "hafsa"
+    args.format = "pretty"
+    args.start = datetime(2024, 1, 11)
+    args.storm = None
+    args.end = datetime(2024, 1, 18)
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    s = MetGetStatus(args)
+    url = (
+        METGET_DMY_ENDPOINT
+        + "/status?"
+        + urlencode({"model": "hafsa", "start": "2024-01-11", "end": "2024-01-18"})
+    )
+    with requests_mock.Mocker() as m:
+        m.get(url, json=HAFS_STATUS_JSON)
+        s.get_status()
+    out, err = capfd.readouterr()
+    assert out == HAFS_STATUS_TEXT
+
+    args.format = "json"
+
+    s = MetGetStatus(args)
+    with requests_mock.Mocker() as m:
+        m.get(url, json=HAFS_STATUS_JSON)
+        s.get_status()
+        out, err = capfd.readouterr()
+        out_dict = json.loads(out)
+        assert out_dict == HAFS_STATUS_JSON["body"]

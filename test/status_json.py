@@ -4079,3 +4079,66 @@ COAMPS_CTCX_STATUS_JSON = {
         }
     },
 }
+
+HAFS_STATUS_JSON = {
+    "body": {
+        "2024": {
+            "05s": {
+                "complete_cycle_length": 126,
+                "cycles": [
+                    {"cycle": "2024-01-13 12:00:00", "duration": 126},
+                    {"cycle": "2024-01-13 06:00:00", "duration": 126},
+                    {"cycle": "2024-01-13 00:00:00", "duration": 126},
+                    {"cycle": "2024-01-12 18:00:00", "duration": 126},
+                    {"cycle": "2024-01-12 12:00:00", "duration": 126},
+                ],
+                "cycles_complete": [
+                    "2024-01-13 12:00:00",
+                    "2024-01-13 06:00:00",
+                    "2024-01-13 00:00:00",
+                    "2024-01-12 18:00:00",
+                    "2024-01-12 12:00:00",
+                ],
+                "first_available_cycle": "2024-01-12 12:00:00",
+                "latest_available_cycle": "2024-01-13 12:00:00",
+                "latest_available_cycle_length": 126,
+                "latest_complete_cycle": "2024-01-13 12:00:00",
+                "max_forecast_date": "2024-01-18 18:00:00",
+                "min_forecast_date": "2024-01-12 12:00:00",
+            },
+            "97s": {
+                "complete_cycle_length": 126,
+                "cycles": [
+                    {"cycle": "2024-01-12 06:00:00", "duration": 126},
+                    {"cycle": "2024-01-12 00:00:00", "duration": 126},
+                    {"cycle": "2024-01-11 18:00:00", "duration": 126},
+                    {"cycle": "2024-01-11 12:00:00", "duration": 126},
+                ],
+                "cycles_complete": [
+                    "2024-01-12 06:00:00",
+                    "2024-01-12 00:00:00",
+                    "2024-01-11 18:00:00",
+                    "2024-01-11 12:00:00",
+                ],
+                "first_available_cycle": "2024-01-11 12:00:00",
+                "latest_available_cycle": "2024-01-12 06:00:00",
+                "latest_available_cycle_length": 126,
+                "latest_complete_cycle": "2024-01-12 06:00:00",
+                "max_forecast_date": "2024-01-17 12:00:00",
+                "min_forecast_date": "2024-01-11 12:00:00",
+            },
+            "98s": {
+                "complete_cycle_length": 126,
+                "cycles": [{"cycle": "2024-01-13 12:00:00", "duration": 126}],
+                "cycles_complete": ["2024-01-13 12:00:00"],
+                "first_available_cycle": "2024-01-13 12:00:00",
+                "latest_available_cycle": "2024-01-13 12:00:00",
+                "latest_available_cycle_length": 126,
+                "latest_complete_cycle": "2024-01-13 12:00:00",
+                "max_forecast_date": "2024-01-18 18:00:00",
+                "min_forecast_date": "2024-01-13 12:00:00",
+            },
+        }
+    },
+    "statusCode": 200,
+}
