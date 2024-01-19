@@ -307,6 +307,8 @@ class MetGetBuildRest:
         sleep_time: int,
         max_wait: int,
         output_directory: Union[str, None],
+        only_url: bool=False,
+        return_metadata: bool=False
     ) -> None:
         """
         Downloads the data from the MetGet API
@@ -384,6 +386,7 @@ class MetGetBuildRest:
         # ...Download files
         if data_ready:
             file_list = return_data["output_files"]
+            url_list = []
             for f in file_list:
 
                 if output_directory is not None:
@@ -399,11 +402,15 @@ class MetGetBuildRest:
 
                 time_stamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
                 spinner.start("[{:s}]: Getting file: {:s}".format(time_stamp, f))
-                with requests.get(data_url + "/" + f, stream=True) as r:
+                url = data_url + "/" + f
+                with requests.get(url, stream=True) as r:
                     r.raise_for_status()
-                    with open(ff, "wb") as wind_file:
-                        for chunk in r.iter_content(chunk_size=8192):
-                            wind_file.write(chunk)
+                    if only_url:
+                        url_list.append(url)  
+                    else:
+                        with open(ff, "wb") as wind_file:
+                            for chunk in r.iter_content(chunk_size=8192):
+                                wind_file.write(chunk)
                 spinner.succeed()
 
             request_end_time = datetime.utcnow()
@@ -415,6 +422,10 @@ class MetGetBuildRest:
                     int(hours), int(minutes), int(seconds)
                 )
             )
+            if return_metadata:
+                return url_list, return_data
+            else:
+                return url_list
         else:
             if status == "restore":
                 print(
