@@ -28,6 +28,7 @@
 ###################################################################################################
 
 import argparse
+import contextlib
 import json
 import time
 from datetime import datetime
@@ -102,11 +103,15 @@ class MetGetBuildRest:
                 basin = keys[2]
                 storm = keys[3]
                 advisory = keys[4]
+                with contextlib.suppress(ValueError):
+                    advisory = f"{int(advisory):03d}"
             else:
                 year = datetime.utcnow().year
                 basin = keys[1]
                 storm = keys[2]
                 advisory = keys[3]
+                with contextlib.suppress(ValueError):
+                    advisory = f"{int(advisory):03d}"
             model = "nhc"
         else:
             if len(model.split("-")) > 1:
