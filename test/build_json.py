@@ -1,3 +1,5 @@
+from datetime import datetime
+
 METGET_BUILD_GFS_JSON = {
     "version": "0.0.1",
     "creator": "pytest",
@@ -196,6 +198,42 @@ METGET_BUILD_NHC_JSON = {
             "basin": "al",
             "storm": "09",
             "storm_year": 2023,
+            "advisory": "015",
+            "x_init": -90.0,
+            "y_init": 15.0,
+            "x_end": -80.0,
+            "y_end": 25.0,
+            "di": 0.1,
+            "dj": 0.1,
+            "level": 0,
+        }
+    ],
+    "compression": False,
+    "epsg": 4326,
+    "filename": "test_build_nhc",
+    "strict": False,
+    "dry_run": False,
+}
+
+METGET_BUILD_NHC_JSON_THIS_YEAR = {
+    "version": "0.0.1",
+    "creator": "pytest",
+    "background_pressure": 1013.0,
+    "backfill": False,
+    "nowcast": False,
+    "multiple_forecasts": True,
+    "start_date": "2023-06-19 00:00:00",
+    "end_date": "2023-06-24 00:00:00",
+    "format": "raw",
+    "data_type": "wind_pressure",
+    "time_step": 3600,
+    "domains": [
+        {
+            "name": "nhc",
+            "service": "nhc",
+            "basin": "al",
+            "storm": "09",
+            "storm_year": datetime.utcnow().year,
             "advisory": "015",
             "x_init": -90.0,
             "y_init": 15.0,
