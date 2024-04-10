@@ -250,6 +250,7 @@ def initialize_status_cli(subparsers):
     status.add_argument(
         "--format", help="Output format (json, pretty)", metavar="f", default="pretty"
     )
+    status.add_argument("--complete", help="Only show data which is complete", action="store_true")
 
 
 def initialize_track_cli(subparsers) -> None:
