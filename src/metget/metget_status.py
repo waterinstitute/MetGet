@@ -269,7 +269,9 @@ class MetGetStatus:
                     model, self.__args.storm, self.__args.ensemble_member
                 )
                 self.__print_status_generic(
-                    model_name, data[self.__args.storm][self.__args.ensemble_member]
+                    model_name,
+                    data[self.__args.storm][self.__args.ensemble_member],
+                    self.__args.complete,
                 )
             else:
                 table = prettytable.PrettyTable(
@@ -345,7 +347,9 @@ class MetGetStatus:
         if self.__args.ensemble_member:
             model_name = f"{model:s}-{self.__args.ensemble_member:s}"
             self.__print_status_generic(
-                model_name, response.json()["body"][self.__args.ensemble_member]
+                model_name,
+                response.json()["body"][self.__args.ensemble_member],
+                self.__args.complete,
             )
         else:
             self.__print_status_multi("ensemble", model, response.json()["body"])
@@ -370,7 +374,9 @@ class MetGetStatus:
             url, headers={"x-api-key": self.__environment["apikey"]}
         )
 
-        self.__print_status_generic(model.upper(), response.json()["body"])
+        self.__print_status_generic(
+            model.upper(), response.json()["body"], self.__args.complete
+        )
 
     def __status_synoptic_storm(self, model: str) -> None:
         """
@@ -438,7 +444,9 @@ class MetGetStatus:
                         year = self.__args.year
                 else:
                     year = next(iter(data.keys()))
-                self.__print_status_generic(model_name, data[year][self.__args.storm])
+                self.__print_status_generic(
+                    model_name, data[year][self.__args.storm], self.__args.complete
+                )
             else:
                 if data_type == "ensemble":
                     table = prettytable.PrettyTable(
@@ -505,7 +513,9 @@ class MetGetStatus:
                     )
                     print(table.get_string(sortby="First Forecast Cycle"))
 
-    def __print_status_generic(self, model: str, data: dict) -> None:
+    def __print_status_generic(
+        self, model: str, data: dict, only_complete: bool
+    ) -> None:
         """
         This method is used to get the status of a generic format
 
@@ -534,14 +544,26 @@ class MetGetStatus:
                     status = "complete"
                 else:
                     status = "incomplete ({:d})".format(cycle["duration"])
-                table.add_row(
-                    [
-                        cycle["cycle"],
-                        datetime.strptime(cycle["cycle"], "%Y-%m-%d %H:%M:%S")
-                        + timedelta(hours=cycle["duration"]),
-                        status,
-                    ]
-                )
+
+                if only_complete and status == "complete":
+                    table.add_row(
+                        [
+                            cycle["cycle"],
+                            datetime.strptime(cycle["cycle"], "%Y-%m-%d %H:%M:%S")
+                            + timedelta(hours=cycle["duration"]),
+                            status,
+                        ]
+                    )
+                elif not only_complete:
+                    table.add_row(
+                        [
+                            cycle["cycle"],
+                            datetime.strptime(cycle["cycle"], "%Y-%m-%d %H:%M:%S")
+                            + timedelta(hours=cycle["duration"]),
+                            status,
+                        ]
+                    )
+
 
             print(table)
 
