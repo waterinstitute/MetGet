@@ -31,7 +31,7 @@ import argparse
 import contextlib
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Tuple, Union
 
 from .metget_data import AVAILABLE_MODELS
@@ -106,7 +106,7 @@ class MetGetBuildRest:
                 with contextlib.suppress(ValueError):
                     advisory = f"{int(advisory):03d}"
             else:
-                year = datetime.utcnow().year
+                year = datetime.now(timezone.utc).year
                 basin = keys[1]
                 storm = keys[2]
                 advisory = keys[3]
@@ -331,17 +331,17 @@ class MetGetBuildRest:
             None
         """
         import os
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         import requests
 
         from .spinnerlogger import SpinnerLogger
 
         # ...Wait time
-        end_time = datetime.utcnow() + timedelta(hours=max_wait)
+        end_time = datetime.now(timezone.utc) + timedelta(hours=max_wait)
 
         # ...Timing information
-        request_start_time = datetime.utcnow()
+        request_start_time = datetime.now(timezone.utc)
 
         # ...Wait for request data to appear
         tries = 0
@@ -355,7 +355,7 @@ class MetGetBuildRest:
         return_data = None
         data_url = None
 
-        while datetime.utcnow() <= end_time:
+        while datetime.now(timezone.utc) <= end_time:
             tries += 1
             try:
                 data_url, status = self.check_metget_status(data_id)
@@ -395,7 +395,7 @@ class MetGetBuildRest:
                 else:
                     ff = f
 
-                time_stamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+                time_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
                 spinner.start(f"[{time_stamp:s}]: Getting file: {f:s}")
                 with requests.get(data_url + "/" + f, stream=True) as r:
                     r.raise_for_status()
@@ -404,12 +404,12 @@ class MetGetBuildRest:
                             wind_file.write(chunk)
                 spinner.succeed()
 
-            request_end_time = datetime.utcnow()
+            request_end_time = datetime.now(timezone.utc)
             request_duration = request_end_time - request_start_time
             hours, remainder = divmod(request_duration.total_seconds(), 3600)
             minutes, seconds = divmod(remainder, 60)
 
-            time_stamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+            time_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             spinner.succeed(
                 "[{:s}]: Elapsed time: {:d}h{:02d}m{:02d}s".format(
                     time_stamp, int(hours), int(minutes), int(seconds)

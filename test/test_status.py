@@ -47,6 +47,7 @@ def test_get_status_gfs(capfd) -> None:
     args.format = "pretty"
     args.start = None
     args.end = None
+    args.complete = False
     args.endpoint = METGET_DMY_ENDPOINT
     args.apikey = METGET_DMY_APIKEY
     args.api_version = METGET_API_VERSION
@@ -87,6 +88,7 @@ def test_status_hwrf(capfd) -> None:
     args.format = "pretty"
     args.start = datetime(2023, 6, 1)
     args.storm = None
+    args.complete = False
     args.end = datetime(2023, 7, 11)
     args.endpoint = METGET_DMY_ENDPOINT
     args.apikey = METGET_DMY_APIKEY
@@ -220,6 +222,7 @@ def test_status_gefs(capfd) -> None:
     args.ensemble_member = "c00"
     args.format = "json"
     args.storm = None
+    args.complete = False
     args.endpoint = METGET_DMY_ENDPOINT
     args.apikey = METGET_DMY_APIKEY
     args.api_version = METGET_API_VERSION
