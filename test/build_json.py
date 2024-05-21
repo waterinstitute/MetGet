@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 METGET_BUILD_GFS_JSON = {
     "version": "0.0.1",
@@ -233,7 +233,7 @@ METGET_BUILD_NHC_JSON_THIS_YEAR = {
             "service": "nhc",
             "basin": "al",
             "storm": "09",
-            "storm_year": datetime.utcnow().year,
+            "storm_year": datetime.now(timezone.utc).year,
             "advisory": "015",
             "x_init": -90.0,
             "y_init": 15.0,

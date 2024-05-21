@@ -85,12 +85,12 @@ class MetGetStatus:
         Returns:
             The url with the start and end parameters added
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         if self.__args.start:
             url += "&start={:s}".format(self.__args.start.strftime("%Y-%m-%d"))
             if not self.__args.end:
-                url += "&end={:s}".format(datetime.utcnow().strftime("%Y-%m-%d"))
+                url += "&end={:s}".format(datetime.now(timezone.utc).strftime("%Y-%m-%d"))
             else:
                 url += "&end={:s}".format(self.__args.end.strftime("%Y-%m-%d"))
         return url

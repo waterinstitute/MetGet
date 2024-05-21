@@ -70,9 +70,9 @@ class SpinnerLogger:
         Returns:
             str: Current time in UTC
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     def start(self, text: Optional[str] = None) -> None:
         """
