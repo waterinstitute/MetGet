@@ -90,7 +90,9 @@ class MetGetStatus:
         if self.__args.start:
             url += "&start={:s}".format(self.__args.start.strftime("%Y-%m-%d"))
             if not self.__args.end:
-                url += "&end={:s}".format(datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+                url += "&end={:s}".format(
+                    datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                )
             else:
                 url += "&end={:s}".format(self.__args.end.strftime("%Y-%m-%d"))
         return url
@@ -545,7 +547,7 @@ class MetGetStatus:
                 else:
                     status = "incomplete ({:d})".format(cycle["duration"])
 
-                if only_complete and status == "complete":
+                if status == "complete" or not only_complete:
                     table.add_row(
                         [
                             cycle["cycle"],
@@ -554,16 +556,6 @@ class MetGetStatus:
                             status,
                         ]
                     )
-                elif not only_complete:
-                    table.add_row(
-                        [
-                            cycle["cycle"],
-                            datetime.strptime(cycle["cycle"], "%Y-%m-%d %H:%M:%S")
-                            + timedelta(hours=cycle["duration"]),
-                            status,
-                        ]
-                    )
-
 
             print(table)
 
