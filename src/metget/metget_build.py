@@ -395,7 +395,9 @@ class MetGetBuildRest:
                 else:
                     ff = f
 
-                time_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+                time_stamp = datetime.now(timezone.utc).strftime(
+                    "%Y-%m-%d %H:%M:%S UTC"
+                )
                 spinner.start(f"[{time_stamp:s}]: Getting file: {f:s}")
                 with requests.get(data_url + "/" + f, stream=True) as r:
                     r.raise_for_status()
