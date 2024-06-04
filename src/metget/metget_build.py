@@ -327,6 +327,7 @@ class MetGetBuildRest:
             sleep_time (int): Time to sleep between status checks
             max_wait (int): Maximum time to wait for data to appear
             output_directory (Union[str, None]): Output directory
+            return_only_url (bool): If true the url of the files and the filelist will be returned instead of them being saved (Default=False)
 
         Returns:
             None
