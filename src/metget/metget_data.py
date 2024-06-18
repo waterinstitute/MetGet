@@ -62,7 +62,14 @@ MODEL_TYPES = {
 }
 
 # Available metget variables
-AVAILABLE_VARIABLES = {"wind_pressure", "rain", "temperature", "humidity", "ice"}
+AVAILABLE_VARIABLES = {
+    "wind_pressure",
+    "rain",
+    "temperature",
+    "humidity",
+    "ice",
+    "all_variables",
+}
 
 # Available metget formats
 AVAILABLE_FORMATS = {

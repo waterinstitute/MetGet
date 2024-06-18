@@ -95,7 +95,10 @@ class MetGetBuildRest:
             model = "ctcx"
         elif "nhc" in model:
             if len(model.split("-")) < 4:
-                msg = "Must include basin, storm name, and advisory with NHC request as 'nhc-basin-storm-advisory' or 'nhc-basin-storm-year-advisory'"
+                msg = (
+                    "Must include basin, storm name, and advisory with NHC request as "
+                    "'nhc-basin-storm-advisory' or 'nhc-basin-storm-year-advisory'"
+                )
                 raise RuntimeError(msg)
             keys = model.split("-")
             if len(keys) == 5:
@@ -260,6 +263,14 @@ class MetGetBuildRest:
             "epsg": kwargs.get("epsg", 4326),
             "filename": kwargs.get("filename", "metget_data"),
         }
+
+        # Check if the data_type is 'all_variables' and if so, check that only
+        # the coamps model is requested
+        if request_data["data_type"] == "all_variables":
+            for domain in request_data["domains"]:
+                if "coamps-tc" not in domain["service"]:
+                    msg = "The 'all_variables' data_type is only available for the coamps model"
+                    raise RuntimeError(msg)
 
         if kwargs.get("strict", False):
             request_data["strict"] = True
