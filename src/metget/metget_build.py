@@ -328,6 +328,7 @@ class MetGetBuildRest:
         sleep_time: int,
         max_wait: int,
         output_directory: Union[str, None],
+        return_only_url: bool=False
     ) -> None:
         """
         Downloads the data from the MetGet API
@@ -337,6 +338,7 @@ class MetGetBuildRest:
             sleep_time (int): Time to sleep between status checks
             max_wait (int): Maximum time to wait for data to appear
             output_directory (Union[str, None]): Output directory
+            return_only_url (bool): If true the url of the files and the filelist will be returned instead of them being saved (Default=False)
 
         Returns:
             None
@@ -366,6 +368,11 @@ class MetGetBuildRest:
         return_data = None
         data_url = None
 
+        # ...If an output_directory is given, check if it exists
+        if output_directory is not None and not os.path.exists(output_directory):
+            msg = f"Output directory does not exist: {output_directory:s}"
+            raise RuntimeError(msg)
+
         while datetime.now(timezone.utc) <= end_time:
             tries += 1
             try:
@@ -378,11 +385,16 @@ class MetGetBuildRest:
                     flist_url = data_url + "/filelist.json"
                     u = requests.get(flist_url)
                     if u.status_code == 200:
+                        js = "filelist.json"
+                        if output_directory is not None:
+                            js = os.path.join(output_directory, js)
                         return_data = json.loads(u.text)
-                        with open("filelist.json", "w") as jsonfile:
-                            jsonfile.write(
-                                json.dumps(return_data, indent=2, sort_keys=True)
-                            )
+                        # Only save filelist file when data are saved
+                        if not return_only_url:
+                            with open(js, "w") as jsonfile:
+                                jsonfile.write(
+                                    json.dumps(return_data, indent=2, sort_keys=True)
+                                )
                         break
                 elif status == "error":
                     spinner.fail("Request could not be completed")
@@ -397,11 +409,9 @@ class MetGetBuildRest:
         # ...Download files
         if data_ready:
             file_list = return_data["output_files"]
+            url_list = []
             for f in file_list:
                 if output_directory is not None:
-                    if not os.path.exists(output_directory):
-                        msg = f"Output directory does not exist: {output_directory:s}"
-                        raise RuntimeError(msg)
                     ff = os.path.join(output_directory, f)
                 else:
                     ff = f
@@ -410,11 +420,15 @@ class MetGetBuildRest:
                     "%Y-%m-%d %H:%M:%S UTC"
                 )
                 spinner.start(f"[{time_stamp:s}]: Getting file: {f:s}")
-                with requests.get(data_url + "/" + f, stream=True) as r:
+                url = data_url + "/" + f
+                with requests.get(url, stream=True) as r:
                     r.raise_for_status()
-                    with open(ff, "wb") as wind_file:
-                        for chunk in r.iter_content(chunk_size=8192):
-                            wind_file.write(chunk)
+                    if return_only_url:
+                        url_list.append(url)
+                    else:
+                        with open(ff, "wb") as wind_file:
+                            for chunk in r.iter_content(chunk_size=8192):
+                                wind_file.write(chunk)
                 spinner.succeed()
 
             request_end_time = datetime.now(timezone.utc)
@@ -428,6 +442,10 @@ class MetGetBuildRest:
                     time_stamp, int(hours), int(minutes), int(seconds)
                 )
             )
+            
+            if return_only_url:
+                return url_list, return_data
+            
         else:
             if status == "restore":
                 print(
