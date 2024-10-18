@@ -28,6 +28,69 @@
 ###################################################################################################
 
 
+def initialize_adeck_cli(subparsers):
+    """
+    This method is used to initialize the adeck subparser
+
+    Args:
+        subparsers: The adeck subparser
+
+    Returns:
+        None
+    """
+    from datetime import datetime
+
+    from .metget_adeck import metget_adeck
+
+    adeck_parser = subparsers.add_parser(
+        "adeck", help="Get NHC A-Deck storm track data"
+    )
+    adeck_parser.set_defaults(func=metget_adeck)
+    adeck_parser.add_argument(
+        "--year",
+        help="NHC Storm year to get A-Deck data for",
+        type=int,
+        metavar="n",
+        default=datetime.now().year,
+    )
+    adeck_parser.add_argument(
+        "--storm",
+        help="NHC Storm number to get storm track data for or 'all' for all storms",
+        type=str,
+        metavar="n",
+        required=True,
+    )
+    adeck_parser.add_argument(
+        "--basin",
+        help="NHC Storm basin to get storm track data for (al, ep, wp)",
+        type=str,
+        metavar="s",
+        default="al",
+    )
+    adeck_parser.add_argument(
+        "--model",
+        help="Model to get storm track data for or 'all' for all models",
+        type=str,
+        metavar="s",
+        required=True,
+    )
+    adeck_parser.add_argument(
+        "--cycle",
+        help="Model cycle to get storm track data for",
+        type=datetime.fromisoformat,
+        metavar="YYYY-MM-DD hh:mm",
+        required=True,
+    )
+    adeck_parser.add_argument(
+        "--format",
+        type=str,
+        help="Output format (json, pretty)",
+        default="pretty",
+        required=False,
+        metavar="f",
+    )
+
+
 def initialize_build_cli(subparsers):
     """
     This method is used to initialize the build subparser
@@ -322,6 +385,7 @@ def metget_client_cli() -> None:
     initialize_build_cli(subparsers)
     initialize_status_cli(subparsers)
     initialize_track_cli(subparsers)
+    initialize_adeck_cli(subparsers)
     initialize_credits_cli(subparsers)
 
     args = p.parse_args()
