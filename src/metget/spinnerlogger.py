@@ -41,7 +41,7 @@ class SpinnerLogger:
         from sys import stdout
 
         try:
-            from halo import Halo
+            from yaspin import yaspin
 
             self.__is_tty = stdout.isatty()
         except ImportError:
@@ -55,12 +55,7 @@ class SpinnerLogger:
         self.__current_text = SpinnerLogger.standard_log(0, "initializing")
 
         if self.__is_tty:
-            self.__spinner = Halo(
-                text=self.__current_text,
-                spinner="dots",
-                placement="left",
-            )
-            self.__spinner.color = self.__spinner.text_color
+            self.__spinner = yaspin(text=self.__current_text, color="green")
 
     @staticmethod
     def __time_str() -> str:
@@ -87,7 +82,8 @@ class SpinnerLogger:
         if text is not None:
             self.__current_text = text
         if self.__is_tty:
-            self.__spinner.start(self.__current_text)
+            self.__spinner.start()
+            self.__spinner.text = self.__current_text
         else:
             if text is not None:
                 SpinnerLogger.__standard_print(self.__current_text)
@@ -123,7 +119,7 @@ class SpinnerLogger:
             self.__current_text = text
 
         if self.__is_tty:
-            self.__spinner.succeed(self.__current_text)
+            self.__spinner.ok("\ue63f")
         else:
             if text is not None:
                 SpinnerLogger.__standard_print(self.__current_text)
@@ -142,7 +138,7 @@ class SpinnerLogger:
             self.__current_text = text
 
         if self.__is_tty:
-            self.__spinner.info(self.__current_text)
+            self.__spinner.text = self.__current_text
         else:
             if text is not None:
                 SpinnerLogger.__standard_print(self.__current_text)
@@ -161,7 +157,8 @@ class SpinnerLogger:
             self.__current_text = text
 
         if self.__is_tty:
-            self.__spinner.fail(self.__current_text)
+            self.__spinner.fail("\uf00d")
+            self.__spinner.text = self.__current_text
         else:
             if text is not None:
                 SpinnerLogger.__standard_print(self.__current_text)
