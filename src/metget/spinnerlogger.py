@@ -119,6 +119,7 @@ class SpinnerLogger:
             self.__current_text = text
 
         if self.__is_tty:
+            self.__spinner.text = self.__current_text
             self.__spinner.ok("\ue63f")
         else:
             if text is not None:
@@ -157,8 +158,8 @@ class SpinnerLogger:
             self.__current_text = text
 
         if self.__is_tty:
-            self.__spinner.fail("\uf00d")
             self.__spinner.text = self.__current_text
+            self.__spinner.fail("\uf00d")
         else:
             if text is not None:
                 SpinnerLogger.__standard_print(self.__current_text)
