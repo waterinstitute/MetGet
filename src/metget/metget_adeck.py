@@ -83,7 +83,10 @@ def metget_adeck(args: argparse.Namespace) -> None:
     track_data = response_data["body"]
 
     if args.format == "json":
-        print(json.dumps(track_data))
+        if storm == "all" or model.lower() == "all":
+            print(json.dumps(track_data["storm_tracks"]))
+        else:
+            print(json.dumps(track_data["storm_track"]))
     elif args.format == "pretty":
         if storm == "all":
             table = print_table_all_storms(track_data)
