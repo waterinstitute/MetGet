@@ -75,18 +75,37 @@ def metget_adeck(args: argparse.Namespace) -> None:
     response = requests.get(url, headers=headers)
 
     if response.status_code != 200:
-        print(response.json())
-        msg = "Invalid request. Check the parameters and try again."
-        raise ValueError(msg)
+        if (
+            "body" in response.json()
+            and "message" in response.json()["body"]
+            and response.json()["body"]["message"] == "No results found"
+        ):
+            if args.format == "json":
+                print(json.dumps({"message": "No results found"}))
+            else:
+                print("No results found")
+            msg = "No results found"
+            raise ValueError(msg)
+        else:
+            print(response.json())
+            msg = "Invalid request. Check the parameters and try again."
+            raise ValueError(msg)
     response_data = response.json()
 
     track_data = response_data["body"]
 
     if args.format == "json":
-        if storm == "all" or model.lower() == "all":
-            print(json.dumps(track_data["storm_tracks"]))
+        if args.output:
+            with open(args.output, "w") as f:
+                if storm == "all" or model.lower() == "all":
+                    f.write(json.dumps(track_data["storm_tracks"]))
+                else:
+                    f.write(json.dumps(track_data["storm_track"]))
         else:
-            print(json.dumps(track_data["storm_track"]))
+            if storm == "all" or model.lower() == "all":
+                print(json.dumps(track_data["storm_tracks"]))
+            else:
+                print(json.dumps(track_data["storm_track"]))
     elif args.format == "pretty":
         if storm == "all":
             table = print_table_all_storms(track_data)
