@@ -89,6 +89,13 @@ def initialize_adeck_cli(subparsers):
         required=False,
         metavar="f",
     )
+    adeck_parser.add_argument(
+        "--output",
+        type=str,
+        help="Output file to save data to when using the json format",
+        required=False,
+        metavar="s",
+    )
 
 
 def initialize_build_cli(subparsers):
