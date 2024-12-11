@@ -189,6 +189,4 @@ class SpinnerLogger:
         Returns:
             str: Standard log message
         """
-        return "[{:s}]: Checking request status...(n={:d}): {:s}".format(
-            SpinnerLogger.__time_str(), count, status
-        )
+        return f"[{SpinnerLogger.__time_str():s}]: Checking request status...(n={count:d}): {status:s}"
