@@ -1,9 +1,10 @@
 import argparse
 import json
 from datetime import datetime
-from test.adeck_data import ADECK_AVNO_2024_14L_20241009_PRETTYTABLE
 
 import requests_mock
+
+from test.adeck_data import ADECK_AVNO_2024_14L_20241009_PRETTYTABLE
 
 METGET_DMY_ENDPOINT = "https://metget.server.dmy"
 METGET_DMY_APIKEY = "1234567890"

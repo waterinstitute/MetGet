@@ -225,12 +225,10 @@ class MetGetBuildRest:
         Returns:
             list: List of domains as dictionaries
         """
-        idx = 0
         domains = []
-        for d in domain_list:
+        for idx, d in enumerate(domain_list):
             j = MetGetBuildRest.parse_domain_data(d, idx, initialization_skip)
             domains.append(j)
-            idx += 1
         return domains
 
     @staticmethod
@@ -424,9 +422,7 @@ class MetGetBuildRest:
 
             time_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             spinner.succeed(
-                "[{:s}]: Elapsed time: {:d}h{:02d}m{:02d}s".format(
-                    time_stamp, int(hours), int(minutes), int(seconds)
-                )
+                f"[{time_stamp:s}]: Elapsed time: {int(hours):d}h{int(minutes):02d}m{int(seconds):02d}s"
             )
         else:
             if status == "restore":

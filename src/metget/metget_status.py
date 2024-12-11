@@ -267,8 +267,8 @@ class MetGetStatus:
             print(json.dumps(data))
         elif self.__args.format == "pretty":
             if self.__args.storm and self.__args.ensemble_member:
-                model_name = "{:s}-{:s}-{:s}".format(
-                    model, self.__args.storm, self.__args.ensemble_member
+                model_name = (
+                    f"{model:s}-{self.__args.storm:s}-{self.__args.ensemble_member:s}"
                 )
                 self.__print_status_generic(
                     model_name,
@@ -494,24 +494,22 @@ class MetGetStatus:
                     print(f"Status for {model.upper():s} Model Ensemble Members")
                     print(table.get_string(sortby="Ensemble Member"))
                 else:
-                    for year in data:
-                        for it in data[year]:
+                    for _, item in data.items():
+                        for storm_id, subitem in item.items():
                             table.add_row(
                                 [
-                                    it,
-                                    data[year][it]["first_available_cycle"],
-                                    data[year][it]["latest_available_cycle"],
-                                    data[year][it]["min_forecast_date"],
-                                    data[year][it]["max_forecast_date"],
-                                    len(data[year][it]["cycles"]),
+                                    storm_id,
+                                    subitem["first_available_cycle"],
+                                    subitem["latest_available_cycle"],
+                                    subitem["min_forecast_date"],
+                                    subitem["max_forecast_date"],
+                                    len(subitem["cycles"]),
                                 ]
                             )
                     table.align["Cycle Count"] = "r"
                     table.reversesort = True
                     print(
-                        "Status for {:s} Model Storms (class: {:s})".format(
-                            model.upper(), self.__model_class
-                        )
+                        f"Status for {model.upper():s} Model Storms (class: {self.__model_class:s})"
                     )
                     print(table.get_string(sortby="First Forecast Cycle"))
 
