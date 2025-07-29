@@ -31,6 +31,7 @@ import argparse
 import contextlib
 import json
 import time
+import sys
 from datetime import datetime, timezone
 from typing import Tuple, Union
 
@@ -382,6 +383,14 @@ class MetGetBuildRest:
                                 json.dumps(return_data, indent=2, sort_keys=True)
                             )
                         break
+                    else:
+                        # The file does not exist, so we will throw an error
+                        spinner.fail(
+                            "Could not retrieve files. "
+                            "Please check the request id, "
+                            "ensure it is not expired, and try again"
+                        )
+                        sys.exit(1)
                 elif status == "error":
                     spinner.fail("Request could not be completed")
                     return
