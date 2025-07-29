@@ -72,13 +72,12 @@ def test_get_status_gfs(capfd) -> None:
 
 def test_status_hwrf(capfd) -> None:
     """
-    Tests the status command for the HWRF model
-
-    Args:
-        capfd: pytest fixture to capture stdout and stderr
-
-    Returns:
-        None
+    **TEST PURPOSE**: Validates status retrieval for HWRF hurricane model data availability
+    **MODULE**: metget_status.metget_status
+    **SCENARIO**: Query HWRF model data status with date range filtering
+    **INPUT**: Model 'hwrf', date range 2023-06-01 to 2023-06-24, format 'pretty'
+    **EXPECTED**: Returns HWRF data availability within specified date range
+    **COVERAGE**: Tests HWRF model status, date range filtering, and hurricane model data tracking
     """
     args = argparse.Namespace()
     args.model = "hwrf"

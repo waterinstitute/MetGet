@@ -23,7 +23,12 @@ METGET_API_VERSION = 2
 
 def test_adeck_json_single_storm(capfd) -> None:
     """
-    Test that a single storm in the A-deck JSON format is returned correctly
+    **TEST PURPOSE**: Validates A-deck data retrieval for a single storm in JSON format
+    **MODULE**: metget_adeck.metget_adeck
+    **SCENARIO**: Request A-deck track data for Hurricane 14L in 2024 from AVNO model
+    **INPUT**: Storm 14, year 2024, basin AL, model AVNO, cycle 2024-10-09T00:00, format JSON
+    **EXPECTED**: Returns storm track data as JSON matching expected response structure
+    **COVERAGE**: Tests successful single storm JSON response handling and output formatting
     """
     args = argparse.Namespace(
         storm="14",
@@ -58,7 +63,12 @@ def test_adeck_json_single_storm(capfd) -> None:
 
 def test_adeck_pretty_single_storm(capfd) -> None:
     """
-    Test that a single storm in the A-deck pretty format is returned correctly
+    **TEST PURPOSE**: Validates A-deck data retrieval for a single storm in pretty-printed table format
+    **MODULE**: metget_adeck.metget_adeck
+    **SCENARIO**: Request A-deck track data for Hurricane 14L in 2024 from AVNO model
+    **INPUT**: Storm 14, year 2024, basin AL, model AVNO, cycle 2024-10-09T00:00, format pretty
+    **EXPECTED**: Returns storm track data as formatted table matching expected layout
+    **COVERAGE**: Tests pretty-print formatting functionality and table output generation
     """
     args = argparse.Namespace(
         storm="14",
@@ -89,7 +99,12 @@ def test_adeck_pretty_single_storm(capfd) -> None:
 
 def test_adeck_json_all_storms(capfd) -> None:
     """
-    Test that all storms in the A-deck JSON format are returned correctly
+    **TEST PURPOSE**: Validates A-deck data retrieval for all storms in JSON format
+    **MODULE**: metget_adeck.metget_adeck
+    **SCENARIO**: Request A-deck track data for all storms in 2024 from AVNO model
+    **INPUT**: Storm 'all', year 2024, basin AL, model AVNO, cycle 2024-10-09T00:00, format JSON
+    **EXPECTED**: Returns multiple storm tracks data as JSON with 'storm_tracks' structure
+    **COVERAGE**: Tests bulk storm data retrieval and multi-storm JSON response handling
     """
     args = argparse.Namespace(
         storm="all",
@@ -124,7 +139,12 @@ def test_adeck_json_all_storms(capfd) -> None:
 
 def test_adeck_pretty_all_storms(capfd) -> None:
     """
-    Test that all storms in the A-deck pretty format are returned correctly
+    **TEST PURPOSE**: Validates A-deck data retrieval for all storms in pretty-printed table format
+    **MODULE**: metget_adeck.metget_adeck
+    **SCENARIO**: Request A-deck track data for all storms in 2024 from AVNO model
+    **INPUT**: Storm 'all', year 2024, basin AL, model AVNO, cycle 2024-10-09T00:00, format pretty
+    **EXPECTED**: Returns multiple storm tracks as formatted table with consolidated layout
+    **COVERAGE**: Tests bulk data pretty-print formatting and multi-storm table generation
     """
     args = argparse.Namespace(
         storm="all",
@@ -155,7 +175,12 @@ def test_adeck_pretty_all_storms(capfd) -> None:
 
 def test_adeck_all_models_one_storm(capfd) -> None:
     """
-    Test that all models for one storm in the A-deck pretty format are returned correctly
+    **TEST PURPOSE**: Validates A-deck data retrieval for all models of a single storm with file output
+    **MODULE**: metget_adeck.metget_adeck
+    **SCENARIO**: Request A-deck track data for Hurricane 14L from all available models
+    **INPUT**: Storm 14, year 2024, basin AL, model 'all', cycle 2024-10-09T00:00, JSON output to file
+    **EXPECTED**: Creates JSON file containing storm tracks from multiple models
+    **COVERAGE**: Tests multi-model data retrieval, file output functionality, and data aggregation
     """
     output_file_name = "pytest_track.json"
 
@@ -198,7 +223,12 @@ def test_adeck_all_models_one_storm(capfd) -> None:
 
 def test_adeck_all_models_one_storm_pretty(capfd) -> None:
     """
-    Test that all models for one storm in the A-deck pretty format are returned correctly
+    **TEST PURPOSE**: Validates A-deck data retrieval for all models of a single storm in table format
+    **MODULE**: metget_adeck.metget_adeck
+    **SCENARIO**: Request A-deck track data for Hurricane 14L from all available models
+    **INPUT**: Storm 14, year 2024, basin AL, model 'all', cycle 2024-10-09T00:00, format pretty
+    **EXPECTED**: Returns comparative table showing track data from multiple models
+    **COVERAGE**: Tests multi-model data aggregation and comparative table formatting
     """
     args = argparse.Namespace(
         storm="14",

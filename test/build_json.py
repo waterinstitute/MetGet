@@ -1,3 +1,4 @@
+import copy
 from datetime import datetime, timezone
 
 METGET_BUILD_GFS_JSON = {
@@ -272,14 +273,18 @@ METGET_BUILD_RETURN_QUEUED = {
     },
 }
 
-METGET_BUILD_RETURN_RESTORE = METGET_BUILD_RETURN_QUEUED
+METGET_BUILD_RETURN_RESTORE = copy.deepcopy(METGET_BUILD_RETURN_QUEUED)
 METGET_BUILD_RETURN_RESTORE["body"]["status"] = "restore"
 METGET_BUILD_RETURN_RESTORE["body"]["message"] = "Data in restore state"
 
-METGET_BUILD_RETURN_RUNNING = METGET_BUILD_RETURN_QUEUED
+METGET_BUILD_RETURN_RUNNING = copy.deepcopy(METGET_BUILD_RETURN_QUEUED)
 METGET_BUILD_RETURN_RUNNING["body"]["status"] = "running"
 METGET_BUILD_RETURN_RUNNING["body"]["message"] = "Request running"
 
-METGET_BUILD_RETURN_COMPLETE = METGET_BUILD_RETURN_QUEUED
+METGET_BUILD_RETURN_COMPLETE = copy.deepcopy(METGET_BUILD_RETURN_QUEUED)
 METGET_BUILD_RETURN_COMPLETE["body"]["status"] = "completed"
 METGET_BUILD_RETURN_COMPLETE["body"]["message"] = "Request complete"
+
+METGET_BUILD_RETURN_ERROR = copy.deepcopy(METGET_BUILD_RETURN_QUEUED)
+METGET_BUILD_RETURN_ERROR["body"]["status"] = "error"
+METGET_BUILD_RETURN_ERROR["body"]["message"] = "Request failed due to server error"

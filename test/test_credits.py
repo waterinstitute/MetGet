@@ -31,12 +31,12 @@ METGET_FORMATTED_CREDIT_RESPONSE_JSON = {
 
 def test_credits(capfd) -> None:
     """
-    Tests the credits data
-    Args:
-        capfd: pytest fixture to capture stdout and stderr
-
-    Returns:
-        None
+    **TEST PURPOSE**: Validates credit balance retrieval and formatting in both JSON and pretty formats
+    **MODULE**: metget_credits.metget_credits
+    **SCENARIO**: Request user credit information from MetGet API in different output formats
+    **INPUT**: API endpoint, API key, format specifications ('json' and 'pretty')
+    **EXPECTED**: Returns credit data formatted as JSON object or pretty-printed table
+    **COVERAGE**: Tests API credit endpoint, JSON/pretty format handling, and unlimited credit display
     """
     args = argparse.Namespace()
     args.endpoint = METGET_DMY_ENDPOINT
