@@ -542,6 +542,14 @@ def metget_build(args: argparse.Namespace) -> None:
             print(f"ERROR: Invalid output format '{args.format:s}' selected")
             exit(1)
 
+        # A filename must not have any slashes
+        if "/" in args.output or "\\" in args.output:
+            print(
+                "[ERROR]: Output filename must not contain slashes. "
+                "If you want to specify a directory, use '--output-directory'"
+            )
+            exit(1)
+
         # ...Building the request
         request_data = MetGetBuildRest.generate_request_json(
             analysis=args.analysis,
