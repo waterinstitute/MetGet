@@ -1,10 +1,20 @@
 import argparse
 import json
+import os
 from datetime import datetime
 
 import requests_mock
 
-from test.adeck_data import ADECK_AVNO_2024_14L_20241009_PRETTYTABLE
+from metget.metget_adeck import metget_adeck
+
+from .adeck_data import (
+    ADECK_ALL_2024_14_20241009_PRETTYTABLE,
+    ADECK_ALL_2024_14_20241009_RESPONSE,
+    ADECK_AVNO_2024_14L_20241009_PRETTYTABLE,
+    ADECK_AVNO_2024_14L_20241009_RESPONSE,
+    ADECK_AVNO_2024_ALL_20241009_PRETTYTABLE,
+    ADECK_AVNO_2024_ALL_20241009_RESPONSE,
+)
 
 METGET_DMY_ENDPOINT = "https://metget.server.dmy"
 METGET_DMY_APIKEY = "1234567890"
@@ -15,12 +25,6 @@ def test_adeck_json_single_storm(capfd) -> None:
     """
     Test that a single storm in the A-deck JSON format is returned correctly
     """
-    from metget.metget_adeck import metget_adeck
-
-    from .adeck_data import (
-        ADECK_AVNO_2024_14L_20241009_RESPONSE,
-    )
-
     args = argparse.Namespace(
         storm="14",
         year="2024",
@@ -56,10 +60,6 @@ def test_adeck_pretty_single_storm(capfd) -> None:
     """
     Test that a single storm in the A-deck pretty format is returned correctly
     """
-    from metget.metget_adeck import metget_adeck
-
-    from .adeck_data import ADECK_AVNO_2024_14L_20241009_RESPONSE
-
     args = argparse.Namespace(
         storm="14",
         year="2024",
@@ -91,12 +91,6 @@ def test_adeck_json_all_storms(capfd) -> None:
     """
     Test that all storms in the A-deck JSON format are returned correctly
     """
-    from metget.metget_adeck import metget_adeck
-
-    from .adeck_data import (
-        ADECK_AVNO_2024_ALL_20241009_RESPONSE,
-    )
-
     args = argparse.Namespace(
         storm="all",
         year="2024",
@@ -132,13 +126,6 @@ def test_adeck_pretty_all_storms(capfd) -> None:
     """
     Test that all storms in the A-deck pretty format are returned correctly
     """
-    from metget.metget_adeck import metget_adeck
-
-    from .adeck_data import (
-        ADECK_AVNO_2024_ALL_20241009_PRETTYTABLE,
-        ADECK_AVNO_2024_ALL_20241009_RESPONSE,
-    )
-
     args = argparse.Namespace(
         storm="all",
         year="2024",
@@ -170,12 +157,6 @@ def test_adeck_all_models_one_storm(capfd) -> None:
     """
     Test that all models for one storm in the A-deck pretty format are returned correctly
     """
-    import os
-
-    from metget.metget_adeck import metget_adeck
-
-    from .adeck_data import ADEC_ALL_2024_14_20241009_RESPONSE
-
     output_file_name = "pytest_track.json"
 
     args = argparse.Namespace(
@@ -194,7 +175,7 @@ def test_adeck_all_models_one_storm(capfd) -> None:
     with requests_mock.Mocker() as m:
         m.get(
             f"{METGET_DMY_ENDPOINT}/adeck/2024/AL/all/14/2024-10-09T00:00",
-            json=ADEC_ALL_2024_14_20241009_RESPONSE,
+            json=ADECK_ALL_2024_14_20241009_RESPONSE,
         )
 
         # Call the function and capture the screen output
@@ -211,7 +192,7 @@ def test_adeck_all_models_one_storm(capfd) -> None:
         # Check the output
         assert (
             output_file_dict
-            == ADEC_ALL_2024_14_20241009_RESPONSE["body"]["storm_tracks"]
+            == ADECK_ALL_2024_14_20241009_RESPONSE["body"]["storm_tracks"]
         )
 
 
@@ -219,13 +200,6 @@ def test_adeck_all_models_one_storm_pretty(capfd) -> None:
     """
     Test that all models for one storm in the A-deck pretty format are returned correctly
     """
-    from metget.metget_adeck import metget_adeck
-
-    from .adeck_data import (
-        ADEC_ALL_2024_14_20241009_PRETTYTABLE,
-        ADEC_ALL_2024_14_20241009_RESPONSE,
-    )
-
     args = argparse.Namespace(
         storm="14",
         year="2024",
@@ -242,7 +216,7 @@ def test_adeck_all_models_one_storm_pretty(capfd) -> None:
     with requests_mock.Mocker() as m:
         m.get(
             f"{METGET_DMY_ENDPOINT}/adeck/2024/AL/all/14/2024-10-09T00:00",
-            json=ADEC_ALL_2024_14_20241009_RESPONSE,
+            json=ADECK_ALL_2024_14_20241009_RESPONSE,
         )
 
         # Call the function and capture the screen output
@@ -250,4 +224,4 @@ def test_adeck_all_models_one_storm_pretty(capfd) -> None:
         screen_output = capfd.readouterr().out
 
         # Check the output
-        assert screen_output == ADEC_ALL_2024_14_20241009_PRETTYTABLE
+        assert screen_output == ADECK_ALL_2024_14_20241009_PRETTYTABLE

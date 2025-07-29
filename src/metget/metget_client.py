@@ -26,6 +26,16 @@
 # Organization: The Water Institute
 #
 ###################################################################################################
+import argparse
+from datetime import datetime
+
+from .metget_adeck import metget_adeck
+from .metget_build import metget_build
+from .metget_credits import metget_credits
+from .metget_data import get_metget_available_model_list
+from .metget_environment import metget_version
+from .metget_status import metget_status
+from .metget_track import metget_track
 
 
 def initialize_adeck_cli(subparsers):
@@ -38,10 +48,6 @@ def initialize_adeck_cli(subparsers):
     Returns:
         None
     """
-    from datetime import datetime
-
-    from .metget_adeck import metget_adeck
-
     adeck_parser = subparsers.add_parser(
         "adeck", help="Get NHC A-Deck storm track data"
     )
@@ -108,11 +114,6 @@ def initialize_build_cli(subparsers):
     Returns:
         None
     """
-    from datetime import datetime
-
-    from .metget_build import metget_build
-    from .metget_data import get_metget_available_model_list
-
     build = subparsers.add_parser(
         name="build",
         help="Generate a MetGet build request",
@@ -253,8 +254,6 @@ def initialize_credits_cli(subparsers):
     Returns:
         None
     """
-    from .metget_credits import metget_credits
-
     api_credits = subparsers.add_parser(
         "credits", help="Check the number of credits available"
     )
@@ -268,11 +267,6 @@ def initialize_credits_cli(subparsers):
 
 
 def initialize_status_cli(subparsers):
-    from datetime import datetime
-
-    from .metget_data import get_metget_available_model_list
-    from .metget_status import metget_status
-
     status = subparsers.add_parser(
         "status", help="Check the status of the available data"
     )
@@ -332,8 +326,6 @@ def initialize_track_cli(subparsers) -> None:
     Returns:
         None
     """
-    from .metget_track import metget_track
-
     track = subparsers.add_parser(
         "track", help="Get the storm track data for a NHC storm"
     )
@@ -366,10 +358,6 @@ def metget_client_cli() -> None:
     """
     Main function for command line interface
     """
-    import argparse
-
-    from .metget_environment import metget_version
-
     p = argparse.ArgumentParser(
         description="Client for interaction with a MetGet API instance",
         prog="metget",

@@ -27,6 +27,7 @@
 #
 ###################################################################################################
 import argparse
+import os
 
 
 def metget_version() -> str:
@@ -36,7 +37,7 @@ def metget_version() -> str:
     Returns:
         The version of the MetGet client
     """
-    from . import __version__ as version
+    from . import __version__ as version  # noqa: PLC0415
 
     return version
 
@@ -52,8 +53,6 @@ def get_metget_environment_variables(args: argparse.Namespace) -> dict:
     Returns:
         A dictionary containing the endpoint and apikey
     """
-    import os
-
     if not args.endpoint:
         if "METGET_ENDPOINT" not in os.environ:
             msg = "No endpoint found."

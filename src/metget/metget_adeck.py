@@ -28,8 +28,12 @@
 ###################################################################################################
 import argparse
 import contextlib
+import json
 
+import requests
 from prettytable import PrettyTable
+
+from .metget_environment import get_metget_environment_variables
 
 
 def metget_adeck(args: argparse.Namespace) -> None:
@@ -42,12 +46,6 @@ def metget_adeck(args: argparse.Namespace) -> None:
     Raises:
         ValueError: If the parameters are invalid
     """
-    import json
-
-    import requests
-
-    from .metget_environment import get_metget_environment_variables
-
     env = get_metget_environment_variables(args)
     headers = {"x-api-key": env["apikey"]}
 
