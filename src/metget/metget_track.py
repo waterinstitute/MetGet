@@ -27,6 +27,12 @@
 #
 ###################################################################################################
 import argparse
+import json
+from datetime import datetime
+
+import requests
+
+from .metget_environment import get_metget_environment_variables
 
 
 class MetGetTrack:
@@ -35,8 +41,6 @@ class MetGetTrack:
     """
 
     def __init__(self, args: argparse.Namespace):
-        from .metget_environment import get_metget_environment_variables
-
         self.__args = args
         self.__environment = get_metget_environment_variables(args)
 
@@ -44,11 +48,6 @@ class MetGetTrack:
         """
         This method is used to get the track data from the api
         """
-        import json
-        from datetime import datetime
-
-        import requests
-
         url = self.__environment["endpoint"] + "/stormtrack"
 
         if not self.__args.storm:

@@ -26,6 +26,8 @@
 # Organization: The Water Institute
 #
 ###################################################################################################
+from datetime import datetime, timezone
+from sys import stdout
 from typing import Optional
 
 
@@ -38,10 +40,8 @@ class SpinnerLogger:
         """
         Constructor
         """
-        from sys import stdout
-
         try:
-            from yaspin import yaspin
+            from yaspin import yaspin  # noqa: PLC0415
 
             self.__is_tty = stdout.isatty()
         except ImportError:
@@ -65,8 +65,6 @@ class SpinnerLogger:
         Returns:
             str: Current time in UTC
         """
-        from datetime import datetime, timezone
-
         return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     def start(self, text: Optional[str] = None) -> None:

@@ -29,13 +29,20 @@
 
 import argparse
 import contextlib
+import getpass
 import json
-import time
+import os
+import socket
 import sys
-from datetime import datetime, timezone
+import time
+from datetime import datetime, timedelta, timezone
 from typing import Tuple, Union
 
-from .metget_data import AVAILABLE_MODELS
+import requests
+
+from .metget_data import AVAILABLE_FORMATS, AVAILABLE_MODELS, AVAILABLE_VARIABLES
+from .metget_environment import get_metget_environment_variables
+from .spinnerlogger import SpinnerLogger
 
 
 class MetGetBuildRest:
@@ -240,9 +247,6 @@ class MetGetBuildRest:
         Returns:
             dict: Request JSON
         """
-        import getpass
-        import socket
-
         request_data = {
             "version": "0.0.1",
             "creator": kwargs.get(
@@ -297,8 +301,6 @@ class MetGetBuildRest:
         Returns:
             Tuple[str, int]: Data id and status code
         """
-        import requests
-
         headers = {"x-api-key": self.__metget_api_key}
         r = requests.post(
             self.__metget_api_server + "/build", headers=headers, json=request_json
@@ -340,13 +342,6 @@ class MetGetBuildRest:
         Returns:
             None
         """
-        import os
-        from datetime import datetime, timedelta, timezone
-
-        import requests
-
-        from .spinnerlogger import SpinnerLogger
-
         # ...Wait time
         end_time = datetime.now(timezone.utc) + timedelta(hours=max_wait)
 
@@ -491,8 +486,6 @@ class MetGetBuildRest:
         Returns:
             str: response text
         """
-        import requests
-
         headers = {"x-api-key": self.__metget_api_key}
         request_params = {"request-id": data_id}
         response = requests.get(
@@ -511,9 +504,6 @@ def metget_build(args: argparse.Namespace) -> None:
     Returns:
         None
     """
-    from .metget_data import AVAILABLE_FORMATS, AVAILABLE_VARIABLES
-    from .metget_environment import get_metget_environment_variables
-
     # ...Get the environment variables
     environment = get_metget_environment_variables(args)
 

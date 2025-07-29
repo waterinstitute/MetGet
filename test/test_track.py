@@ -1,4 +1,6 @@
 import argparse
+import json
+import os
 from urllib.parse import urlencode
 
 import requests_mock
@@ -21,9 +23,6 @@ def test_best_track(capfd) -> None:
     Returns:
         None
     """
-    import json
-    import os
-
     args = argparse.Namespace()
     args.type = "besttrack"
     args.storm = 9
@@ -68,8 +67,6 @@ def test_forecast_track(capfd) -> None:
     Returns:
         None
     """
-    import json
-
     args = argparse.Namespace()
     args.type = "forecast"
     args.storm = 9

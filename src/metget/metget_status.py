@@ -27,6 +27,15 @@
 #
 ###################################################################################################
 import argparse
+import json
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Union
+
+import prettytable
+import requests
+
+from .metget_data import MODEL_TYPES
+from .metget_environment import get_metget_environment_variables
 
 
 class MetGetStatus:
@@ -40,8 +49,6 @@ class MetGetStatus:
         Returns:
             None
         """
-        from .metget_environment import get_metget_environment_variables
-
         self.__args = args
         self.__environment = get_metget_environment_variables(args)
         self.__model_class = None
@@ -54,8 +61,6 @@ class MetGetStatus:
         """
         This method is used to get the status of the metget data
         """
-        from .metget_data import MODEL_TYPES
-
         model = self.__args.model
         self.__model_class = MODEL_TYPES[model]
 
@@ -85,8 +90,6 @@ class MetGetStatus:
         Returns:
             The url with the start and end parameters added
         """
-        from datetime import datetime, timezone
-
         if self.__args.start:
             url += "&start={:s}".format(self.__args.start.strftime("%Y-%m-%d"))
             if not self.__args.end:
@@ -99,11 +102,6 @@ class MetGetStatus:
 
     # TODO: ERA5 Hindcast
     # def __status_hindcast(self, model: str) -> None:
-    #     import json
-    #     from datetime import datetime, timedelta
-    #
-    #     import prettytable
-    #     import requests
     #
     #     url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
     #     url = self.__add_url_start_end_parameters(url)
@@ -142,11 +140,6 @@ class MetGetStatus:
         Args:
             model: The model to get the status for
         """
-        import json
-
-        import prettytable
-        import requests
-
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
         if self.__args.storm:
@@ -211,7 +204,7 @@ class MetGetStatus:
             for storm_track in storm_tracks:
                 advisories = storm_track["advisories"]
                 if len(advisories) > 6:
-                    advisories = advisories[:3] + ["..."] + advisories[-3:]
+                    advisories = [*advisories[:3], "...", *advisories[-3:]]
                 elif len(advisories) == 0:
                     advisories = ["None"]
 
@@ -246,11 +239,6 @@ class MetGetStatus:
         Returns:
             None
         """
-        import json
-
-        import prettytable
-        import requests
-
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
         if self.__args.storm:
@@ -336,8 +324,6 @@ class MetGetStatus:
         Returns:
             None
         """
-        import requests
-
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
         if self.__args.ensemble_member:
@@ -366,8 +352,6 @@ class MetGetStatus:
         Returns:
             None
         """
-        import requests
-
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
 
@@ -390,10 +374,6 @@ class MetGetStatus:
         Returns:
             None
         """
-        import json
-
-        import requests
-
         url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
         url = self.__add_url_start_end_parameters(url)
 
@@ -414,7 +394,9 @@ class MetGetStatus:
         else:
             self.__print_status_multi("storm", model, response.json()["body"])
 
-    def __print_status_multi(self, data_type: str, model: str, data: dict) -> None:
+    def __print_status_multi(
+        self, data_type: str, model: str, data: Union[Dict, List[Dict]]
+    ) -> None:
         """
         This method is used to print the status of the storm data
 
@@ -425,10 +407,6 @@ class MetGetStatus:
         Returns:
             None
         """
-        import json
-
-        import prettytable
-
         if self.__args.format == "json":
             print(json.dumps(data))
         elif self.__args.format == "pretty":
@@ -526,11 +504,6 @@ class MetGetStatus:
         Returns:
             None
         """
-        import json
-        from datetime import datetime, timedelta
-
-        import prettytable
-
         if self.__args.format == "json":
             print(json.dumps(data))
         elif self.__args.format == "pretty":

@@ -27,6 +27,12 @@
 #
 ###################################################################################################
 import argparse
+import json
+
+import prettytable
+import requests
+
+from .metget_environment import get_metget_environment_variables
 
 
 def metget_credits(args: argparse.Namespace) -> None:
@@ -36,13 +42,6 @@ def metget_credits(args: argparse.Namespace) -> None:
     Args:
         args: The arguments passed to the command line
     """
-    import json
-
-    import prettytable
-    import requests
-
-    from .metget_environment import get_metget_environment_variables
-
     env = get_metget_environment_variables(args)
 
     url = env["endpoint"] + "/credits"

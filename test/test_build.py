@@ -1,10 +1,12 @@
 import argparse
+import json
+import os
 from datetime import datetime
 
 import pytest
 import requests_mock
 
-from metget.metget_build import MetGetBuildRest
+from metget.metget_build import MetGetBuildRest, metget_build
 from metget.metget_environment import get_metget_environment_variables
 
 from .build_json import (
@@ -193,11 +195,6 @@ def test_build_nhc_raw(capfd) -> None:
     Returns:
         None
     """
-    import json
-    import os
-
-    from metget.metget_build import metget_build
-
     args = argparse.Namespace()
     args.analysis = False
     args.multiple_forecasts = True
@@ -323,11 +320,6 @@ def test_build_nhc_raw_thisyear(capfd) -> None:
     Returns:
         None
     """
-    import json
-    import os
-
-    from metget.metget_build import metget_build
-
     args = argparse.Namespace()
     args.analysis = False
     args.multiple_forecasts = True
@@ -844,9 +836,6 @@ def metget_request_mocker(
     args: argparse.Namespace,
     capfd,
 ) -> None:
-    import json
-    import os
-
     response_list = [
         {"json": METGET_BUILD_RETURN_QUEUED, "status_code": 200},
         {"json": METGET_BUILD_RETURN_QUEUED, "status_code": 200},

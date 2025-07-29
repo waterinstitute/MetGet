@@ -1,3 +1,6 @@
+from metget.metget_client import metget_client_cli
+
+
 def test_cli():
     """
     Test fires the CLI. This doesn't do much except check that argparse can fire up correctly
@@ -5,6 +8,4 @@ def test_cli():
     Returns:
         None
     """
-    from metget.metget_client import metget_client_cli
-
     metget_client_cli()

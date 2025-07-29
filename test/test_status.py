@@ -1,4 +1,6 @@
 import argparse
+import json
+from datetime import datetime
 from urllib.parse import urlencode
 
 import requests_mock
@@ -40,8 +42,6 @@ def test_get_status_gfs(capfd) -> None:
     Returns:
         None
     """
-    import json
-
     args = argparse.Namespace()
     args.model = "gfs"
     args.format = "pretty"
@@ -80,9 +80,6 @@ def test_status_hwrf(capfd) -> None:
     Returns:
         None
     """
-    import json
-    from datetime import datetime
-
     args = argparse.Namespace()
     args.model = "hwrf"
     args.format = "pretty"
@@ -163,9 +160,6 @@ def test_status_nhc(capfd) -> None:
     Returns:
         None
     """
-    import json
-    from datetime import datetime
-
     args = argparse.Namespace()
     args.model = "nhc"
     args.start = datetime(2023, 6, 1)
@@ -212,9 +206,6 @@ def test_status_gefs(capfd) -> None:
     Returns:
         None
     """
-    import json
-    from datetime import datetime
-
     args = argparse.Namespace()
     args.model = "gefs"
     args.start = datetime(2023, 6, 1)
@@ -303,9 +294,6 @@ def test_status_ctcx(capfd) -> None:
     Returns:
         None
     """
-    import json
-    from datetime import datetime
-
     args = argparse.Namespace()
     args.model = "ctcx"
     args.start = datetime(2022, 9, 26)
@@ -364,9 +352,6 @@ def test_get_status_hafs(capfd) -> None:
     Returns:
         None
     """
-    import json
-    from datetime import datetime
-
     args = argparse.Namespace()
     args.model = "hafsa"
     args.format = "pretty"
