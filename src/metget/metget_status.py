@@ -508,8 +508,12 @@ class MetGetStatus:
             print(json.dumps(data))
         elif self.__args.format == "pretty":
             complete_cycles = data["cycles_complete"]
+            complete_cycle_length = data["complete_cycle_length"]
 
-            print(f"Status for model: {model:s} (class: {self.__model_class:s})")
+            print(
+                f"Status for model: {model:s} (class: {self.__model_class:s}, "
+                f"cycle length: {complete_cycle_length:d} hrs)"
+            )
             table = prettytable.PrettyTable(["Forecast Cycle", "End Time", "Status"])
 
             for cycle in data["cycles"]:
