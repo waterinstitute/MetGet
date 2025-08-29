@@ -94,6 +94,12 @@ class MetGetBuildRest:
                 raise RuntimeError(msg)
             ensemble_member = model.split("-")[1]
             model = "gefs"
+        elif "refs" in model:
+            if len(model.split("-")) < 2:
+                msg = "Must include ensemble member with REFS request as 'gefs-ensemble_member'"
+                raise RuntimeError(msg)
+            ensemble_member = model.split("-")[1]
+            model = "refs"
         elif "ctcx" in model:
             if len(model.split("-")) < 3:
                 msg = "Must include storm name and ensemble member with CTCX request as 'ctcx-storm-ensemble_member'"
@@ -179,7 +185,7 @@ class MetGetBuildRest:
                 "dj": res,
                 "level": level,
             }
-        elif model == "gefs":
+        elif model == "gefs" or model == "refs":
             return {
                 "name": model,
                 "service": AVAILABLE_MODELS[model],
