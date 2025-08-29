@@ -1,5 +1,5 @@
 GFS_STATUS_TEXT = (
-    "Status for model: GFS (class: synoptic)\n"
+    "Status for model: GFS (class: synoptic, cycle length: 384 hrs)\n"
     "+---------------------+---------------------+----------+\n"
     "|    Forecast Cycle   |       End Time      |  Status  |\n"
     "+---------------------+---------------------+----------+\n"
@@ -51,7 +51,7 @@ HWRF_STATUS_TEXT = (
 )
 
 HWRF_STATUS_BRET_TEXT = (
-    "Status for model: HWRF-bret03l (class: synoptic-storm)\n"
+    "Status for model: HWRF-bret03l (class: synoptic-storm, cycle length: 126 hrs)\n"
     "+---------------------+---------------------+----------+\n"
     "|    Forecast Cycle   |       End Time      |  Status  |\n"
     "+---------------------+---------------------+----------+\n"
@@ -94,7 +94,7 @@ NHC_STATUS_TEXT = (
 )
 
 GEFS_STATUS_TEXT_C00 = (
-    "Status for model: gefs-c00 (class: ensemble)\n"
+    "Status for model: gefs-c00 (class: ensemble, cycle length: 240 hrs)\n"
     "+---------------------+---------------------+----------+\n"
     "|    Forecast Cycle   |       End Time      |  Status  |\n"
     "+---------------------+---------------------+----------+\n"
