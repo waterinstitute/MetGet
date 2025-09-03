@@ -72,6 +72,7 @@ AVAILABLE_VARIABLES = {
     "temperature",
     "humidity",
     "ice",
+    "precipitation_type",
     "all_variables",
 }
 
