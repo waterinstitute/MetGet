@@ -288,3 +288,40 @@ METGET_BUILD_RETURN_COMPLETE["body"]["message"] = "Request complete"
 METGET_BUILD_RETURN_ERROR = copy.deepcopy(METGET_BUILD_RETURN_QUEUED)
 METGET_BUILD_RETURN_ERROR["body"]["status"] = "error"
 METGET_BUILD_RETURN_ERROR["body"]["message"] = "Request failed due to server error"
+
+
+METGET_BUILD_JTWC_JSON = {
+    "version": "0.0.1",
+    "creator": "pytest",
+    "background_pressure": 1013.0,
+    "backfill": False,
+    "nowcast": False,
+    "multiple_forecasts": True,
+    "start_date": "2026-07-01 00:00:00",
+    "end_date": "2026-07-05 00:00:00",
+    "format": "raw",
+    "data_type": "wind_pressure",
+    "time_step": 3600,
+    "domains": [
+        {
+            "name": "jtwc",
+            "service": "jtwc",
+            "basin": "wp",
+            "storm": "09",
+            "storm_year": 2026,
+            "advisory": "015",
+            "x_init": 120.0,
+            "y_init": 5.0,
+            "x_end": 140.0,
+            "y_end": 25.0,
+            "di": 0.1,
+            "dj": 0.1,
+            "level": 0,
+        }
+    ],
+    "compression": False,
+    "epsg": 4326,
+    "filename": "test_build_jtwc",
+    "strict": False,
+    "dry_run": False,
+}

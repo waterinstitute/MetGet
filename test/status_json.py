@@ -4142,3 +4142,58 @@ HAFS_STATUS_JSON = {
     },
     "statusCode": 200,
 }
+
+
+JTWC_STATUS_JSON = {
+    "statusCode": 200,
+    "body": {
+        "best_track": {
+            "2026": {
+                "wp": {
+                    "09": {
+                        "best_track_start": "2026-07-01 00:00:00",
+                        "best_track_end": "2026-07-05 00:00:00",
+                        "duration": 96,
+                    },
+                },
+                "io": {
+                    "01": {
+                        "best_track_start": "2026-06-10 00:00:00",
+                        "best_track_end": "2026-06-12 00:00:00",
+                        "duration": 48,
+                    },
+                },
+                "sh": {
+                    "05": {
+                        "best_track_start": "2026-01-15 00:00:00",
+                        "best_track_end": "2026-01-18 00:00:00",
+                        "duration": 72,
+                    },
+                },
+            }
+        },
+        "forecast": {
+            "2026": {
+                "wp": {
+                    "09": {
+                        "001": {
+                            "advisory_start": "2026-07-01 06:00:00",
+                            "advisory_end": "2026-07-04 06:00:00",
+                            "duration": 72,
+                        },
+                        "002": {
+                            "advisory_start": "2026-07-01 12:00:00",
+                            "advisory_end": "2026-07-04 12:00:00",
+                            "duration": 72,
+                        },
+                        "003": {
+                            "advisory_start": "2026-07-01 18:00:00",
+                            "advisory_end": "2026-07-04 18:00:00",
+                            "duration": 72,
+                        },
+                    },
+                },
+            }
+        },
+    },
+}

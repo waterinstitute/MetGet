@@ -15,6 +15,7 @@ from .status_json import (
     HAFS_STATUS_JSON,
     HWRF_STATUS_BRET_JSON,
     HWRF_STATUS_JSON,
+    JTWC_STATUS_JSON,
     NHC_STATUS_JSON,
 )
 from .status_text import (
@@ -25,6 +26,7 @@ from .status_text import (
     HAFS_STATUS_TEXT,
     HWRF_STATUS_BRET_TEXT,
     HWRF_STATUS_TEXT,
+    JTWC_STATUS_TEXT,
     NHC_STATUS_TEXT,
 )
 
@@ -194,6 +196,52 @@ def test_status_nhc(capfd) -> None:
         s.get_status()
         out, err = capfd.readouterr()
         assert out == NHC_STATUS_TEXT
+
+
+def test_status_jtwc(capfd) -> None:
+    """
+    Tests the status command for the JTWC data
+    Args:
+        capfd: pytest fixture to capture stdout and stderr
+
+    Returns:
+        None
+    """
+    args = argparse.Namespace()
+    args.model = "jtwc"
+    args.start = datetime(2026, 1, 1)
+    args.end = None
+    args.storm = None
+    args.basin = None
+    args.format = "json"
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    with requests_mock.Mocker() as m:
+        m.get(
+            METGET_DMY_ENDPOINT
+            + "/status?"
+            + urlencode({"model": "jtwc", "start": "2026-01-01"}),
+            json=JTWC_STATUS_JSON,
+        )
+        s = MetGetStatus(args)
+        s.get_status()
+        out, err = capfd.readouterr()
+        assert json.loads(out) == JTWC_STATUS_JSON["body"]
+
+    args.format = "pretty"
+    with requests_mock.Mocker() as m:
+        m.get(
+            METGET_DMY_ENDPOINT
+            + "/status?"
+            + urlencode({"model": "jtwc", "start": "2026-01-01"}),
+            json=JTWC_STATUS_JSON,
+        )
+        s = MetGetStatus(args)
+        s.get_status()
+        out, err = capfd.readouterr()
+        assert out == JTWC_STATUS_TEXT
 
 
 def test_status_gefs(capfd) -> None:

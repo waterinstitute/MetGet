@@ -68,7 +68,7 @@ def initialize_adeck_cli(subparsers):
     )
     adeck_parser.add_argument(
         "--basin",
-        help="NHC Storm basin to get storm track data for (al, ep, wp)",
+        help="Storm basin to get storm track data for (al, ep, cp, wp, io, sh)",
         type=str,
         metavar="s",
         default="al",
@@ -127,9 +127,10 @@ def initialize_build_cli(subparsers):
         + mlist
         + "]. Resolution and corners are decimal degrees"
         " For HWRF/COAMPS, the model can be listed as 'hwrf-[stormname]' or 'coamps-[stormname]'."
-        " For GEFS, the ensemble member can be specified as 'gefs-[ensemble_member]'. For NHC data"
-        " specify as 'nhc-basin-storm_number-advisory_number' where basin is a two letter string denoting"
-        " the basin (al, ep, wp), storm number is the id of the storm (not the name), and the advisory number"
+        " For GEFS, the ensemble member can be specified as 'gefs-[ensemble_member]'. For NHC/JTWC data"
+        " specify as 'nhc-basin-storm_number-advisory_number' (or 'jtwc-basin-storm_number-advisory_number')"
+        " where basin is a two letter string denoting the basin (nhc: al, ep, cp; jtwc: wp, io, sh),"
+        " storm number is the id of the storm (not the name), and the advisory number"
         " is the advisory to use to build the merged data (or 0 for best-track data only).",
         nargs=6,
         metavar=("model", "resolution", "x0", "y0", "x1", "y1"),
@@ -289,13 +290,13 @@ def initialize_status_cli(subparsers):
     )
     status.add_argument(
         "--basin",
-        help="For NHC based data, request a specific basin",
+        help="For NHC/JTWC based data, request a specific basin",
         type=str,
         metavar="s",
     )
     status.add_argument(
         "--year",
-        help="For storm based data (nhc, coamps, hwrf), the year in which the storm occured",
+        help="For storm based data (nhc, jtwc, coamps, hwrf), the year in which the storm occured",
         type=int,
         metavar="YYYY",
     )
@@ -327,24 +328,33 @@ def initialize_track_cli(subparsers) -> None:
         None
     """
     track = subparsers.add_parser(
-        "track", help="Get the storm track data for a NHC storm"
+        "track", help="Get the storm track data for an NHC or JTWC storm"
     )
     track.set_defaults(func=metget_track)
     track.add_argument(
-        "--year", help="NHC Storm year to get track data for", type=int, metavar="n"
+        "--source",
+        help="Storm track source to get data for (nhc for al/ep/cp basins, "
+        "jtwc for wp/io/sh basins)",
+        type=str,
+        metavar="s",
+        choices=["nhc", "jtwc"],
+        default="nhc",
     )
     track.add_argument(
-        "--storm", help="NHC Storm number to get track data for", type=int, metavar="n"
+        "--year", help="Storm year to get track data for", type=int, metavar="n"
+    )
+    track.add_argument(
+        "--storm", help="Storm number to get track data for", type=int, metavar="n"
     )
     track.add_argument(
         "--basin",
-        help="NHC Storm basin to get track data for (al, ep, wp)",
+        help="Storm basin to get track data for (nhc: al, ep, cp; jtwc: wp, io, sh)",
         type=str,
         metavar="s",
-        default="al",
+        default=None,
     )
     track.add_argument(
-        "--advisory", help="NHC Storm advisory to get", type=str, metavar="s"
+        "--advisory", help="Storm advisory to get", type=str, metavar="s"
     )
     track.add_argument(
         "--type",

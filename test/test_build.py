@@ -15,6 +15,7 @@ from .build_json import (
     METGET_BUILD_GEFS_JSON,
     METGET_BUILD_GFS_JSON,
     METGET_BUILD_HWRF_JSON,
+    METGET_BUILD_JTWC_JSON,
     METGET_BUILD_NHC_JSON,
     METGET_BUILD_NHC_JSON_THIS_YEAR,
     METGET_BUILD_POST_RETURN,
@@ -310,6 +311,63 @@ def test_build_nhc_raw(capfd) -> None:
                 os.remove(file)
             os.remove("filelist.json")
             os.remove("request.json")
+
+
+def test_build_jtwc_raw(capfd) -> None:
+    """
+    **TEST PURPOSE**: Validates JTWC (Joint Typhoon Warning Center) raw data build request
+    **MODULE**: metget_build.MetGetBuildRest
+    **SCENARIO**: Build raw format JTWC advisory data for a Western Pacific storm/advisory
+    **INPUT**: JTWC model, storm 09 in WP basin, advisory 015, year 2026, raw format
+    **EXPECTED**: Generates a request JSON with service 'jtwc' and the wp basin
+    **COVERAGE**: Tests JTWC model parameter parsing, basin handling, and raw format output
+    """
+    args = argparse.Namespace()
+    args.analysis = False
+    args.multiple_forecasts = True
+    args.variable = "wind_pressure"
+    args.backfill = False
+    args.domain = [["jtwc-2026-wp-09-015", 0.1, 120, 5, 140, 25]]
+    args.start = datetime(2026, 7, 1)
+    args.end = datetime(2026, 7, 5)
+    args.initialization_skip = 0
+    args.timestep = 3600
+    args.format = "raw"
+    args.output = "test_build_jtwc"
+    args.dryrun = False
+    args.strict = False
+    args.epsg = 4326
+    args.check_interval = 1
+    args.max_wait = 1
+    args.request = None
+    args.compression = False
+    args.save_json_request = True
+    args.output_directory = None
+
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    request_dict = MetGetBuildRest.generate_request_json(
+        analysis=args.analysis,
+        multiple_forecasts=args.multiple_forecasts,
+        start_date=args.start,
+        end_date=args.end,
+        format=args.format,
+        timestep=args.timestep,
+        data_type=args.variable,
+        backfill=args.backfill,
+        filename=args.output,
+        dry_run=args.dryrun,
+        strict=args.strict,
+        domains=MetGetBuildRest.parse_command_line_domains(
+            args.domain, args.initialization_skip
+        ),
+    )
+
+    request_dict["creator"] = "pytest"
+
+    assert request_dict == METGET_BUILD_JTWC_JSON
 
 
 def test_build_nhc_raw_thisyear(capfd) -> None:

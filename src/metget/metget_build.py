@@ -107,11 +107,14 @@ class MetGetBuildRest:
             ensemble_member = model.split("-")[2]
             storm = model.split("-")[1]
             model = "ctcx"
-        elif "nhc" in model:
+        elif "nhc" in model or "jtwc" in model:
+            source = model.split("-")[0]
             if len(model.split("-")) < 4:
                 msg = (
-                    "Must include basin, storm name, and advisory with NHC request as "
-                    "'nhc-basin-storm-advisory' or 'nhc-basin-storm-year-advisory'"
+                    "Must include basin, storm name, and advisory with "
+                    f"{source.upper()} request as "
+                    f"'{source}-basin-storm-advisory' or "
+                    f"'{source}-basin-storm-year-advisory'"
                 )
                 raise RuntimeError(msg)
             keys = model.split("-")
@@ -129,7 +132,7 @@ class MetGetBuildRest:
                 advisory = keys[3]
                 with contextlib.suppress(ValueError):
                     advisory = f"{int(advisory):03d}"
-            model = "nhc"
+            model = source
         else:
             if len(model.split("-")) > 1:
                 raise RuntimeError(
@@ -198,7 +201,7 @@ class MetGetBuildRest:
                 "dj": res,
                 "level": level,
             }
-        elif model == "nhc":
+        elif model in ("nhc", "jtwc"):
             return {
                 "name": model,
                 "service": AVAILABLE_MODELS[model],

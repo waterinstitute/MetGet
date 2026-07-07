@@ -55,8 +55,8 @@ def metget_adeck(args: argparse.Namespace) -> None:
     model = args.model.upper()
     cycle = args.cycle.strftime("%Y-%m-%dT%H:%M")
 
-    if basin not in ["AL", "EP", "CP"]:
-        msg = "Invalid basin. Must be one of AL, EP, CP"
+    if basin not in ["AL", "EP", "CP", "WP", "IO", "SH"]:
+        msg = "Invalid basin. Must be one of AL, EP, CP, WP, IO, SH"
         raise ValueError(msg)
 
     with contextlib.suppress(ValueError):

@@ -58,8 +58,15 @@ class MetGetTrack:
             msg = "Type must be specified for track data"
             raise ValueError(msg)
 
-        # ...Default basin is Atlantic
+        # ...Default source is the NHC
+        source = getattr(self.__args, "source", None) or "nhc"
+
+        # ...Default basin. The NHC covers the Atlantic (al); the JTWC basins
+        # (wp/io/sh) have no sensible default, so require the user to specify one.
         if not self.__args.basin:
+            if source == "jtwc":
+                msg = "Basin must be specified for JTWC track data (wp, io, sh)"
+                raise ValueError(msg)
             self.__args.basin = "al"
 
         # ...Default year is the current year
@@ -71,6 +78,7 @@ class MetGetTrack:
         if self.__args.type == "besttrack":
             params = {
                 "type": "best",
+                "source": source,
                 "storm": storm_id,
                 "basin": self.__args.basin,
                 "year": self.__args.year,
@@ -83,6 +91,7 @@ class MetGetTrack:
             advisory_id = f"{int(self.__args.advisory):03d}"
             params = {
                 "type": "forecast",
+                "source": source,
                 "storm": storm_id,
                 "basin": self.__args.basin,
                 "advisory": advisory_id,

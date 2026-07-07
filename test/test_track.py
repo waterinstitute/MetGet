@@ -101,6 +101,75 @@ def test_forecast_track(capfd) -> None:
         assert out_dict == NHC_IAN_FORECAST_JSON["body"]["geojson"]
 
 
+def test_best_track_jtwc(capfd) -> None:
+    """
+    **TEST PURPOSE**: Validates that a JTWC best track request targets the jtwc source
+    **MODULE**: metget_track.MetGetTrack.get_track
+    **SCENARIO**: Request best track data for a Western Pacific storm using --source jtwc
+    **INPUT**: Type 'besttrack', source 'jtwc', storm 9, year 2026, basin 'wp'
+    **EXPECTED**: The stormtrack request carries source=jtwc and basin=wp
+    **COVERAGE**: Tests the source query-string parameter and jtwc basin handling
+    """
+    args = argparse.Namespace()
+    args.type = "besttrack"
+    args.source = "jtwc"
+    args.storm = 9
+    args.year = 2026
+    args.basin = "wp"
+    args.advisory = None
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    with requests_mock.Mocker() as m:
+        url = (
+            METGET_DMY_ENDPOINT
+            + "/stormtrack?"
+            + urlencode(
+                {
+                    "type": "best",
+                    "source": "jtwc",
+                    "storm": "09",
+                    "basin": "wp",
+                    "year": "2026",
+                }
+            )
+        )
+        m.get(url, json=NHC_IAN_BESTRACK_JSON)
+        s = MetGetTrack(args)
+        s.get_track()
+        out, err = capfd.readouterr()
+        out_dict = json.loads(out)
+        assert out_dict == NHC_IAN_BESTRACK_JSON["body"]["geojson"]
+        assert m.last_request.qs["source"] == ["jtwc"]
+        assert m.last_request.qs["basin"] == ["wp"]
+
+
+def test_track_jtwc_requires_basin() -> None:
+    """
+    **TEST PURPOSE**: Validates that a JTWC track request without a basin errors clearly
+    **MODULE**: metget_track.MetGetTrack.get_track
+    **SCENARIO**: Request JTWC track data but omit the basin (which has no default for jtwc)
+    **INPUT**: Type 'besttrack', source 'jtwc', storm 9, no basin
+    **EXPECTED**: Raises ValueError instructing the user to specify a basin
+    **COVERAGE**: Tests the source-aware basin default in the track command
+    """
+    args = argparse.Namespace()
+    args.type = "besttrack"
+    args.source = "jtwc"
+    args.storm = 9
+    args.year = 2026
+    args.basin = None
+    args.advisory = None
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    s = MetGetTrack(args)
+    with pytest.raises(ValueError, match="Basin must be specified for JTWC"):
+        s.get_track()
+
+
 def test_track_missing_storm_validation() -> None:
     """
     **TEST PURPOSE**: Tests validation when storm is not specified (Lines 54-55)

@@ -43,6 +43,7 @@ AVAILABLE_MODELS = {
     "coamps": "coamps-tc",
     "ctcx": "coamps-ctcx",
     "nhc": "nhc",
+    "jtwc": "jtwc",
     "era5": "era5",
 }
 
@@ -63,6 +64,7 @@ MODEL_TYPES = {
     "ctcx": "ensemble-storm",
     "era5": "hindcast",
     "nhc": "track",
+    "jtwc": "track",
 }
 
 # Available metget variables
