@@ -358,6 +358,8 @@ class MetGetBuildRest:
         tries = 0
         data_ready = False
         status = None
+        max_consecutive_malformed = 10
+        consecutive_malformed = 0
 
         spinner = SpinnerLogger()
         print(f"Waiting for request id {data_id:s}", flush=True)
@@ -369,7 +371,30 @@ class MetGetBuildRest:
         while datetime.now(timezone.utc) <= end_time:
             tries += 1
             try:
-                data_url, status = self.check_metget_status(data_id)
+                try:
+                    data_url, status = self.check_metget_status(data_id)
+                except (
+                    requests.exceptions.RequestException,
+                    ValueError,
+                    KeyError,
+                ) as exc:
+                    consecutive_malformed += 1
+                    with open("metget.debug", "a") as f:
+                        f.write(
+                            f"[WARNING]: Malformed status response "
+                            f"({consecutive_malformed}/{max_consecutive_malformed}): "
+                            f"{exc!r}\n"
+                        )
+                    if consecutive_malformed >= max_consecutive_malformed:
+                        spinner.fail(
+                            f"Received {max_consecutive_malformed} consecutive "
+                            "malformed responses from the MetGet API. See "
+                            "metget.debug for details."
+                        )
+                        sys.exit(1)
+                    time.sleep(sleep_time)
+                    continue
+                consecutive_malformed = 0
                 spinner.set_text(SpinnerLogger.standard_log(tries, status))
                 if status == "completed":
                     spinner.succeed()
@@ -497,6 +522,7 @@ class MetGetBuildRest:
         response = requests.get(
             self.__metget_api_server + "/check", headers=headers, params=request_params
         )
+        response.raise_for_status()
         return response.text
 
 
