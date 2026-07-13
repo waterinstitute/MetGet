@@ -131,7 +131,10 @@ def initialize_build_cli(subparsers):
         " specify as 'nhc-basin-storm_number-advisory_number' (or 'jtwc-basin-storm_number-advisory_number')"
         " where basin is a two letter string denoting the basin (nhc: al, ep, cp; jtwc: wp, io, sh),"
         " storm number is the id of the storm (not the name), and the advisory number"
-        " is the advisory to use to build the merged data (or 0 for best-track data only).",
+        " is the advisory to use to build the merged data (or 0 for best-track data only)."
+        " For grtofs (Global RTOFS ocean data), only '--format raw' is supported and the"
+        " data is always global; the resolution and corner values are ignored"
+        " (e.g. 'grtofs 0.08 -180 -90 180 90').",
         nargs=6,
         metavar=("model", "resolution", "x0", "y0", "x1", "y1"),
         action="append",

@@ -40,7 +40,12 @@ from typing import Tuple, Union
 
 import requests
 
-from .metget_data import AVAILABLE_FORMATS, AVAILABLE_MODELS, AVAILABLE_VARIABLES
+from .metget_data import (
+    AVAILABLE_FORMATS,
+    AVAILABLE_MODELS,
+    AVAILABLE_VARIABLES,
+    RAW_ONLY_MODELS,
+)
 from .metget_environment import get_metget_environment_variables
 from .spinnerlogger import SpinnerLogger
 
@@ -263,7 +268,9 @@ class MetGetBuildRest:
             ),
             "background_pressure": kwargs.get("background_pressure", 1013.0),
             "backfill": kwargs.get("backfill", False),
-            "nowcast": kwargs.get("nowcast", False),
+            # ...The '--analysis' option is the client-facing name for the
+            # server's nowcast mode
+            "nowcast": kwargs.get("nowcast", kwargs.get("analysis", False)),
             "multiple_forecasts": kwargs.get("multiple_forecasts", False),
             "start_date": str(kwargs.get("start_date")),
             "end_date": str(kwargs.get("end_date")),
@@ -283,6 +290,25 @@ class MetGetBuildRest:
                 if "coamps-tc" not in domain["service"]:
                     msg = "The 'all_variables' data_type is only available for the coamps model"
                     raise RuntimeError(msg)
+
+        # Raw-only models cannot be interpolated to gridded output and are
+        # delivered as raw files; reject other formats before the server does
+        raw_only_services = {AVAILABLE_MODELS[m] for m in RAW_ONLY_MODELS}
+        request_services = {d["service"] for d in request_data["domains"]}
+        raw_only_requested = request_services & raw_only_services
+        if raw_only_requested:
+            if request_data["format"] != "raw":
+                msg = (
+                    f"The {', '.join(sorted(raw_only_requested))} service(s) are "
+                    "only available with the 'raw' output format"
+                )
+                raise RuntimeError(msg)
+            if "rtofs" in request_services and len(request_services) > 1:
+                msg = (
+                    "The grtofs (rtofs) service cannot be combined with other "
+                    "services in a single request"
+                )
+                raise RuntimeError(msg)
 
         if kwargs.get("strict", False):
             request_data["strict"] = True
@@ -318,6 +344,7 @@ class MetGetBuildRest:
             if r.text:
                 with open("metget.debug", "a") as f:
                     f.write(r.text)
+                self.__print_server_errors(r.text)
             raise RuntimeError(
                 "Request to MetGet was returned status code = " + str(r.status_code)
             )
@@ -330,7 +357,34 @@ class MetGetBuildRest:
                     "[WARNING]: MetGet returned status code " + str(status_code) + "\n"
                 )
                 f.write(str(return_data["body"]["error_text"]))
+            self.__print_server_errors(r.text)
         return data_id, status_code
+
+    @staticmethod
+    def __print_server_errors(response_text: str) -> None:
+        """
+        Prints the error message and error detail list from a MetGet error
+        response body to the console so the user sees why the request was
+        rejected rather than only a status code.
+
+        Args:
+            response_text (str): The raw response body text
+        """
+        try:
+            body = json.loads(response_text)["body"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return
+        if not isinstance(body, dict):
+            return
+        message = body.get("message")
+        if message and message != "empty":
+            print("[ERROR]: " + str(message))
+        error_text = body.get("error_text", [])
+        if isinstance(error_text, list):
+            for error in error_text:
+                print("[ERROR]: " + str(error))
+        elif error_text:
+            print("[ERROR]: " + str(error_text))
 
     def download_metget_data(
         self,

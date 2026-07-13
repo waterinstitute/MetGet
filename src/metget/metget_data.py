@@ -44,8 +44,16 @@ AVAILABLE_MODELS = {
     "ctcx": "coamps-ctcx",
     "nhc": "nhc",
     "jtwc": "jtwc",
+    "grtofs": "rtofs",
     "era5": "era5",
 }
+
+# Models which deliver raw data files only (no gridded interpolation). Global RTOFS
+# is raw ocean model NetCDF used for downstream baroclinic forcing generation
+RAW_ONLY_MODELS = {"grtofs"}
+
+# Client model names whose server-side status model name differs
+STATUS_MODEL_ALIASES = {"grtofs": "rtofs"}
 
 # Available metget model types
 MODEL_TYPES = {
@@ -65,6 +73,7 @@ MODEL_TYPES = {
     "era5": "hindcast",
     "nhc": "track",
     "jtwc": "track",
+    "grtofs": "synoptic",
 }
 
 # Available metget variables

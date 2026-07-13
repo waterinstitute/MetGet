@@ -34,7 +34,7 @@ from typing import Dict, List, Union
 import prettytable
 import requests
 
-from .metget_data import MODEL_TYPES
+from .metget_data import MODEL_TYPES, STATUS_MODEL_ALIASES
 from .metget_environment import get_metget_environment_variables
 
 
@@ -63,6 +63,10 @@ class MetGetStatus:
         """
         model = self.__args.model
         self.__model_class = MODEL_TYPES[model]
+
+        # ...Some client model names differ from the server-side status name
+        # (e.g. grtofs -> rtofs)
+        model = STATUS_MODEL_ALIASES.get(model, model)
 
         if self.__model_class == "synoptic":
             self.__status_synoptic(model)
