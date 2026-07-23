@@ -4197,3 +4197,52 @@ JTWC_STATUS_JSON = {
         },
     },
 }
+
+DEEPMIND_STATUS_JSON = {
+    "statusCode": 200,
+    "body": {
+        "2026": {
+            "al": {
+                "02": {
+                    "first_cycle": "2026-07-22 00:00:00",
+                    "latest_cycle": "2026-07-22 06:00:00",
+                    "cycle_count": 2,
+                    "cycles": [
+                        "2026-07-22 00:00:00",
+                        "2026-07-22 06:00:00",
+                    ],
+                    "members": ["F000", "F001", "F007", "mean"],
+                }
+            },
+            "ep": {
+                "06": {
+                    "first_cycle": "2026-07-22 06:00:00",
+                    "latest_cycle": "2026-07-22 06:00:00",
+                    "cycle_count": 1,
+                    "cycles": ["2026-07-22 06:00:00"],
+                    "members": ["F000", "F001", "F007", "mean"],
+                }
+            },
+        }
+    },
+}
+
+DEEPMIND_STATUS_JSON_MEAN = {
+    "statusCode": 200,
+    "body": {
+        "2026": {
+            "al": {
+                "02": {
+                    "first_cycle": "2026-07-22 00:00:00",
+                    "latest_cycle": "2026-07-22 06:00:00",
+                    "cycle_count": 2,
+                    "cycles": [
+                        "2026-07-22 00:00:00",
+                        "2026-07-22 06:00:00",
+                    ],
+                    "members": ["mean"],
+                }
+            }
+        }
+    },
+}

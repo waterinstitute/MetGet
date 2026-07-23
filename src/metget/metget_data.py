@@ -44,13 +44,15 @@ AVAILABLE_MODELS = {
     "ctcx": "coamps-ctcx",
     "nhc": "nhc",
     "jtwc": "jtwc",
+    "deepmind": "deepmind",
     "grtofs": "rtofs",
     "era5": "era5",
 }
 
 # Models which deliver raw data files only (no gridded interpolation). Global RTOFS
-# is raw ocean model NetCDF used for downstream baroclinic forcing generation
-RAW_ONLY_MODELS = {"grtofs"}
+# is raw ocean model NetCDF used for downstream baroclinic forcing generation;
+# DeepMind delivers raw ATCF ensemble track files
+RAW_ONLY_MODELS = {"grtofs", "deepmind"}
 
 # Client model names whose server-side status model name differs
 STATUS_MODEL_ALIASES = {"grtofs": "rtofs"}
@@ -73,6 +75,7 @@ MODEL_TYPES = {
     "era5": "hindcast",
     "nhc": "track",
     "jtwc": "track",
+    "deepmind": "track-ensemble",
     "grtofs": "synoptic",
 }
 

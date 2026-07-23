@@ -112,6 +112,33 @@ class MetGetBuildRest:
             ensemble_member = model.split("-")[2]
             storm = model.split("-")[1]
             model = "ctcx"
+        elif "deepmind" in model:
+            # DeepMind has no advisory numbers; forecasts are identified by their forecast
+            # cycle (YYYYMMDDHH, 00/06/12/18Z), and an ensemble member ("F000"-"F049" or
+            # "mean") is always required. The storm year is derived from the cycle.
+            keys = model.split("-")
+            if len(keys) != 5:
+                msg = (
+                    "Must include basin, storm number, forecast cycle, and ensemble "
+                    "member with DEEPMIND request as "
+                    "'deepmind-basin-storm-cycle-ensemble_member' where the cycle is "
+                    "a 10-digit YYYYMMDDHH string (e.g. "
+                    "'deepmind-al-02-2026072206-F007' or "
+                    "'deepmind-al-02-2026072206-mean')"
+                )
+                raise RuntimeError(msg)
+            basin = keys[1]
+            storm = keys[2]
+            advisory = keys[3]
+            ensemble_member = keys[4]
+            if len(advisory) != 10 or not advisory.isdigit():
+                msg = (
+                    f"DeepMind forecast cycle '{advisory}' is not a 10-digit "
+                    "'YYYYMMDDHH' string"
+                )
+                raise RuntimeError(msg)
+            year = int(advisory[0:4])
+            model = "deepmind"
         elif "nhc" in model or "jtwc" in model:
             source = model.split("-")[0]
             if len(model.split("-")) < 4:
@@ -214,6 +241,23 @@ class MetGetBuildRest:
                 "storm": storm,
                 "storm_year": year,
                 "advisory": advisory,
+                "x_init": xmin,
+                "y_init": ymin,
+                "x_end": xmax,
+                "y_end": ymax,
+                "di": res,
+                "dj": res,
+                "level": level,
+            }
+        elif model == "deepmind":
+            return {
+                "name": f"deepmind-{basin}{storm}-{ensemble_member}",
+                "service": AVAILABLE_MODELS[model],
+                "basin": basin,
+                "storm": storm,
+                "storm_year": year,
+                "advisory": advisory,
+                "ensemble_member": ensemble_member,
                 "x_init": xmin,
                 "y_init": ymin,
                 "x_end": xmax,

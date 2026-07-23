@@ -132,6 +132,11 @@ def initialize_build_cli(subparsers):
         " where basin is a two letter string denoting the basin (nhc: al, ep, cp; jtwc: wp, io, sh),"
         " storm number is the id of the storm (not the name), and the advisory number"
         " is the advisory to use to build the merged data (or 0 for best-track data only)."
+        " For DEEPMIND (Google DeepMind cyclone ensemble) data specify as"
+        " 'deepmind-basin-storm_number-cycle-ensemble_member' where the cycle is the"
+        " 10-digit YYYYMMDDHH forecast cycle (00/06/12/18Z; DeepMind has no advisory"
+        " numbers) and the ensemble member is 'F000'-'F049' or 'mean' for the ensemble"
+        " mean (e.g. 'deepmind-al-02-2026072206-F007'); only '--format raw' is supported."
         " For grtofs (Global RTOFS ocean data), only '--format raw' is supported and the"
         " data is always global; the resolution and corner values are ignored"
         " (e.g. 'grtofs 0.08 -180 -90 180 90').",
@@ -293,7 +298,7 @@ def initialize_status_cli(subparsers):
     )
     status.add_argument(
         "--basin",
-        help="For NHC/JTWC based data, request a specific basin",
+        help="For NHC/JTWC/DeepMind based data, request a specific basin",
         type=str,
         metavar="s",
     )

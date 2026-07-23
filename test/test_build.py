@@ -12,6 +12,7 @@ from metget.metget_environment import get_metget_environment_variables
 from .build_json import (
     METGET_BUILD_COAMPS_JSON,
     METGET_BUILD_CTCX_JSON,
+    METGET_BUILD_DEEPMIND_JSON,
     METGET_BUILD_GEFS_JSON,
     METGET_BUILD_GFS_JSON,
     METGET_BUILD_HWRF_JSON,
@@ -1303,3 +1304,99 @@ def test_build_output_directory_validation() -> None:
             client.download_metget_data(
                 data_id, args.check_interval, args.max_wait, args.output_directory
             )
+
+
+def test_build_deepmind_raw(capfd) -> None:
+    """
+    **TEST PURPOSE**: Validates Google DeepMind ensemble raw data build request
+    **MODULE**: metget_build.MetGetBuildRest
+    **SCENARIO**: Build raw format DeepMind data for one storm/cycle/ensemble member
+    **INPUT**: deepmind model, storm 02 in AL basin, cycle 2026072206, member F007, raw format
+    **EXPECTED**: Generates deepmind request JSON with cycle carried in the advisory field,
+                  storm_year derived from the cycle, and the ensemble member included
+    **COVERAGE**: Tests deepmind domain string parsing and raw format request generation
+    """
+    args = argparse.Namespace()
+    args.analysis = False
+    args.multiple_forecasts = True
+    args.variable = "wind_pressure"
+    args.backfill = False
+    args.domain = [["deepmind-al-02-2026072206-F007", 0.1, -90, 15, -80, 25]]
+    args.start = datetime(2026, 7, 22, 6)
+    args.end = datetime(2026, 7, 23, 6)
+    args.initialization_skip = 0
+    args.timestep = 3600
+    args.format = "raw"
+    args.output = "test_build_deepmind"
+    args.dryrun = False
+    args.strict = False
+    args.epsg = 4326
+    args.compression = False
+
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    request_dict = MetGetBuildRest.generate_request_json(
+        analysis=args.analysis,
+        multiple_forecasts=args.multiple_forecasts,
+        start_date=args.start,
+        end_date=args.end,
+        format=args.format,
+        timestep=args.timestep,
+        data_type=args.variable,
+        backfill=args.backfill,
+        filename=args.output,
+        dry_run=args.dryrun,
+        strict=args.strict,
+        domains=MetGetBuildRest.parse_command_line_domains(
+            args.domain, args.initialization_skip
+        ),
+    )
+    request_dict["creator"] = "pytest"
+
+    assert request_dict == METGET_BUILD_DEEPMIND_JSON
+
+    environment = get_metget_environment_variables(args)
+    client = MetGetBuildRest(
+        environment["endpoint"], environment["apikey"], environment["api_version"]
+    )
+
+    with requests_mock.Mocker() as m:
+        m.post(METGET_DMY_ENDPOINT + "/build", json=METGET_BUILD_POST_RETURN)
+        data_id, status_code = client.make_metget_request(request_dict)
+
+    assert data_id == "5f9b5b3c-5b7a-4c5e-8b0a-1b5b3c5d7e8f"
+    assert status_code == 200
+
+
+def test_build_deepmind_mean_domain() -> None:
+    """
+    **TEST PURPOSE**: Validates the deepmind ensemble-mean domain string
+    **MODULE**: metget_build.MetGetBuildRest.parse_domain_data
+    **SCENARIO**: The 'mean' ensemble member selects the ensemble-mean product
+    **EXPECTED**: Domain dict carries ensemble_member 'mean'
+    """
+    domain = MetGetBuildRest.parse_domain_data(
+        ["deepmind-al-02-2026072206-mean", 0.1, -90, 15, -80, 25], 0, 0
+    )
+    assert domain["service"] == "deepmind"
+    assert domain["ensemble_member"] == "mean"
+    assert domain["advisory"] == "2026072206"
+    assert domain["storm_year"] == 2026
+
+
+def test_build_deepmind_domain_errors() -> None:
+    """
+    **TEST PURPOSE**: Validates error handling for malformed deepmind domain strings
+    **MODULE**: metget_build.MetGetBuildRest.parse_domain_data
+    **SCENARIO**: Missing ensemble member or malformed cycle must raise with a clear message
+    """
+    with pytest.raises(RuntimeError, match="ensemble"):
+        MetGetBuildRest.parse_domain_data(
+            ["deepmind-al-02-2026072206", 0.1, -90, 15, -80, 25], 0, 0
+        )
+    with pytest.raises(RuntimeError, match="YYYYMMDDHH"):
+        MetGetBuildRest.parse_domain_data(
+            ["deepmind-al-02-garbage-F007", 0.1, -90, 15, -80, 25], 0, 0
+        )
