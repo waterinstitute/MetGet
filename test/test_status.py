@@ -9,6 +9,8 @@ from metget.metget_status import MetGetStatus
 
 from .status_json import (
     COAMPS_CTCX_STATUS_JSON,
+    DEEPMIND_STATUS_JSON,
+    DEEPMIND_STATUS_JSON_MEAN,
     GEFS_STATUS_JSON,
     GEFS_STATUS_JSON_C00,
     GFS_STATUS_JSON,
@@ -430,3 +432,99 @@ def test_get_status_hafs(capfd) -> None:
         out, err = capfd.readouterr()
         out_dict = json.loads(out)
         assert out_dict == HAFS_STATUS_JSON["body"]
+
+
+def test_status_deepmind(capfd) -> None:
+    """
+    Tests the status command for the Google DeepMind ensemble track model
+    Args:
+        capfd: pytest fixture to capture stdout and stderr
+
+    Returns:
+        None
+    """
+    args = argparse.Namespace()
+    args.model = "deepmind"
+    args.start = datetime(2026, 7, 22)
+    args.end = datetime(2026, 7, 23)
+    args.ensemble_member = None
+    args.format = "json"
+    args.storm = None
+    args.basin = None
+    args.year = None
+    args.complete = False
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    url = (
+        METGET_DMY_ENDPOINT
+        + "/status?"
+        + urlencode(
+            {
+                "model": "deepmind",
+                "start": "2026-07-22",
+                "end": "2026-07-23",
+            }
+        )
+    )
+
+    with requests_mock.Mocker() as m:
+        m.get(url, json=DEEPMIND_STATUS_JSON)
+        s = MetGetStatus(args)
+        s.get_status()
+        out, err = capfd.readouterr()
+        assert json.loads(out) == DEEPMIND_STATUS_JSON["body"]
+
+    args.format = "pretty"
+    with requests_mock.Mocker() as m:
+        m.get(url, json=DEEPMIND_STATUS_JSON)
+        s = MetGetStatus(args)
+        s.get_status()
+        out, err = capfd.readouterr()
+        assert "deepmind-al02" not in out  # sanity: table output, not raw json
+        assert "F000 F001 F007 mean" in out
+        assert "2026-07-22 06:00:00" in out
+        assert out.count("| 2026 |") == 2
+
+
+def test_status_deepmind_member_filter(capfd) -> None:
+    """
+    Tests the status command for deepmind with a specific ensemble member
+    and client-side basin filtering
+    """
+    args = argparse.Namespace()
+    args.model = "deepmind"
+    args.start = datetime(2026, 7, 22)
+    args.end = datetime(2026, 7, 23)
+    args.ensemble_member = "mean"
+    args.format = "json"
+    args.storm = None
+    args.basin = "al"
+    args.year = None
+    args.complete = False
+    args.endpoint = METGET_DMY_ENDPOINT
+    args.apikey = METGET_DMY_APIKEY
+    args.api_version = METGET_API_VERSION
+
+    url = (
+        METGET_DMY_ENDPOINT
+        + "/status?"
+        + urlencode(
+            {
+                "model": "deepmind",
+                "start": "2026-07-22",
+                "end": "2026-07-23",
+                "member": "mean",
+            }
+        )
+    )
+
+    with requests_mock.Mocker() as m:
+        m.get(url, json=DEEPMIND_STATUS_JSON_MEAN)
+        s = MetGetStatus(args)
+        s.get_status()
+        out, err = capfd.readouterr()
+        data = json.loads(out)
+        assert data == DEEPMIND_STATUS_JSON_MEAN["body"]
+        assert data["2026"]["al"]["02"]["members"] == ["mean"]

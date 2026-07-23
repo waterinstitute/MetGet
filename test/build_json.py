@@ -325,3 +325,40 @@ METGET_BUILD_JTWC_JSON = {
     "strict": False,
     "dry_run": False,
 }
+
+METGET_BUILD_DEEPMIND_JSON = {
+    "version": "0.0.1",
+    "creator": "pytest",
+    "background_pressure": 1013.0,
+    "backfill": False,
+    "nowcast": False,
+    "multiple_forecasts": True,
+    "start_date": "2026-07-22 06:00:00",
+    "end_date": "2026-07-23 06:00:00",
+    "format": "raw",
+    "data_type": "wind_pressure",
+    "time_step": 3600,
+    "domains": [
+        {
+            "name": "deepmind-al02-F007",
+            "service": "deepmind",
+            "basin": "al",
+            "storm": "02",
+            "storm_year": 2026,
+            "advisory": "2026072206",
+            "ensemble_member": "F007",
+            "x_init": -90.0,
+            "y_init": 15.0,
+            "x_end": -80.0,
+            "y_end": 25.0,
+            "di": 0.1,
+            "dj": 0.1,
+            "level": 0,
+        }
+    ],
+    "compression": False,
+    "epsg": 4326,
+    "filename": "test_build_deepmind",
+    "strict": False,
+    "dry_run": False,
+}

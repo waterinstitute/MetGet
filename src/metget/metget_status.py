@@ -80,6 +80,8 @@ class MetGetStatus:
         #     self.__status_hindcast(model)
         elif self.__model_class == "track":
             self.__status_track(model)
+        elif self.__model_class == "track-ensemble":
+            self.__status_track_ensemble(model)
         else:
             msg = "Unknown model type."
             raise RuntimeError(msg)
@@ -229,6 +231,90 @@ class MetGetStatus:
             table.reversesort = True
             print(table.get_string(sortby="Best Track End"))
 
+        else:
+            msg = "Unknown format"
+            raise RuntimeError(msg)
+
+    def __status_track_ensemble(self, model: str) -> None:
+        """
+        This method is used to get the status of ensemble track data (DeepMind). The
+        server response is nested year -> basin -> storm, each with the available
+        forecast cycles and ensemble members.
+
+        Args:
+            model: The model to get the status for
+        """
+        url = "{:s}/status?model={:s}".format(self.__environment["endpoint"], model)
+        url = self.__add_url_start_end_parameters(url)
+        if self.__args.ensemble_member:
+            url += f"&member={self.__args.ensemble_member:s}"
+
+        response = requests.get(
+            url, headers={"x-api-key": self.__environment["apikey"]}
+        )
+        data = response.json()["body"]
+
+        # ...The deepmind status endpoint does not take year/basin/storm query
+        # parameters, so those command line filters are applied client-side
+        if self.__args.year:
+            data = {k: v for k, v in data.items() if k == str(self.__args.year)}
+        if self.__args.basin:
+            data = {
+                year: {
+                    basin: storms
+                    for basin, storms in basins.items()
+                    if basin == self.__args.basin.lower()
+                }
+                for year, basins in data.items()
+            }
+        if self.__args.storm:
+            data = {
+                year: {
+                    basin: {
+                        storm: info
+                        for storm, info in storms.items()
+                        if storm == self.__args.storm
+                    }
+                    for basin, storms in basins.items()
+                }
+                for year, basins in data.items()
+            }
+
+        if self.__args.format == "json":
+            print(json.dumps(data))
+        elif self.__args.format == "pretty":
+            table = prettytable.PrettyTable(
+                [
+                    "Year",
+                    "Basin",
+                    "Storm",
+                    "First Cycle",
+                    "Latest Cycle",
+                    "Cycle Count",
+                    "Members",
+                ]
+            )
+            for year in data:
+                for basin in data[year]:
+                    for storm, info in data[year][basin].items():
+                        members = info["members"]
+                        if len(members) > 6:
+                            members = [*members[:3], "...", *members[-3:]]
+                        elif len(members) == 0:
+                            members = ["None"]
+                        table.add_row(
+                            [
+                                year,
+                                basin,
+                                storm,
+                                info["first_cycle"],
+                                info["latest_cycle"],
+                                info["cycle_count"],
+                                " ".join(members),
+                            ]
+                        )
+            table.reversesort = True
+            print(table.get_string(sortby="Latest Cycle"))
         else:
             msg = "Unknown format"
             raise RuntimeError(msg)
