@@ -44,6 +44,8 @@ from .metget_data import (
     AVAILABLE_FORMATS,
     AVAILABLE_MODELS,
     AVAILABLE_VARIABLES,
+    DEEPMIND_ALL_MEMBERS,
+    DEEPMIND_ENSEMBLE_MEMBERS,
     RAW_ONLY_MODELS,
 )
 from .metget_environment import get_metget_environment_variables
@@ -114,8 +116,10 @@ class MetGetBuildRest:
             model = "ctcx"
         elif "deepmind" in model:
             # DeepMind has no advisory numbers; forecasts are identified by their forecast
-            # cycle (YYYYMMDDHH, 00/06/12/18Z), and an ensemble member ("F000"-"F049" or
-            # "mean") is always required. The storm year is derived from the cycle.
+            # cycle (YYYYMMDDHH, 00/06/12/18Z), and an ensemble member ("F000"-"F049",
+            # "mean", or the "all" sentinel requesting every archived member bundled into
+            # a single tar.gz) is always required. The storm year is derived from the
+            # cycle.
             keys = model.split("-")
             if len(keys) != 5:
                 msg = (
@@ -135,6 +139,15 @@ class MetGetBuildRest:
                 msg = (
                     f"DeepMind forecast cycle '{advisory}' is not a 10-digit "
                     "'YYYYMMDDHH' string"
+                )
+                raise RuntimeError(msg)
+            if (
+                ensemble_member not in DEEPMIND_ENSEMBLE_MEMBERS
+                and ensemble_member != DEEPMIND_ALL_MEMBERS
+            ):
+                msg = (
+                    f"DeepMind ensemble member '{ensemble_member}' is not valid; "
+                    "accepted forms are 'F000'-'F049', 'mean', or 'all'"
                 )
                 raise RuntimeError(msg)
             year = int(advisory[0:4])
