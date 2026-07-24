@@ -57,6 +57,15 @@ RAW_ONLY_MODELS = {"grtofs", "deepmind"}
 # Client model names whose server-side status model name differs
 STATUS_MODEL_ALIASES = {"grtofs": "rtofs"}
 
+# The 50 individual DeepMind ensemble members plus the ensemble mean. The
+# ensemble-member build/API key is "F000".."F049"; the mean is addressed as "mean".
+DEEPMIND_ENSEMBLE_MEMBERS = ["mean", *[f"F{i:03d}" for i in range(50)]]
+
+# Sentinel `ensemble_member` value requesting every archived member for a storm/cycle,
+# bundled into a single tar.gz delivery by the server. Deliberately NOT part of
+# DEEPMIND_ENSEMBLE_MEMBERS -- that list mirrors the real per-file members.
+DEEPMIND_ALL_MEMBERS = "all"
+
 # Available metget model types
 MODEL_TYPES = {
     "gfs": "synoptic",

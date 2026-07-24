@@ -136,7 +136,9 @@ def initialize_build_cli(subparsers):
         " 'deepmind-basin-storm_number-cycle-ensemble_member' where the cycle is the"
         " 10-digit YYYYMMDDHH forecast cycle (00/06/12/18Z; DeepMind has no advisory"
         " numbers) and the ensemble member is 'F000'-'F049' or 'mean' for the ensemble"
-        " mean (e.g. 'deepmind-al-02-2026072206-F007'); only '--format raw' is supported."
+        " mean (e.g. 'deepmind-al-02-2026072206-F007'); the member may also be 'all' to"
+        " request every ensemble member for the storm/cycle, delivered as a single"
+        " .tar.gz archive; only '--format raw' is supported."
         " For grtofs (Global RTOFS ocean data), only '--format raw' is supported and the"
         " data is always global; the resolution and corner values are ignored"
         " (e.g. 'grtofs 0.08 -180 -90 180 90').",
