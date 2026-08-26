@@ -367,6 +367,12 @@ class MetGetBuildRest:
                 )
                 raise RuntimeError(msg)
 
+        if kwargs.get("remove_vortices") and request_data["domains"]:
+            request_data["domains"] = [
+                {**domain, "remove_vortices": True}
+                for domain in request_data["domains"]
+            ]
+
         if kwargs.get("strict", False):
             request_data["strict"] = True
         else:
@@ -715,6 +721,7 @@ def metget_build(args: argparse.Namespace) -> None:
             strict=args.strict,
             dry_run=args.dryrun,
             save_json_request=args.save_json_request,
+            remove_vortices=getattr(args, "remove_vortices", False),
         )
 
         data_id, status_code = client.make_metget_request(request_data)

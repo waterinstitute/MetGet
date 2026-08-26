@@ -117,7 +117,23 @@ $ metget build --domain gfs 0.25 -100 10 -80 30 \
                --output metget_gfs_data.nc
 ```
 
-#### Example 4 - Request HWRF data overlaid on GFS data
+#### Example 4 - Request GFS data with tropical cyclone vortex removal
+This example requests GFS wind and pressure with GFDL/Kurihara vortex removal. The client does
+not choose a track source; the server uses each model's a-deck (AVNO/AVNX for GFS, NAM for NAM,
+HFSA/HFSB for HAFS, HWRF, COAMPS). HRRR and RRFS have no published tracker, so GFS is the first
+guess and the vortex is refined on the native grid. Precipitation is not filtered.
+
+```bash
+$ metget build --domain gfs 0.25 -100 10 -80 30 \
+               --start "2023-06-01 00:00" \
+               --end "2023-06-03 00:00" \
+               --timestep 3600 \
+               --output metget_gfs_data.nc \
+               --format generic-netcdf \
+               --remove-vortices
+```
+
+#### Example 5 - Request HWRF data overlaid on GFS data
 This example requests data from the HWRF model (Hurricane Mawar) with background forcing from the GFS model. Note that at the present time,
 the output format must support multi-domain data. Currently, the only format that supports this is `owi-ascii`. The
 data will be interpolated to a 0.25 degree grid and cover a portion of the Gulf of Mexico.
@@ -133,7 +149,7 @@ $ metget build --domain hwrf-mawar02w 0.15 -90 20 -85 25 \
                --output metget_hwrf_data
 ```
 
-#### Example 5 - Get the status of the GFS model runs
+#### Example 6 - Get the status of the GFS model runs
 This example demonstrates the ability for the system to provide information about what data is currently available
 
 ```bash
@@ -157,7 +173,7 @@ Status for model: GFS (class: synoptic)
 +---------------------+---------------------+------------------+
 ```
 
-#### Example 6: Retrieve GEOJSON track data for a specific storm
+#### Example 7: Retrieve GEOJSON track data for a specific storm
 This example demonstrates the ability to retrieve track data for a specific storm. The track data is returned in GEOJSON format.
 
 ```bash
@@ -165,7 +181,7 @@ $ metget track --year 2022 --storm 9 --basin al --type forecast --advisory 3 #..
 $ metget track --year 2022 --storm 9 --basin al --type besttrack #...Hurricane Ian 2022, best track data
 ```
 
-#### Example 7: Request the storm track data from the A-Deck
+#### Example 8: Request the storm track data from the A-Deck
 This example demonstrates how to get the storm track data for the GFS model (i.e. AVNO) for a specific storm
 and cycle. The data is returned in tabular format, but optionally can be requested in a machine-readable json
 format.
@@ -218,7 +234,7 @@ $ metget adeck --storm 14 --model AVNO --cycle 2024-10-08
 +---------------------+-----------+----------+---------------+------------------+
 ```
 
-### Example 8: Request all active systems
+### Example 9: Request all active systems
 This example demonstrates the ability to retrieve all active storms in the Atlantic basin. The data is returned in tabular format, but optionally can be requested in a machine-readable json format.
 ```bash
 $ metget adeck --storm all --model AVNO --cycle 2024-10-08
@@ -265,6 +281,7 @@ request_data = MetGetBuildRest.generate_request_json(
     strict=args.strict,
     dry_run=args.dryrun,
     save_json_request=args.save_json_request,
+    remove_vortices=args.remove_vortices,
 )
 
 client = MetGetBuildRest(metget_server, metget_api_key, metget_api_version)

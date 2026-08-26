@@ -1,4 +1,5 @@
 import argparse
+import copy
 import json
 import os
 from datetime import datetime
@@ -106,6 +107,39 @@ def test_build_gfs(capfd) -> None:
         args,
         capfd,
     )
+
+
+def test_build_gfs_remove_vortices() -> None:
+    """
+    **TEST PURPOSE**: Validates that --remove-vortices stamps the domain JSON
+    **MODULE**: metget_build.MetGetBuildRest.generate_request_json
+    **SCENARIO**: GFS build with vortex removal enabled and no track source
+    **EXPECTED**: Each domain includes remove_vortices=true; no identity/position source
+    """
+    request_dict = MetGetBuildRest.generate_request_json(
+        analysis=False,
+        multiple_forecasts=True,
+        start_date=datetime(2023, 6, 1),
+        end_date=datetime(2023, 6, 2),
+        format=None,
+        timestep=3600,
+        data_type="wind_pressure",
+        backfill=False,
+        filename="test_build_gfs",
+        dry_run=False,
+        strict=False,
+        remove_vortices=True,
+        domains=MetGetBuildRest.parse_command_line_domains(
+            [["gfs", 0.25, -100, 10, -80, 30]], 0
+        ),
+    )
+
+    request_dict["creator"] = "pytest"
+    expected = copy.deepcopy(METGET_BUILD_GFS_JSON)
+    expected["domains"][0]["remove_vortices"] = True
+    assert request_dict == expected
+    assert "identity_source" not in request_dict["domains"][0]
+    assert "position_source" not in request_dict["domains"][0]
 
 
 def test_build_hwrf_multidomain(capfd) -> None:
