@@ -220,6 +220,15 @@ def initialize_build_cli(subparsers):
         default=False,
     )
     build.add_argument(
+        "--remove-vortices",
+        action="store_true",
+        help="Remove tropical-cyclone vortices from wind and pressure using each "
+        "model's own tracker (GFS AVNO/AVNX, NAM, HAFS, HWRF, COAMPS). "
+        "HRRR and RRFS use GFS as a first guess. Precipitation is not filtered. "
+        "The request does not name a track source.",
+        default=False,
+    )
+    build.add_argument(
         "--epsg",
         help="Coordinate system of the specified domain and output data (default: 4326)",
         required=False,
